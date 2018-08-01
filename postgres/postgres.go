@@ -4,10 +4,10 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/golang_lib/email"
+	gl "github.com/golang_lib/gologger"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
-	"golang_lib/email"
-	gl "golang_lib/gologger"
 	"time"
 )
 

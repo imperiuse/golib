@@ -2,10 +2,10 @@ package telnet
 
 import (
 	"fmt"
-	cm "golang_lib/colormap"
-	"golang_lib/colors"
-	gl "golang_lib/gologger"
-	"golang_lib/safemap"
+	"github.com/golang_lib/colormap"
+	"github.com/golang_lib/colors"
+	gl "github.com/golang_lib/gologger"
+	"github.com/golang_lib/safemap"
 	"io"
 	"net"
 	"os"
@@ -223,12 +223,7 @@ func (server *ServerTelnet) Run() {
 	defer f.Close()                   // Дефер для закрытия файла
 
 	// Создание экземпляра Логгера для Логирования всех действий утилиты см. Пакет gologger/gologger.go
-	Log = gl.NewLogger(
-		gl.Destinations{
-			gl.INFO:  {gl.NoColor: f},
-			gl.DEBUG: {gl.NoColor: f},
-			gl.ERROR: {gl.NoColor: f},
-		}, 1, 0, 0, "\t", cm.CSMthemePicker("arseny"))
+	Log = gl.NewLogger(gl.ON_ALL, 1, 0, 0, "\t", colormap.CSMthemePicker("arseny"))
 
 	ln, err := net.Listen("tcp", fmt.Sprintf(":%v", server.Port))
 	if err != nil {

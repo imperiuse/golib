@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/garyburd/redigo/redis"
-	"golang_lib/gologger"
+	"github.com/golang_lib/gologger"
 	"time"
 )
 

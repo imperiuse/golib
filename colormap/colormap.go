@@ -2,7 +2,7 @@ package colormap
 
 import (
 	"fmt"
-	"golang_lib/concat"
+	"github.com/golang_lib/concat"
 	"strconv"
 )
 
