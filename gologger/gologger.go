@@ -6,7 +6,6 @@ import (
 	"github.com/imperiuse/golang_lib/concat"
 	"io"
 	"io/ioutil"
-	"os"
 	"runtime"
 	"time"
 )
@@ -38,7 +37,7 @@ type LoggerController interface {
 	SetColorScheme(colormap.CSM)
 	SetColorThemeName(string)
 
-	SetDefaultDestinations(DestinationFlag)
+	SetDefaultDestinations(io.Writer, DestinationFlag)
 	SetNewDestinations(Destinations)
 
 	SetDestinationLvl(lvl LogLvl, sWriters []io.Writer)
@@ -55,7 +54,7 @@ type LoggerController interface {
 }
 
 // Constructor Logger
-func NewLogger(destFlag DestinationFlag, n, callDepth, settingFlags int, delimiter string, csm colormap.CSM) Logger {
+func NewLogger(defaultOutput io.Writer, destFlag DestinationFlag, n, callDepth, settingFlags int, delimiter string, csm colormap.CSM) Logger {
 
 	i := 0
 	l := logger{
@@ -70,7 +69,7 @@ func NewLogger(destFlag DestinationFlag, n, callDepth, settingFlags int, delimit
 		csm,
 	}
 
-	l.SetDefaultDestinations(destFlag)
+	l.SetDefaultDestinations(defaultOutput, destFlag)
 	go l.writeChanGoroutine()
 
 	return &l
@@ -255,20 +254,20 @@ func GetDefaultDestinations() (defaultDest Destinations) {
 	return
 }
 
-func (l *logger) SetDefaultDestinations(flag DestinationFlag) {
+func (l *logger) SetDefaultDestinations(defaultWriter io.Writer, flag DestinationFlag) {
 	for lvl := range defaultDestinations {
 		switch flag {
 		case OFF_ALL:
 			l.Destinations[lvl] = []io.Writer{NoColor: ioutil.Discard, Color: ioutil.Discard}
 			l.LogMap[lvl] = []LogHandler{genDiscardFunc(), genDiscardFunc()}
 		case ON_NO_COLOR:
-			l.Destinations[lvl] = []io.Writer{NoColor: os.Stdout, Color: ioutil.Discard}
+			l.Destinations[lvl] = []io.Writer{NoColor: defaultWriter, Color: ioutil.Discard}
 			l.LogMap[lvl] = []LogHandler{genLogFunc(lvl), genDiscardFunc()}
 		case ON_COLOR:
-			l.Destinations[lvl] = []io.Writer{NoColor: ioutil.Discard, Color: os.Stdout}
+			l.Destinations[lvl] = []io.Writer{NoColor: ioutil.Discard, Color: defaultWriter}
 			l.LogMap[lvl] = []LogHandler{genDiscardFunc(), genColorLogFunc(lvl, LoggerColorSchemeDetached[lvl])}
 		case ON_ALL:
-			l.Destinations[lvl] = []io.Writer{NoColor: os.Stdout, Color: os.Stdout}
+			l.Destinations[lvl] = []io.Writer{NoColor: defaultWriter, Color: defaultWriter}
 			l.LogMap[lvl] = []LogHandler{genLogFunc(lvl), genColorLogFunc(lvl, LoggerColorSchemeDetached[lvl])}
 		}
 	}
