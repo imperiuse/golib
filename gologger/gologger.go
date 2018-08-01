@@ -2,8 +2,8 @@ package gologger
 
 import (
 	"fmt"
-	"github.com/golang_lib/colormap"
-	"github.com/golang_lib/concat"
+	"github.com/imperiuse/golang_lib/colormap"
+	"github.com/imperiuse/golang_lib/concat"
 	"io"
 	"io/ioutil"
 	"os"

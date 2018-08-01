@@ -1,7 +1,7 @@
 package gologger
 
 import (
-	"golang_lib/colormap"
+	"github.com/imperiuse/golang_lib/colormap"
 	"io"
 	"io/ioutil"
 	"os"

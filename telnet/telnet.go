@@ -2,10 +2,10 @@ package telnet
 
 import (
 	"fmt"
-	"github.com/golang_lib/colormap"
-	"github.com/golang_lib/colors"
-	gl "github.com/golang_lib/gologger"
-	"github.com/golang_lib/safemap"
+	"github.com/imperiuse/golang_lib/colormap"
+	"github.com/imperiuse/golang_lib/colors"
+	gl "github.com/imperiuse/golang_lib/gologger"
+	"github.com/imperiuse/golang_lib/safemap"
 	"io"
 	"net"
 	"os"

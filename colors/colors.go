@@ -2,7 +2,7 @@ package colors
 
 import (
 	"fmt"
-	"github.com/golang_lib/colormap"
+	"github.com/imperiuse/golang_lib/colormap"
 )
 
 var (
