@@ -11,12 +11,12 @@ import (
 
 func TestPrint(t *testing.T) {
 	f, _ := os.Create("log")
-	Log := NewLogger(OFF_ALL, 100, 0, Ldate|Ltime|Lshortfile, "\t",
+	Log := NewLogger(os.Stdout, OFF_ALL, 100, 0, Ldate|Ltime|Lshortfile, "\t",
 		colormap.CSMthemePicker("arseny"))
 
 	defer Log.Close()
 
-	Log.Info("YOU MUST NOT SEE THIS TEXT!!!")
+	Log.Info("YOU MUST NOT SEE THIS TEXT!!!") // Output: 123
 	Log.Debug("YOU MUST NOT SEE THIS TEXT!!!")
 	Log.Error("YOU MUST NOT SEE THIS TEXT!!!")
 	Log.Test("YOU MUST NOT SEE THIS TEXT!!!")
@@ -45,7 +45,7 @@ func TestPrint(t *testing.T) {
 	Log.Print("YOU MUST NOT SEE THIS TEXT!!!")
 	time.Sleep(time.Millisecond * 10)
 
-	Log = NewLogger(ON_COLOR, 100, 0, Ldate|Ltime|Lshortfile, "\t",
+	Log = NewLogger(os.Stdout, ON_COLOR, 100, 0, Ldate|Ltime|Lshortfile, "\t",
 		colormap.CSMthemePicker("arseny"))
 
 	Log.Info("It's Color Info msg!", "Info")
@@ -55,7 +55,7 @@ func TestPrint(t *testing.T) {
 	Log.P()
 	time.Sleep(time.Millisecond * 10)
 
-	Log = NewLogger(ON_NO_COLOR, 100, 0, Ldate|Ltime|Lshortfile, "\t",
+	Log = NewLogger(os.Stdout, ON_NO_COLOR, 100, 0, Ldate|Ltime|Lshortfile, "\t",
 		colormap.CSMthemePicker("arseny"))
 
 	Log.Info("It's  No Color Info msg!", "Info")
@@ -65,7 +65,7 @@ func TestPrint(t *testing.T) {
 	Log.P()
 	time.Sleep(time.Millisecond * 10)
 
-	Log = NewLogger(ON_ALL, 100, 0, Ldate|Ltime|Lshortfile, "\t",
+	Log = NewLogger(os.Stdout, ON_ALL, 100, 0, Ldate|Ltime|Lshortfile, "\t",
 		colormap.CSMthemePicker("arseny"))
 
 	Log.Info("It's  Both NO Color and COLOR :) Info msg!", "Info")
@@ -98,7 +98,7 @@ func TestPrint(t *testing.T) {
 
 func BenchmarkNewBasicLogger(b *testing.B) {
 	//f, _ := os.Create("log")
-	Log := NewLogger(ON_NO_COLOR, 100, 0, Ldate|Ltime|Lshortfile, "\t",
+	Log := NewLogger(os.Stdout, ON_NO_COLOR, 100, 0, Ldate|Ltime|Lshortfile, "\t",
 		colormap.CSMthemePicker("arseny"))
 
 	for i := 0; i < b.N; i++ {
