@@ -27,6 +27,15 @@ func init() {
 	RESET = colormap.CreateCS(colormap.CLR_RESET)
 }
 
+// Функция для логирования ошибки или статуса что ее нет.
+func CheckErrorFunc(err error, f string) {
+	if err != nil {
+		fmt.Println("[CheckErrFunc]", colors.RED, "Error while ", f,  err, "\n", colors.RESET)
+	} else {
+		fmt.Println("[CheckErrFunc]", colors.GREEN, "Successful ", f, "\n", colors.RESET)
+	}
+}
+
 func ColorizedString(color string, value string) string {
 	return fmt.Sprint(color, value, RESET)
 }
