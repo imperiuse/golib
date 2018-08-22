@@ -30,9 +30,9 @@ func init() {
 // Функция для логирования ошибки или статуса что ее нет.
 func CheckErrorFunc(err error, f string) {
 	if err != nil {
-		fmt.Println("[CheckErrFunc]", colors.RED, "Error while ", f,  err, "\n", colors.RESET)
+		fmt.Println("[CheckErrFunc]", RED, "Error while ", f,  err, "\n", RESET)
 	} else {
-		fmt.Println("[CheckErrFunc]", colors.GREEN, "Successful ", f, "\n", colors.RESET)
+		fmt.Println("[CheckErrFunc]", GREEN, "Successful ", f, "\n", RESET)
 	}
 }
 
