@@ -155,6 +155,6 @@ func CSMthemePicker(ThemeName string) (cs CSM) {
 		cs[CS_MEMCHD] = ColorSheme{CreateCS(CLR_FG_GREEN, CLR_BOLD), CreateCS(CLR_FG_BLUE, CLR_BOLD), CreateCS(NEW_LINE, CLR_BG_GREEN, CLR_BOLD)}
 		return
 	default:
-		return
+		return  // copy of Deafult CSM
 	}
 }

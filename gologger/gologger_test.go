@@ -16,11 +16,11 @@ func TestPrint(t *testing.T) {
 
 	defer Log.Close()
 
-	Log.Info("YOU MUST NOT SEE THIS TEXT!!!") // Output: 123
-	Log.Debug("YOU MUST NOT SEE THIS TEXT!!!")
-	Log.Error("YOU MUST NOT SEE THIS TEXT!!!")
-	Log.Test("YOU MUST NOT SEE THIS TEXT!!!")
-	Log.Print("YOU MUST NOT SEE THIS TEXT!!!")
+	Log.Info("This is printed text")  // Output: This is printed text
+	Log.Debug("This is printed text") // Output: This is printed text
+	Log.Error("This is printed text") // Output: This is printed text
+	Log.Test("This is printed text")  // Output: This is printed text
+	Log.Print("This is printed text") // Output: This is printed text
 
 	time.Sleep(time.Millisecond * 10)
 
@@ -38,11 +38,11 @@ func TestPrint(t *testing.T) {
 	time.Sleep(time.Millisecond * 10)
 
 	Log.SetNewDestinations(GetDefaultDestinations())
-	Log.Info("YOU MUST NOT SEE THIS TEXT!!!")
-	Log.Debug("YOU MUST NOT SEE THIS TEXT!!!")
-	Log.Error("YOU MUST NOT SEE THIS TEXT!!!")
-	Log.Test("YOU MUST NOT SEE THIS TEXT!!!")
-	Log.Print("YOU MUST NOT SEE THIS TEXT!!!")
+	Log.Info("This is printed text")  // Output: This is printed text
+	Log.Debug("This is printed text") // Output: This is printed text
+	Log.Error("This is printed text") // Output: This is printed text
+	Log.Test("This is printed text")  // Output: This is printed text
+	Log.Print("This is printed text") // Output: This is printed text
 	time.Sleep(time.Millisecond * 10)
 
 	Log = NewLogger(os.Stdout, ON_COLOR, 100, 0, Ldate|Ltime|Lshortfile, "\t",
