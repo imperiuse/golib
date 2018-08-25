@@ -133,7 +133,7 @@ const (
 )
 
 func copyDefaultCSM(csm *CSM) {
-	for key, value := range DefaultCSM {
+	for key, value := range defaultCSM {
 		(*csm)[key] = value
 	}
 }
