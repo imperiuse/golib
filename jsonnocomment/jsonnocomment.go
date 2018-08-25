@@ -1,10 +1,10 @@
-package jsonNoComment
+package jsonnocomment
 
 import (
 	"io/ioutil"
 )
 
-// Функция чтения JSON файла и удаления из него закоментированных строк и блок (комментарии согласно правилам С/С++)
+// ReadFileAndCleanComment - Функция чтения JSON файла и удаления из него закоментированных строк и блок (комментарии согласно правилам С/С++)
 func ReadFileAndCleanComment(pathFile string) (cleanFile []byte, err error) {
 	// Чтение из file по pathFile
 	file, err := ioutil.ReadFile(pathFile)
