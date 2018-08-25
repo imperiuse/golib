@@ -38,10 +38,14 @@ const (
 	COLORSCHEME_NEXT
 )
 
+// Color Sheme - it's element of Color Scheme Map
 type ColorSheme []string
-type CSM map[CSN]ColorSheme // ColorSchemeMap
 
-var DefaultCSM = CSM{
+// Color Scheme Map  - central unit of colormap package
+type CSM map[CSN]ColorSheme
+
+// Default Color Scheme Map
+var defaultCSM = CSM{
 	CS_RESET:       ColorSheme{CreateCS(CLR_RESET)},
 	CS_INFO:        ColorSheme{CreateCS(CLR_FG_GREEN, CLR_BOLD)},
 	CS_DEBUG:       ColorSheme{CreateCS(CLR_FG_YELLOW, CLR_BOLD)},
@@ -56,6 +60,7 @@ var DefaultCSM = CSM{
 	CS_DATETIME:    ColorSheme{CreateCS(CLR_FG_YELLOW)},
 }
 
+// CreateCS - create and return custom Color Sheme @see CS
 func CreateCS(attrs ...interface{}) (s string) {
 	s = "\x1b["
 	for i, val := range attrs {
@@ -133,6 +138,12 @@ func copyDefaultCSM(csm *CSM) {
 	}
 }
 
+// GetDefaultCSM - return Default Color Sheme Map @see CSM
+func GetDefaultCSM() (cs CSM) {
+	return CSMthemePicker("")
+}
+
+// CSMthemePicker - return Custom Color Sheme Map @see CSM
 func CSMthemePicker(ThemeName string) (cs CSM) {
 	cs = make(CSM)
 	copyDefaultCSM(&cs)
