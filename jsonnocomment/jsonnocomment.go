@@ -22,29 +22,41 @@ func ReadFileAndCleanComment(pathFile string) (cleanFile []byte, err error) {
 		switch c {
 		case 10: // ASCI CODE OF '/n'
 			commentLine = false
+			cleanFile[j] = c
+			j++
 		case 47: // ASCII CODE OF '/'
-			i++
-			if (i) < l {
-				switch file[i] { // next symbol
-				case 47: // проверка двух скобок подряд '//'  Comment Line Start
-					commentLine = true
-				case 42: // проверка '/*'   Comment Block Start
-					commentBlock = true
-				default:
-					i--
-				}
-			} else {
-				i--
-			}
-		case 42: // ASCI CODE OF '*'
-			if commentBlock {
+			if !commentLine && !commentBlock {
 				i++
-				if (i) < l {
+				if i < l {
 					switch file[i] { // next symbol
-					case 47: // проверка двух скобок подряд '*/'  Comment Block End
-						commentBlock = false
+					case 47: // проверка двух скобок подряд '//'  Comment Line Start
+						commentLine = true
+					case 42: // проверка '/*'   Comment Block Start
+						commentBlock = true
 					default:
 						i--
+						cleanFile[j] = c
+						j++
+					}
+				} else {
+					i--
+				}
+			}
+		case 42: // ASCI CODE OF '*'
+			if !commentLine {
+				i++
+				if i < l {
+					switch file[i] { // next symbol
+					case 47: // проверка на '*/'  Comment Block End
+						if commentBlock {
+							commentBlock = false
+						}
+					default:
+						i--
+						if !commentBlock {
+							cleanFile[j] = c
+							j++
+						}
 					}
 				} else {
 					i--
@@ -57,6 +69,6 @@ func ReadFileAndCleanComment(pathFile string) (cleanFile []byte, err error) {
 			}
 		}
 	}
-	//fmt.Println(string(cleanFile[:j]))
+	//fmt.Println(cleanFile[:j])
 	return cleanFile[:j], err
 }

@@ -1,6 +1,6 @@
 {
-  "name": "test JSON file",
-  //"comment_line": "not see this line of //text /*comment too */",
-  /*"comment_block": "not see this block of //text",*/
-  "end": "end json file"
-}
+  "name": "test */JSON file/",
+  //"comment_line": "not /see this line of //text /*comment too */",/
+  /*"comment_block": "not see *this* block of //text",*/
+  "end": "end/ json /file*"
+}//
