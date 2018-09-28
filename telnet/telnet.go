@@ -30,9 +30,9 @@ type Command struct {
 	Name string
 	Code int
 	// VALUES
-	ValueInt       int
-	ValueFloat     float64
-	ValueString    string
+	int
+	float64
+	string
 	ValueInterface interface{}
 }
 
@@ -49,19 +49,19 @@ type CommandList []CommandTelnet
 // @param
 // 	  connection   network.connection  - сетевое соединнение
 // 	  msg     	 string              - анализируемое сообщеие (потенциальная команда)
-func (server *ServerTelnet) CommandAnalyze(connection net.Conn, msg_chan <-chan string, stop_chan chan interface{}) {
+func (server *ServerTelnet) CommandAnalyze(connection net.Conn, msgChan <-chan string, stopChan chan interface{}) {
 	var count int = 0
-	var old_msg string
+	var oldMsg string
 	for {
-		msg := <-msg_chan
+		msg := <-msgChan
 		count++
 		Log.Debug("Telnet", "command_analyze()", fmt.Sprintf(" Receive Data %d: %s", count, msg))
 
 		// Повтор последней команды в стиле команжной строки bash
 		if len(msg) == 3 && []byte(msg)[0] == 27 && []byte(msg)[1] == 91 && []byte(msg)[2] == 65 { //^[[A
-			msg = old_msg
+			msg = oldMsg
 		} else {
-			old_msg = msg
+			oldMsg = msg
 		}
 
 		if msg == "Q" || msg == "q" {
@@ -69,19 +69,19 @@ func (server *ServerTelnet) CommandAnalyze(connection net.Conn, msg_chan <-chan 
 		}
 
 		no_one_match := true
-		for _, com_str := range server.TCL {
-			if com_str.RegExp.MatchString(msg) {
+		for _, command := range server.TCL {
+			if command.RegExp.MatchString(msg) {
 				no_one_match = false
-				exit, err := com_str.Func(server, connection, msg)
+				exit, err := command.Func(server, connection, msg)
 				if err != nil {
 					// BAD
 					Log.Error("Telnet", "command_analyze()", "ERR in CommandAnalyze F return")
-					stop_chan <- new(interface{}) // Если что то не то закрываем ВСЕ!
+					stopChan <- new(interface{}) // Если что то не то закрываем ВСЕ!
 					return
 				}
 				if exit != nil {
 					Log.Info("Telnet", "command_analyze()", "Close CommandAnalyze()")
-					stop_chan <- new(interface{}) // сигнал на закрытие всего
+					stopChan <- new(interface{}) // сигнал на закрытие всего
 					return
 				}
 				break // Ищем только самую первую команду в списке (учесть при формировании)
@@ -99,7 +99,7 @@ func (server *ServerTelnet) CommandAnalyze(connection net.Conn, msg_chan <-chan 
 
 // Функция обработки одного подключения
 //  @param
-//       connection  network.connection  - сетевое соединение
+//       connection  net.Conn  - сетевое соединение
 //  @return
 func (server *ServerTelnet) handleConnection(connection net.Conn) {
 	defer connection.Close()
@@ -109,17 +109,17 @@ func (server *ServerTelnet) handleConnection(connection net.Conn) {
 			Log.Error("Telnet", "handleConnection()", "Panic!", r)
 			connection.Close()
 			(*server.Stats).Dec("telnet_connect")
-			//Stats.Inc("Panic_TCP")
+			(*server.Stats).Inc("telnet_panic_recover_handle_connection")
 		}
 	}()
 
 	t := time.After(time.Duration(server.Timeout) * time.Second) // Timeout после timeout sec секунд неактивности
 	// Каналы для связи двух go-рутин
-	msg_chan := make(chan string)
-	stop_chan := make(chan interface{})
+	msgChan := make(chan string)
+	stopChan := make(chan interface{})
 	// go-рутина анализатор сообщений (print command, switch and print result command or do smth...)
-	go server.CommandAnalyze(connection, msg_chan, stop_chan)
-	msg_chan <- "help" // чтобы в начале вывелся списко команд
+	go server.CommandAnalyze(connection, msgChan, stopChan)
+	msgChan <- "help" // чтобы в начале вывелся списко команд
 
 	Log.Info("Telnet", "handleConnection()", fmt.Sprintf("Connection from %v established.", connection.RemoteAddr()))
 
@@ -134,7 +134,7 @@ func (server *ServerTelnet) handleConnection(connection net.Conn) {
 		if err != nil {
 			if err == io.EOF {
 				Log.Error("Telnet", "Connect close. EOF.", err)
-				msg_chan <- "exit"          // команда для завершшения го-рутины обработки команд
+				msgChan <- "exit"           // команда для завершшения го-рутины обработки команд
 				time.Sleep(1 * time.Second) // чтобы дочка успела отработать и послать в канал stop сигнал стоп
 				//return ??
 			} else {
@@ -148,7 +148,7 @@ func (server *ServerTelnet) handleConnection(connection net.Conn) {
 		}
 		// else no err and n >0
 		t = time.After(time.Duration(server.Timeout) * time.Second)
-		msg_chan <- strings.TrimSpace(string(buf[0:n])) // передача команды для отработки
+		msgChan <- strings.TrimSpace(string(buf[0:n])) // передача команды для отработки
 		time.Sleep(250 * time.Millisecond)
 
 	next:
@@ -157,7 +157,7 @@ func (server *ServerTelnet) handleConnection(connection net.Conn) {
 			Log.Info("Telnet", "handleConnection()",
 				fmt.Sprintf("Connection from %v closed. Timeout %v sec exist!.", connection.RemoteAddr(), server.Timeout))
 			return
-		case <-stop_chan: // получена команда "Exit"
+		case <-stopChan: // получена команда "Exit"
 			//c.Close()
 			Log.Info("Telnet", "handleConnection()",
 				fmt.Sprintf("Connection from %v closed. Exit сommand.", connection.RemoteAddr()))
@@ -223,7 +223,7 @@ func (server *ServerTelnet) Run() {
 	defer f.Close()                   // Дефер для закрытия файла
 
 	// Создание экземпляра Логгера для Логирования всех действий утилиты см. Пакет gologger/gologger.go
-	Log = gl.NewLogger(gl.ON_ALL, 1, 0, 0, "\t", colormap.CSMthemePicker("arseny"))
+	Log = gl.NewLogger(os.Stdout, gl.ON_ALL, 1, 0, 0, "\t", colormap.CSMthemePicker("arseny"))
 
 	ln, err := net.Listen("tcp", fmt.Sprintf(":%v", server.Port))
 	if err != nil {
