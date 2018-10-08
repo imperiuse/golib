@@ -286,7 +286,7 @@ func (l *logger) SetNewDestinations(destinations Destinations) {
 		l.Destinations[lvl] = make([]io.Writer, 2)
 		l.LogMap[lvl] = make([]LogHandler, 2)
 		for color, writer := range destinations[lvl] {
-			l.SetAndEnableDestinationLvlColor(lvl, color, writer)
+			l.SetAndEnableDestinationLvlColor(lvl, ColorFlag(color), writer)
 		}
 	}
 }
