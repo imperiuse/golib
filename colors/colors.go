@@ -1,7 +1,7 @@
 package colors	
  import (	
 	"fmt"	
-	"github.com/imperiuse/golang_lib/colormap"	
+	"github.com/imperiuse/golib/colormap"
 )	
  var (	
 	RED     string	
