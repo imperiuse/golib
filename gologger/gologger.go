@@ -117,14 +117,14 @@ const (
 	MEMCHD_FAIL
 )
 
-type ColorFlag = int
+type ColorFlag int
 
 const (
 	NoColor ColorFlag = iota
 	Color
 )
 
-type DestinationFlag = int
+type DestinationFlag int
 
 const (
 	OFF_ALL DestinationFlag = iota
