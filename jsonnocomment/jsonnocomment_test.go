@@ -10,7 +10,7 @@ var expectedResult = []byte{123, 10, 32, 32, 34, 110, 97, 109, 101, 34, 58, 32, 
 	100, 47, 32, 106, 115, 111, 110, 32, 47, 102, 105, 108, 101, 42, 34, 10, 125}
 
 func TestReadFileAndCleanComment(t *testing.T) {
-	bytesResult, err := ReadFileAndCleanComment("./testFile.json")
+	bytesResult, err := ReadFileAndCleanComment("./test_json/testFile.json")
 	if err != nil || bytesResult == nil {
 		t.Errorf("Unexpected error while Read and Clean Json file: %v", err)
 		t.Failed()
@@ -32,7 +32,7 @@ error:
 
 // Негативный тест проверка на правильную реакцию на несуществующий файл
 func TestReadFileAndCleanComment2(t *testing.T) {
-	bytesResult, err := ReadFileAndCleanComment("./noExistFile.json")
+	bytesResult, err := ReadFileAndCleanComment("./test_json/noExistFile.json")
 	if err == nil || bytesResult != nil {
 		t.Errorf("No err while read non exist file: %v", err)
 		t.Failed()
@@ -41,7 +41,7 @@ func TestReadFileAndCleanComment2(t *testing.T) {
 
 // Негативный тест проверка на правильную реакцию на плохой файл
 func TestReadFileAndCleanComment3(t *testing.T) {
-	bytesResult, err := ReadFileAndCleanComment("./badFile.json")
+	bytesResult, err := ReadFileAndCleanComment("./test_json/badFile.json")
 	if err != nil || bytesResult == nil {
 		t.Errorf("Unexpected error while Read and Clean Json file: %v", err)
 		t.Failed()
@@ -57,7 +57,7 @@ func TestReadFileAndCleanComment3(t *testing.T) {
 
 // Негативный тест проверка на правильную реакцию на плохой файл
 func TestReadFileAndCleanComment4(t *testing.T) {
-	bytesResult, err := ReadFileAndCleanComment("./badFile2.json")
+	bytesResult, err := ReadFileAndCleanComment("./test_json/badFile2.json")
 	if err != nil || bytesResult == nil {
 		t.Errorf("Unexpected error while Read and Clean Json file: %v", err)
 		t.Failed()
@@ -81,7 +81,7 @@ func ExampleReadFileAndCleanComment() {
 	//  "end": "end/ json /file*"
 	//}//`
 
-	bytes, err := ReadFileAndCleanComment("./testFile.json")
+	bytes, err := ReadFileAndCleanComment("./test_json/testFile.json")
 	if err != nil {
 		print("Unexpected error while Read and Clean Json file: %v", err)
 	}
