@@ -1,0 +1,10 @@
+[
+  {
+    "id": "bad_obj_4",
+    "enable": true,
+    "struct": "bad_struct_name",
+    "description": "Description Test Bad Struct 4",
+    "properties": [
+    ]
+  }
+]

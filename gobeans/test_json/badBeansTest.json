@@ -1,0 +1,16 @@
+[
+  {
+    "id": "bad_anonymous",
+    "enable": true,
+    "struct": "",
+    "structFields": [
+      {
+        "name": "bad_filed_name",
+        "type": "github.com/imperiuse/golib/gobeans.TestStruct1"
+      }
+    ],
+    "description": "Bad Anonumous obj",
+    "properties": [
+    ]
+  }
+]

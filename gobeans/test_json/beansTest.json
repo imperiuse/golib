@@ -1,0 +1,175 @@
+[
+  {
+    "id": "IDTestStruct0",
+    "enable": false,
+    "struct": "github.com/imperiuse/golib/gobeans.TestStruct0",
+    "description": "Description Test Struct 0. STRUCT DISABLED!",
+    "properties": [
+      {
+        "type": "nat",
+        "name": "Host",
+        "value": "localhost"
+      }
+    ]
+  },
+  {
+    "id": "IDTestStruct1",
+    "enable": true,
+    "struct": "github.com/imperiuse/golib/gobeans.TestStruct1",
+    "description": "Description Test Struct 1",
+    "properties": [
+      {
+        "type": "nat",
+        "name": "FieldStr",
+        "value": "I'm string"
+      },
+      {
+        "type": "nat",
+        "name": "FieldInt",
+        "value": 1
+      },
+      {
+        "type": "nat",
+        "name": "FieldFloat64",
+        "value": 3.14
+      }
+    ]
+  },
+  {
+    "id": "anonymous",
+    "enable": true,
+    "struct": "",
+    "structFields": [
+      {
+        "name": "T1",
+        "type": "github.com/imperiuse/golib/gobeans.TestStruct1"
+        //        "tag": "`json:'af1'`"
+      },
+      {
+        "name": "P_T1",
+        "type": "github.com/imperiuse/golib/gobeans.*TestStruct1"
+        //        "tag": "`json:'af2'`"
+      }
+    ],
+    "description": "Description Anonumous obj",
+    "properties": [
+      {
+        "type": "copy",
+        "name": "T1",
+        "value": "IDTestStruct1"
+      },
+      {
+        "type": "link",
+        "name": "P_T1",
+        "value": "IDTestStruct1"
+      }
+    ]
+  },
+  {
+    "id": "IDTestStruct2",
+    "enable": true,
+    "struct": "github.com/imperiuse/golib/gobeans.TestStruct2",
+    "description": "Description Test Struct 3",
+    "properties": [
+      {
+        "type": "nat",
+        "name": "FieldStr",
+        "value": "I'm string"
+      },
+      {
+        "type": "nat",
+        "name": "FieldInt",
+        "value": 1
+      },
+      {
+        "type": "nat",
+        "name": "FieldFloat64",
+        "value": 3.14
+      },
+      {
+        "type": "nat",
+        "name": "FieldStrOut",
+        "value": "I'm string Out"
+      }
+    ]
+  },
+  {
+    "id": "IDTestStruct3",
+    "enable": true,
+    "struct": "github.com/imperiuse/golib/gobeans.TestStruct3",
+    "description": "Description Test Struct 0.",
+    "properties": [
+      {
+        "type": "nat",
+        "name": "FieldSliceStr",
+        "value": [
+          "This",
+          "is",
+          "string",
+          "slice!"
+        ]
+      },
+//      {  TODO ОШИБКА  s. Err: reflect.Set: value of type float64 is not assignable to type int
+//        "type": "nat",
+//        "name": "FieldSliceInt",
+//        "value": [
+//         1,2,3,4
+//        ]
+//      },
+      {
+        "type": "nat",
+        "name": "FieldSliceFloat64",
+        "value": [
+         1.11,2.22,3.33
+        ]
+      },
+      {
+        "type": "nat",
+        "name": "FieldMapStringString",
+        "value": {
+          "a": "aaa",
+          "b": "bbb",
+          "c": "ccc"
+        }
+      },
+//      { TODO ОШИБКА  s. Err: reflect.Set: value of type float64 is not assignable to type int
+//        "type": "nat",
+//        "name": "FieldMapStringInt",
+//        "value": {
+//          "a": 1,
+//          "b": 2,
+//          "c": 3
+//        }
+//      },
+      {
+        "type": "nat",
+        "name": "FieldMapStringFloat64",
+        "value": {
+          "a": 1.11,
+          "b": 2.22,
+          "c": 3.33
+        }
+      },
+      {
+        "type": "copy",
+        "name": "T1",
+        "value": "IDTestStruct1"
+      },
+      {
+        "type": "link",
+        "name": "PT1",
+        "value": "IDTestStruct1"
+      },
+      {
+        "type": "copy",
+        "name": "T2",
+        "value": "IDTestStruct2"
+      },
+      {
+        "type": "link",
+        "name": "PT2",
+        "value": "IDTestStruct2"
+      }
+    ]
+  }
+]

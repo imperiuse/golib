@@ -1,0 +1,30 @@
+[
+  {
+    "id": "bad anonymous 3",
+    "enable": true,
+    "struct": "",
+    "structFields": [
+      {
+        "name": "T1",
+        "type": "github.com/imperiuse/golib/gobeans.TestStruct1"
+      },
+      {
+        "name": "P_T1",
+        "type": "github.com/imperiuse/golib/gobeans.*TestStruct1"
+      }
+    ],
+    "description": "Description Bad Anonumous obj 3",
+    "properties": [
+      {
+        "type": "copy",
+        "name": "T1",
+        "value": "BAD_LINK"
+      },
+      {
+        "type": "link",
+        "name": "P_T1",
+        "value": "BAD_LINK"
+      }
+    ]
+  }
+]

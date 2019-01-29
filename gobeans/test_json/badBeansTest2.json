@@ -1,0 +1,16 @@
+[
+  {
+    "id": "bad_anonymous 2",
+    "enable": true,
+    "struct": "",
+    "structFields": [
+      {
+        "name": "T1",
+        "type": "BAD_STRUCT_NAME"
+      }
+    ],
+    "description": "Bad Anonumous obj 2",
+    "properties": [
+    ]
+  }
+]
