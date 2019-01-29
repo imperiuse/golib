@@ -164,10 +164,10 @@ func TestGetBeansAndGetReflectType(t *testing.T) {
 	Beans.GetBean("IDTestStruct1")
 	Beans.GetMapBeans()
 	Beans.GetIDBeans()
-	if typ := Beans.GetReflectTypeByName("gitlab.esta.spb.ru/linuxoid/goweb/gobeans.TestStruct2"); typ != reflect.TypeOf((*TestStruct2)(nil)).Elem() {
+	if typ := Beans.GetReflectTypeByName("github.com/imperiuse/golib/gobeans.TestStruct2"); typ != reflect.TypeOf((*TestStruct2)(nil)).Elem() {
 		t.Errorf("Error! Unexpected value of reflect type: TestStruct2")
 	}
-	if typ, found := Beans.FoundAndGetReflectTypeByName("gitlab.esta.spb.ru/linuxoid/goweb/gobeans.TestStruct3"); !found {
+	if typ, found := Beans.FoundAndGetReflectTypeByName("github.com/imperiuse/golib/gobeans.TestStruct3"); !found {
 		t.Errorf("Error while get type of exist registrated struct: TestStruct3 %v", err)
 	} else if typ != reflect.TypeOf((*TestStruct3)(nil)).Elem() {
 		t.Errorf("Error! Unexpected value of reflect type: TestStruct3")
