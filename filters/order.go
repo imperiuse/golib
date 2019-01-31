@@ -26,18 +26,21 @@ type OrderFilters struct {
 // @param
 // 				filters     ...Filterer    -  some Filters interfaces that will chain of filters
 func (filterOrder *OrderFilters) AppendFilter(filters ...Filterer) {
-	cntFilters := len(filters)
-	for i := range filters {
-		if lenFO := len(filterOrder.filters); lenFO > 0 {
-			// if already filterOrder have some filter so set next filter pointer
-			filterOrder.filters[lenFO].SetNextFilter(&filters[i])
-		}
-		filterOrder.filters = append(filterOrder.filters, filters[i]) // Save interface of filter
-		filters[i].SetSelfPointer(&filters[i])                        // IMPORTANT! Save self interface pointer
-		if i+1 != cntFilters {
-			filters[i].SetNextFilter(&filters[i+1]) // Save pointer to interface to next filter
+	if cntFilters := len(filters); cntFilters > 0 {
+		if filterOrder.filters == nil {
+			filterOrder.filters = []Filterer{}
 		} else {
-			filters[i].SetNextFilter(nil) // flag end of filter
+			// if already filterOrder have some filter so set next filter pointer
+			filterOrder.filters[len(filterOrder.filters)].SetNextFilter(&filters[0])
+		}
+		for i := range filters {
+			filterOrder.filters = append(filterOrder.filters, filters[i]) // Save interface of filter
+			filters[i].SetSelfPointer(&filters[i])                        // IMPORTANT! Save self interface pointer
+			if i+1 != cntFilters {
+				filters[i].SetNextFilter(&filters[i+1]) // Save pointer to interface to next filter
+			} else {
+				filters[i].SetNextFilter(nil) // flag end of filter
+			}
 		}
 	}
 }
