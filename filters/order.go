@@ -7,6 +7,8 @@ import (
 
 // OrderFilterer - order of filter interface
 type OrderFilterer interface {
+	// Get order of filters
+	GetOrderFilters() []string
 	// Append some new filter to chains. !ATTENTION! MODIFY FILTER ! SetNextFilterPointer() to each input Filter!!!
 	AppendFilter(...Filterer)
 	// Get N-й filter. 0 - First, ... n - Last
@@ -17,8 +19,15 @@ type OrderFilterer interface {
 
 // OrderFilters - order of filter struct
 type OrderFilters struct {
-	Order   []string
+	order   []string
 	filters []Filterer
+}
+
+// GetOrderFilters -  Get order of filters
+//@return
+//                 []string    -   slice of string (name filters)
+func (filterOrder *OrderFilters) GetOrderFilters() []string {
+	return filterOrder.order
 }
 
 // AppendFilter - Append some new filter to chains.
