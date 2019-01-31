@@ -20,9 +20,10 @@ Go have not full inheritance, there is only *embedding* and *aggregation*.
  
 Based on this, a model with **embedding** the basic structure of the filter and the mechanism for obtaining interface pointers are selected.
 myself.
-Attention!
-For create flexible design and execute child method of parents struct, mechanism of pointer to themself in BaseFilter is used.  
-**So you always need to set self pointer by used method!**
+
+
+So because I need pointer to child interface for create flexible design and execute child method of parents struct, mechanism of pointer to themself in BaseFilter is used.  
+**At the begining you always need to set self pointer by used method!**
 
     InterfaceCustomFilter.SetSelfPointer(&InterfaceCustomFilter) // ATTENTION! ALWAYS SET THIS! Self pointer! IMPORTANT!
 

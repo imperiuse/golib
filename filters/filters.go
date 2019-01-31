@@ -8,17 +8,21 @@ import (
 // BaseFilter - Базовая структура фильтра
 type BaseFilter struct {
 	Name        string    // наименование фильтра
-	NextFilter  *Filterer // ссылка на следующий фильтр
-	SelfPointer *Filterer // ссылка на себя
+	nextFilter  *Filterer // ссылка на следующий фильтр
+	selfPointer *Filterer // ссылка на себя
 }
 
 // Filterer - базовый интерфейс фильтров
 type Filterer interface {
-	Info() string              // Метод получения информации по фильтру
-	SetNextFilter(*Filterer)   // Метод установки указателя на следующий фильтр (интерфейс фильтра)
-	SetSelfPointer(*Filterer)  // Метод установки указателя на себя (указатель на интерфейс себя)
+	GetBaseFilter() Filterer // Метод получения родителя
+
+	SetNextFilter(*Filterer)  // Метод установки указателя на следующий фильтр (интерфейс фильтра)
+	SetSelfPointer(*Filterer) // Метод установки указателя на себя (указатель на интерфейс себя)
+
 	GetNextFilter() *Filterer  // Метод получения указателя на следующий фильтр (интерфейс фильтра)
 	GetSelfPointer() *Filterer // Метод получения указателя на себя (указатель на интерфейс себя)
+
+	Info() string // Метод получения информации по фильтру
 
 	Before(http.ResponseWriter, *http.Request) // 1 Вспомогательный метод - предварительный метод фильтра
 	Filter(http.ResponseWriter, *http.Request) // Основной метод фильтра
@@ -33,51 +37,55 @@ type Filterer interface {
 	// фильтра т.е. при вызове функций Before, After, Filter
 }
 
+func (f *BaseFilter) GetBaseFilter() Filterer {
+	return f
+}
+
 // Info - метод возращает информацию по фильтру
 func (f *BaseFilter) Info() string {
-	return fmt.Sprintf("%+v", *f)
+	return fmt.Sprintf("[BaseFilter] Before():\n%+v", *f)
 }
 
 // SetNextFilter - метод для установки указателя на интерфейс след. фильтра
 //nolint
 func (f *BaseFilter) SetNextFilter(nf *Filterer) {
-	f.NextFilter = nf
+	f.nextFilter = nf
 }
 
 // SetSelfPointer - метод для установки указателя на себя (указатель на интерфейс себя)
 //nolint
 func (f *BaseFilter) SetSelfPointer(self *Filterer) {
-	f.SelfPointer = self
+	f.selfPointer = self
 }
 
 // GetNextFilter - метод получения текущего указателя на интерфейс след. фильтра
 //nolint
 func (f *BaseFilter) GetNextFilter() *Filterer {
-	return f.NextFilter
+	return f.nextFilter
 }
 
 // GetSelfPointer - метод получения текущего указателя себя (указатель на интерфейс себя)
 //nolint
 func (f *BaseFilter) GetSelfPointer() *Filterer {
-	return f.SelfPointer
+	return f.selfPointer
 }
 
 // Before - метод фильтра вызывающийся до Filter
 func (f *BaseFilter) Before(http.ResponseWriter, *http.Request) {
 	fmt.Println("[BaseFilter] Before()")
-	fmt.Println((*f.SelfPointer).Info())
+	fmt.Println((*f.selfPointer).Info())
 }
 
 // After - метод фильтра вызывающийся после Filter
 func (f *BaseFilter) After(http.ResponseWriter, *http.Request) {
 	fmt.Println("[BaseFilter] After()")
-	fmt.Println((*f.SelfPointer).Info())
+	fmt.Println((*f.selfPointer).Info())
 }
 
 // Filter - основной метод фильтра
 func (f *BaseFilter) Filter(http.ResponseWriter, *http.Request) {
 	fmt.Println("[BaseFilter] Filter()")
-	fmt.Println((*f.SelfPointer).Info())
+	fmt.Println((*f.selfPointer).Info())
 }
 
 // ErrorHandler - метод фильтра вызывающийся в случае ошибки на уровне фильтра
