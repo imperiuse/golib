@@ -19,7 +19,7 @@ type OrderFilterer interface {
 
 // OrderFilters - order of filter struct
 type OrderFilters struct {
-	order   []string
+	Order   []string
 	filters []Filterer
 }
 
@@ -27,7 +27,7 @@ type OrderFilters struct {
 //@return
 //                 []string    -   slice of string (name filters)
 func (filterOrder *OrderFilters) GetOrderFilters() []string {
-	return filterOrder.order
+	return filterOrder.Order
 }
 
 // AppendFilter - Append some new filter to chains.
