@@ -37,6 +37,7 @@ type Filterer interface {
 	// фильтра т.е. при вызове функций Before, After, Filter
 }
 
+// GetBaseFilter - метод возразает родительскую структуру фильтра (BaseFilter)
 func (f *BaseFilter) GetBaseFilter() Filterer {
 	return f
 }
