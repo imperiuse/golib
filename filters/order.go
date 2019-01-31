@@ -31,7 +31,7 @@ func (filterOrder *OrderFilters) AppendFilter(filters ...Filterer) {
 			filterOrder.filters = []Filterer{}
 		} else {
 			// if already filterOrder have some filter so set next filter pointer
-			filterOrder.filters[len(filterOrder.filters)].SetNextFilter(&filters[0])
+			filterOrder.filters[len(filterOrder.filters)-1].SetNextFilter(&filters[0])
 		}
 		for i := range filters {
 			filterOrder.filters = append(filterOrder.filters, filters[i]) // Save interface of filter
