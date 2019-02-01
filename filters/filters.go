@@ -73,14 +73,10 @@ func (f *BaseFilter) GetSelfPointer() *Filterer {
 
 // Before - метод фильтра вызывающийся до Filter
 func (f *BaseFilter) Before(http.ResponseWriter, *http.Request) {
-	fmt.Println("[BaseFilter] Before()")
-	fmt.Println((*f.selfPointer).Info())
 }
 
 // After - метод фильтра вызывающийся после Filter
 func (f *BaseFilter) After(http.ResponseWriter, *http.Request) {
-	fmt.Println("[BaseFilter] After()")
-	fmt.Println((*f.selfPointer).Info())
 }
 
 // Filter - основной метод фильтра
@@ -109,8 +105,6 @@ func (f *BaseFilter) GeneratorDeferRunFunc(w http.ResponseWriter, r *http.Reques
 // Run - метод стартующий вызов других методов фильтра
 func (f *BaseFilter) Run(w http.ResponseWriter, r *http.Request, businessFunc func(http.ResponseWriter, *http.Request)) {
 	defer (*f.GetSelfPointer()).GeneratorDeferRunFunc(w, r)()
-	fmt.Println("[BaseFilter] Run()")
-	fmt.Println(f.Info())
 
 	(*f.GetSelfPointer()).Before(w, r)
 	(*f.GetSelfPointer()).Filter(w, r)
