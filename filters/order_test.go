@@ -46,6 +46,35 @@ func TestOrderFilters_AppendFilter(t *testing.T) {
 		}
 	}()
 
+	mapOfFilterer := map[string]Filterer{"f1": &BaseFilter{}, "f2": &BaseFilter{}, "f3": &BaseFilter{}}
+	fOrder := OrderFilterer(&OrderFilters{[]string{"f1", "f2", "f3"}, nil})
+
+	fOrder.AppendFilter(mapOfFilterer["f1"])
+	if fOrder.GetFilterN(0) != mapOfFilterer["f1"] {
+		t.Errorf("filter f1 not set")
+	}
+
+	fOrder.AppendFilter(mapOfFilterer["f2"])
+	if fOrder.GetFilterN(1) != mapOfFilterer["f2"] {
+		t.Errorf("filter f2 not set")
+	}
+
+	if fOrder.GetFilterN(0) != mapOfFilterer["f1"] {
+		t.Errorf("change filter order")
+	}
+
+	fOrder = OrderFilterer(&OrderFilters{[]string{"f1", "f2", "f3"}, nil})
+	fOrder.AppendFilter(mapOfFilterer["f1"], mapOfFilterer["f2"])
+
+	if fOrder.GetFilterN(0) != mapOfFilterer["f1"] {
+		t.Errorf("filter f1 not set")
+	}
+
+	fOrder.AppendFilter(mapOfFilterer["f2"])
+	if fOrder.GetFilterN(1) != mapOfFilterer["f2"] {
+		t.Errorf("filter f2 not set")
+	}
+
 }
 
 func TestOrderFilters_GetFilterN(t *testing.T) {
@@ -73,5 +102,16 @@ func TestOrderFilters_GenerateFilteredHandleFunc(t *testing.T) {
 			t.Errorf("Unknown Panic in TestOrderFilters_GenerateFilteredHandleFunc")
 		}
 	}()
+
+	mapOfFilterer := map[string]Filterer{"f1": &BaseFilter{}, "f2": &BaseFilter{}, "f3": &BaseFilter{}}
+	fOrder := OrderFilterer(&OrderFilters{[]string{"f1", "f2", "f3"}, nil})
+	fOrder.AppendFilter(mapOfFilterer["f1"], mapOfFilterer["f2"])
+
+	f := func(http.ResponseWriter, *http.Request) { return }
+	ff := fOrder.GenerateFilteredHandleFunc(f)
+
+	if ff == nil {
+		t.Errorf("return nil func")
+	}
 
 }
