@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// ExampleOrderFilters_AppendFilter - an exmaple of use OrderFilterer
+// ExampleOrderFilters_AppendFilter - an example of use OrderFilterer
 func ExampleOrderFilters_AppendFilter() {
 	// At the begin, we have coupled of filters in map of Filter
 	// better use MapBeansType --> @see github.com/imperiuse/gobeans   Type: MapBeansType
