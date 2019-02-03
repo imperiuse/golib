@@ -73,21 +73,23 @@ func (f *BaseFilter) GetSelfPointer() *Filterer {
 
 // Before - метод фильтра вызывающийся до Filter
 func (f *BaseFilter) Before(http.ResponseWriter, *http.Request) {
+	//fmt.Println("[BaseFilter] Before()")
 }
 
 // After - метод фильтра вызывающийся после Filter
 func (f *BaseFilter) After(http.ResponseWriter, *http.Request) {
+	//fmt.Println("[BaseFilter] After()")
 }
 
 // Filter - основной метод фильтра
 func (f *BaseFilter) Filter(http.ResponseWriter, *http.Request) {
-	fmt.Println("[BaseFilter] Filter()")
-	fmt.Println((*f.selfPointer).Info())
+	//fmt.Println("[BaseFilter] Filter()")
+	//fmt.Println((*f.selfPointer).Info())
 }
 
 // ErrorHandler - метод фильтра вызывающийся в случае ошибки на уровне фильтра
 func (f *BaseFilter) ErrorHandler(w http.ResponseWriter, r *http.Request, err interface{}) {
-	fmt.Println("[BaseFilter] ErrorHandler()", err)
+	//fmt.Println("[BaseFilter] ErrorHandler()", err)
 }
 
 // GeneratorDeferRunFunc - метод создания базового дефера с обработкой паники с помощью вызова функции ErrorHandler
