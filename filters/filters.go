@@ -44,7 +44,7 @@ func (f *BaseFilter) GetBaseFilter() Filterer {
 
 // Info - метод возращает информацию по фильтру
 func (f *BaseFilter) Info() string {
-	return fmt.Sprintf("[BaseFilter] Before():\n%+v", *f)
+	return fmt.Sprintf("[BaseFilter] Info():\n%+v", f)
 }
 
 // SetNextFilter - метод для установки указателя на интерфейс след. фильтра
