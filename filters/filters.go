@@ -95,12 +95,13 @@ func (f *BaseFilter) ErrorHandler(w http.ResponseWriter, r *http.Request, err in
 // GeneratorDeferRunFunc - метод создания базового дефера с обработкой паники с помощью вызова функции ErrorHandler
 func (f *BaseFilter) GeneratorDeferRunFunc(w http.ResponseWriter, r *http.Request) func() {
 	return func() {
-		if rec := recover(); rec != nil {
-			fmt.Println(fmt.Sprintf("[BaseFilter] Generator Defer.\t"+
-				"Problem in func filter: %v."+
-				"\tErr: %v", (*f.GetSelfPointer()).Info(), rec))
-			(*f.GetSelfPointer()).ErrorHandler(w, r, rec)
-		}
+		return
+		//if rec := recover(); rec != nil {
+		//	fmt.Println(fmt.Sprintf("[BaseFilter] Generator Defer.\t"+
+		//		"Problem in func filter: %v."+
+		//		"\tErr: %v", (*f.GetSelfPointer()).Info(), rec))
+		//	(*f.GetSelfPointer()).ErrorHandler(w, r, rec)
+		//}
 	}
 }
 
