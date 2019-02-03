@@ -98,7 +98,7 @@ func (f *BaseFilter) GeneratorDeferRunFunc(w http.ResponseWriter, r *http.Reques
 		if rec := recover(); rec != nil {
 			fmt.Println(fmt.Sprintf("[BaseFilter] Generator Defer.\t"+
 				"Problem in func filter: %v."+
-				"\tErr: %v", (*f).Info(), rec))
+				"\tErr: %v", (*f.GetSelfPointer()).Info(), rec))
 			(*f.GetSelfPointer()).ErrorHandler(w, r, rec)
 		}
 	}
