@@ -23,21 +23,28 @@ const emailTemplate = `
 type MailBean struct {
 	Message
 	Credentials
+	EnableNotify bool
 }
 
 // SendEmailByDefaultTemplate -  send email with default template @see email.emailTemplate const
 func (m *MailBean) SendEmailByDefaultTemplate(body string) error {
-	return SendEmailByDefaultTemplate(
-		Message{m.From, m.To, m.Subject, body},
-		Credentials{m.Username, m.Password, m.Server, m.Port})
+	if m.EnableNotify {
+		return SendEmailByDefaultTemplate(
+			Message{m.From, m.To, m.Subject, body},
+			Credentials{m.Username, m.Password, m.Server, m.Port})
+	}
+	return nil
 }
 
 // SendEmailByCustomTemplate -  send email with custom template
 func (m *MailBean) SendEmailByCustomTemplate(emailTemplate, body string) error {
-	return SendEmailByCustomTemplate(
-		emailTemplate,
-		Message{m.From, m.To, m.Subject, body},
-		Credentials{m.Username, m.Password, m.Server, m.Port})
+	if m.EnableNotify {
+		return SendEmailByCustomTemplate(
+			emailTemplate,
+			Message{m.From, m.To, m.Subject, body},
+			Credentials{m.Username, m.Password, m.Server, m.Port})
+	}
+	return nil
 }
 
 // Message - email message struct

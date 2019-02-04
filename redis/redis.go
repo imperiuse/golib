@@ -1,55 +1,46 @@
 package redis
 
 import (
-	"errors"
 	"fmt"
-	"github.com/garyburd/redigo/redis"
-	"github.com/imperiuse/golib/logger"
 	"time"
+
+	"gitlab.esta.spb.ru/arseny/golib/concat"
+
+	"github.com/garyburd/redigo/redis"
+	l "github.com/imperiuse/golib/logger"
+	"gitlab.esta.spb.ru/arseny/golib/email"
 )
 
-// Структура настройки подключения к Redis
-type Settings struct {
+// Redis - Bean struct for work with Redis
+type Redis struct {
+	Name string // Name DB (better uniq id in program)
+
 	Host     string // адрес сервера
 	Port     int    // номер tcp порта которого слушаем
 	Password string // пароль
 	DB       int    // Номер БД
+
+	CountRepeatAttempt int  // число попыток
+	TimeRepeatAttempt  int  // время между попытками
+	RepeatFailDo       bool // пытаться повторить сделать запрос в редис
+
+	Email  *email.MailBean
+	pool   *redis.Pool // Pool connect к Redis
+	logger *l.Logger   // логгер
 }
 
-type RedisWorker struct {
-	nameWorker         string           // имя воркера для логов и различия воркеров м/у собой
-	pool               *redis.Pool      // Pool connect к Redis
-	settings           *Settings        // настройки
-	log                *gologger.Logger // логгер
-	countRepeatAttempt int              // число попыток
-	timeRepeatAttempt  int              // время между попытками
-	repeatFailDo       bool             // пытаться повторить сделать запрос в редис
-	emailSendingFunc   func(string)     // функция email уведомления о паниках
-}
-
-func CreateRedisWorker(NameWorker string, Pool *redis.Pool, settings *Settings, logger *gologger.Logger, emailSendingFunc func(string)) *RedisWorker {
-	return &RedisWorker{NameWorker,
-		Pool,
-		settings,
-		logger,
-		5,
-		10,
-		true,
-		emailSendingFunc,
-	}
-}
-
-func CreateNewPool(MaxIdle int, IdleTimeout time.Duration, MaxActive int, TestOnBorrowTime time.Duration, settings Settings) *redis.Pool {
-	return &redis.Pool{
+// InitNewPool - инициализировать внутренний пул подключений к Redis
+func (r *Redis) InitNewPool(MaxIdle int, IdleTimeout time.Duration, MaxActive int, TestOnBorrowTime time.Duration) {
+	r.pool = &redis.Pool{
 		MaxIdle:     MaxIdle,
 		IdleTimeout: IdleTimeout,
 		MaxActive:   MaxActive,
 		Dial: func() (redis.Conn, error) {
 			return redis.Dial(
 				"tcp",
-				settings.Host+":"+fmt.Sprintf("%v", settings.Port),
-				redis.DialPassword(settings.Password),
-				redis.DialDatabase(settings.DB))
+				concat.Strings(r.Host, fmt.Sprintf(":%v", r.Port)),
+				redis.DialPassword(r.Password),
+				redis.DialDatabase(r.DB))
 		},
 		TestOnBorrow: func(c redis.Conn, t time.Time) error {
 			if time.Since(t) < TestOnBorrowTime {
@@ -61,71 +52,87 @@ func CreateNewPool(MaxIdle int, IdleTimeout time.Duration, MaxActive int, TestOn
 	}
 }
 
-func (rw *RedisWorker) redisWorkerDefer(funcName string, f_recovery func()) {
-	if r := recover(); r != nil {
-		(*rw.log).Error("Defer! For "+funcName, fmt.Sprintf("RedisWorker:%v", rw.nameWorker), "PANIC!", r)
-		f_recovery()
-	}
+// GetName - get name obj Redis
+func (r *Redis) GetName() string {
+	return r.Name
 }
 
-// Test work Redis query
-func (rw *RedisWorker) PingPongTest() error {
-	conn := rw.pool.Get()
-	defer conn.Close()
-
-	val, err := redis.String(conn.Do("PING"))
-	if err != nil {
-		(*rw.log).Error("createRedisWorker()",
-			fmt.Sprintf("RedisWorker:%v", rw.nameWorker),
-			"PING-PONG Test Failed!",
-			err)
-		return err
-	} else {
-		(*rw.log).Info("createRedisWorker()",
-			fmt.Sprintf("RedisWorker:%v", rw.nameWorker),
-			"PING-PONG Test Passed! Good!", val)
-		return nil
-	}
+// GetPool - get Redis pool obj
+func (r *Redis) GetPool() *redis.Pool {
+	return r.pool
 }
 
-func (rw *RedisWorker) MyName() string {
-	return rw.nameWorker
-}
-
-func (rw *RedisWorker) Do(nameFunc string, commandName string, args ...interface{}) (reply interface{}, err error) {
-	conn := rw.pool.Get()
-	defer conn.Close()
-
-	defer rw.redisWorkerDefer(nameFunc+"-->"+"DO()", func() {
-		(*rw.log).Error("Recover() <-- Do()", fmt.Sprintf("RedisWorker:%v", rw.nameWorker), "Panic was!")
-		if rw.emailSendingFunc != nil {
-			rw.emailSendingFunc(fmt.Sprintf("%v --> %v", nameFunc, "DO() Panic was!"))
+func (r *Redis) doDefer(where string, com string, err error, args ...interface{}) {
+	if rec := recover(); rec != nil {
+		(*r.logger).Error("[DEFER] Redis.doDefer()", where, r.Name, "PANIC!", rec)
+		if err = r.Email.SendEmailByDefaultTemplate(
+			fmt.Sprintf("PANIC!\n%v\nErr:\n%+v\nSQL:\n%v\nWith args:\n%+v", where, rec, com, args)); err == nil {
+			(*r.logger).Error("pg.dbDefer()", where, r.Name, "Can't send email!", err)
 		}
-		// stats panic cnt inc // todo
-	})
+	}
+}
 
-	logging := nameFunc != "" // если пустая строка в параметрах значит не логирвоать обращение к Redis
-	for try_cnt := 0; try_cnt < rw.countRepeatAttempt; try_cnt++ {
+// PingPongTest - Test work Redis query
+func (r *Redis) PingPongTest() (err error) {
+	conn := r.pool.Get()
+	defer func() {
+		if err = conn.Close(); err != nil {
+			(*r.logger).Error("Redis.PingPongTest()", r.Name, "Err while do conn.Close()", err)
+		}
+	}()
+
+	var val string
+	if val, err = redis.String(conn.Do("PING")); err != nil {
+		(*r.logger).Error("PingPongTest()", r.Name, "PING-PONG test Failed!", err)
+		return
+	}
+	(*r.logger).Info("PingPongTest()", r.Name, "PING-PONG test Successful Passed!", val)
+	return nil
+}
+
+// Do - MAIN method for execute any Redis Command
+func (r *Redis) Do(nameFuncWhoCall string, command string, args ...interface{}) (reply interface{}, err error) {
+	defer r.doDefer(nameFuncWhoCall, command, err, args...)
+
+	conn := r.pool.Get()
+	defer func() {
+		if err = conn.Close(); err != nil {
+			(*r.logger).Error("Redis.Do()", r.Name, "Err while do conn.Close()", err)
+		}
+	}()
+
+	logging := nameFuncWhoCall != "" // если пустая строка в параметрах значит не логирвоать обращение к Redis
+	for tryCnt := 0; tryCnt < r.CountRepeatAttempt; tryCnt++ {
 		if logging {
-			(*rw.log).Debug(
-				nameFunc+"-->"+"Do()", fmt.Sprintf("RedisWorker:%v", rw.nameWorker),
-				fmt.Sprintf("Attemp execute Redis command: %d", try_cnt),
-			)
+			(*r.logger).Debug(
+				concat.Strings(nameFuncWhoCall, "--> Do()"),
+				r.Name, fmt.Sprintf("Attemp execute Redis command: %v", tryCnt))
 		}
-		reply, err = conn.Do(commandName, args...)
+		reply, err = conn.Do(command, args...)
 		if err != nil {
 			if logging {
-				(*rw.log).Log(gologger.REDIS_FAIL, commandName+" "+args[0].(string), nameFunc+"-->"+"Do()", "Failed! Err:", err, "ARGS:", fmt.Sprintf("%v %x", args[0], args[1:]))
+				(*r.logger).Log(l.RedisFail,
+					concat.Strings(nameFuncWhoCall, "--> Do()"),
+					concat.Strings(command, concat.Strings("", args[0].(string))),
+					"Failed! Err:",
+					err,
+					"ARGS:",
+					fmt.Sprintf("%v %v", args[0], args[1:]))
 			}
 			continue
 		} else {
 			if logging {
-				(*rw.log).Log(gologger.REDIS_OK, commandName+" "+args[0].(string), nameFunc+"-->"+"Do()", "SUCCESSES!", "ARGS:", fmt.Sprintf("%v %x", args[0], args[1:]))
+				(*r.logger).Log(l.RedisOk,
+					concat.Strings(nameFuncWhoCall, "--> Do()"),
+					concat.Strings(command, concat.Strings("", args[0].(string))),
+					"SUCCESSES!",
+					"ARGS:",
+					fmt.Sprintf("%v %v", args[0], args[1:]))
 			}
 			return
 		}
 	}
-	err = errors.New("try count end")
-	(*rw.log).Error(nameFunc+"-->"+"Do()", fmt.Sprintf("RedisWorker:%v", rw.nameWorker), "All try estimates! Panic!", err)
+	err = fmt.Errorf("all try count end")
+	(*r.logger).Error(concat.Strings(nameFuncWhoCall, "--> Do()"), r.Name, "All try estimates! Panic!", err)
 	panic(err)
 }
