@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"gitlab.esta.spb.ru/arseny/golib/concat"
+	"github.com/imperiuse/golib/concat"
 
 	"github.com/imperiuse/golib/email"
 	l "github.com/imperiuse/golib/logger"
