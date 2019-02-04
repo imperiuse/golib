@@ -10,23 +10,23 @@ import (
 	l "github.com/imperiuse/golib/logger"
 
 	"github.com/jmoiron/sqlx"
-	_ "github.com/lib/pq"
+	//_ "github.com/lib/pq"
 )
 
 // PgDB - Bean for work with Postgres DB
 type PgDB struct {
 	Name string // Name DB (uniq id in program)
 
-	URL      string // Domain name (www..)
-	Host     string // Hostname domain (IP)
-	Port     string // Port Db (Postgres 5432)
-	Database string // Db name (main)
-	SSL      string // SSL mod (disable/enable)
-	User     string // User name
-	Pass     string // Password user
+	URL    string // Domain name (localhost - default)
+	Host   string // Hostname domain (IP)
+	Port   string // Port Db (Postgres 5432)
+	DbName string // Db name (main)
+	SSL    string // SSL mod (disable/enable)
+	User   string // User name
+	Pass   string // Password user
 
-	CntAttemptRequest  uint // Cnt attempts connect to DB
-	TimeAttemptRequest uint // Time between attempts
+	CntAttemptRequest  int  // Cnt attempts connect to DB
+	TimeAttemptRequest int  // Time between attempts
 	RepeatRequest      bool // Cnt try repeat execute SQL request to DB
 
 	Email  *email.MailBean // Email Bean for send error info
@@ -34,10 +34,15 @@ type PgDB struct {
 	db     *sqlx.DB        // Pool connection to DB (return by sql.Open("postgres", ".....db_settings))
 }
 
+// GetDB - get current DB connect
+func (pg *PgDB) GetDB() *sqlx.DB {
+	return pg.db
+}
+
 // ConfigString - config connect DB
 func (pg *PgDB) ConfigString() string {
 	return fmt.Sprintf("host=%s port=%s dbname=%s sslmode=%s user=%s password=%s",
-		pg.Host, pg.Port, pg.Database, pg.SSL, pg.User, pg.Pass)
+		pg.Host, pg.Port, pg.DbName, pg.SSL, pg.User, pg.Pass)
 }
 
 // Connect - Создание пула коннекшенов к БД
@@ -59,29 +64,30 @@ func (pg *PgDB) Close() {
 		(*pg.logger).Error("PgDB.close()", pg.Name, "Can't close DB connection!", err)
 	}
 	(*pg.logger).Info("PgDB.close()", pg.Name,
-		fmt.Sprintf("Connection to database %v:%v successfull close()", pg.Host, pg.Database))
+		fmt.Sprintf("Connection to database %v:%v successfull close()", pg.Host, pg.DbName))
 }
 
-func (pg *PgDB) dbDefer(funcName string, query string, err error, args ...interface{}) {
+func (pg *PgDB) executeDefer(where string, query string, err error, args ...interface{}) {
 	if r := recover(); r != nil {
-		(*pg.logger).Error("Defer! For "+funcName, pg.Name, "PANIC!", r)
-		err = pg.Email.SendEmailByDefaultTemplate(
-			fmt.Sprintf("%v\n Panic was! \n %v \n While do this SQL query: \n %v  \n With args: %v", funcName, r, query, args))
-		if err == nil {
-			err = errors.New(fmt.Sprintf("SQL query err: %v", r))
+		(*pg.logger).Error("Defer! For "+where, pg.Name, "PANIC!", r)
+		if pg.Email != nil {
+			if err = pg.Email.SendEmailByDefaultTemplate(
+				fmt.Sprintf("PANIC!\n%v\nErr:\n%+v\nSQL:\n%v\nWith args:\n%+v", where, r, query, args)); err == nil {
+				(*pg.logger).Error("pg.dbDefer()", where, pg.Name, "Can't send email!", err)
+			}
 		}
 	}
 }
 
 // ExecuteQuery - Функция обертка над execute. Запросы с ожиданием данных от БД. (SELECT и т.д. возращающие значения)
 func (pg *PgDB) ExecuteQuery(nameFunc string, query string, args ...interface{}) (rows *sql.Rows, err error) {
-	defer pg.dbDefer(nameFunc+"-->"+"ExecuteQuery()", query, err, args...)
+	defer pg.executeDefer(nameFunc+"-->"+"ExecuteQuery()", query, err, args...)
 	return pg.execute(true, nameFunc, query, args...), err
 }
 
 // Execute - Функция обертка над execute. Запросы без ожидания данных от БД. (Update и т.д. не возращающие значения)
 func (pg *PgDB) Execute(nameFunc string, query string, args ...interface{}) (err error) {
-	defer pg.dbDefer(nameFunc+"-->"+"Execute()", query, err, args...)
+	defer pg.executeDefer(nameFunc+"-->"+"Execute()", query, err, args...)
 	_ = pg.execute(false, nameFunc, query, args...)
 	return err
 }
@@ -102,7 +108,7 @@ func (pg *PgDB) execute(returnValue bool, nameFunc string, SQL string, args ...i
 		err = errors.New("no connect")
 		panic(err)
 	}
-	for cnt := uint(0); cnt < pg.CntAttemptRequest; cnt++ {
+	for cnt := 0; cnt < pg.CntAttemptRequest; cnt++ {
 		(*pg.logger).Debug(nameFunc+"-->"+"execute()", "DbWorker", fmt.Sprintf("Attemp execute SQL: %d", cnt))
 		if returnValue { // TRUE == Execute_Query
 			row, err = pg.db.Query(SQL, args...)
@@ -120,7 +126,7 @@ func (pg *PgDB) execute(returnValue bool, nameFunc string, SQL string, args ...i
 				(*pg.logger).Log(l.DbFail, SQL, nameFunc+"-->"+"Execute()", "Failed! Err:", err, "ARGS:", args)
 			} else {
 				(*pg.logger).Log(l.DbOk, SQL, nameFunc+"-->"+"Execute()", "SUCCESSES!", "ARGS:", args)
-				if rA, err := results.RowsAffected(); err == nil {
+				if rA, err1 := results.RowsAffected(); err1 == nil {
 					(*pg.logger).Info("Rows affected:", rA)
 				}
 				return nil
@@ -137,7 +143,7 @@ func (pg *PgDB) execute(returnValue bool, nameFunc string, SQL string, args ...i
 
 // ExecuteQueryX - Функция обертка над QueryX (sqlX). Запросы с ожиданием данных от БД.
 func (pg *PgDB) ExecuteQueryX(nameFunc string, query string, args ...interface{}) (rows *sqlx.Rows, err error) {
-	defer pg.dbDefer(nameFunc+"-->"+"ExecuteQueryX()", query, err, args...)
+	defer pg.executeDefer(nameFunc+"-->"+"ExecuteQueryX()", query, err, args...)
 	return pg.executeX(nameFunc, query, args...), err
 }
 
@@ -156,7 +162,7 @@ func (pg *PgDB) executeX(nameFunc string, SQL string, args ...interface{}) (row 
 		err = errors.New("no connect")
 		panic(err)
 	}
-	for cnt := uint(0); cnt < pg.CntAttemptRequest; cnt++ {
+	for cnt := 0; cnt < pg.CntAttemptRequest; cnt++ {
 		(*pg.logger).Debug(nameFunc+"-->"+"executeX()", "DbWorker", fmt.Sprintf("Attemp execute SQL: %d", cnt))
 		row, err = pg.db.Queryx(SQL, args...)
 		if err != nil {
