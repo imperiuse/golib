@@ -20,6 +20,11 @@
     "properties": [
       {
         "type": "nat",
+        "name": "FieldBool",
+        "value": true
+      },
+      {
+        "type": "nat",
         "name": "FieldStr",
         "value": "I'm string"
       },

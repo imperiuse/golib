@@ -346,6 +346,10 @@ func (bs BeansStorage) addNewBeanInstance(processingFieldsAndReference bool, bea
 						if f.CanSet() {
 							// Ниже определение "макро" тип поля структуры
 							switch f.Kind() {
+							case reflect.Bool:
+								if x, ok := p.Value.(bool); ok {
+									f.SetBool(x)
+								}
 							case reflect.Int:
 								if xf, ok := p.Value.(float64); ok { // float64 НЕ ошибка, так надо!
 									x := int64(xf)
@@ -363,14 +367,12 @@ func (bs BeansStorage) addNewBeanInstance(processingFieldsAndReference bool, bea
 								if x, ok := p.Value.(string); ok {
 									f.SetString(x)
 								}
-
 							case reflect.Slice: // ОГРАНИЧЕНИЯ для SLICE - только: []string, []float64
 								pI := p.Value.([]interface{})
 								f.Set(reflect.MakeSlice(f.Type(), len(pI), len(pI)))
 								for i, v := range pI {
 									f.Index(i).Set(reflect.ValueOf(v))
 								}
-
 							case reflect.Map: // ОГРАНИЧЕНИЯ для MAP - только: map[string]T
 								f.Set(reflect.MakeMap(f.Type()))
 								for k, v := range p.Value.(map[string]interface{}) {

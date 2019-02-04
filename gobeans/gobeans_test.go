@@ -8,6 +8,7 @@ import (
 
 // TestStruct1 - первая тестовая структура
 type TestStruct1 struct {
+	FieldBool    bool
 	FieldStr     string
 	FieldInt     int
 	FieldFloat64 float64
