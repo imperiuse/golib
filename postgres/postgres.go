@@ -4,36 +4,36 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
+
 	"github.com/imperiuse/golib/email"
-	gl "github.com/imperiuse/golib/gologger"
+
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
-	"time"
 )
 
-type DbSettings struct {
-	Url    string // Domain name (www..)
-	Host   string // Hostname domain (IP)
-	Port   string // Port DB (Postgres 5432)
-	DbName string // DB name (main)
-	SSL    string // SSL mod (disable/enable)
-	User   string // User name
-	Pass   string // Password user
+// PgDB - Bean for work with Postgres DB
+type PgDB struct {
+	Url      string // Domain name (www..)
+	Host     string // Hostname domain (IP)
+	Port     string // Port Db (Postgres 5432)
+	Database string // Db name (main)
+	SSL      string // SSL mod (disable/enable)
+	User     string // User name
+	Pass     string // Password user
+
+	CntAttemptRequest  uint // Cnt attempts connect to DB
+	TimeAttemptRequest uint // Time between attempts
+	RepeatRequest      bool // Cnt try repeat execute SQL request to DB
+
+	Email  *email.MailBean // Email Bean for send error info
+	logger *logger.Logger  // Pointer to logger interface
+	db     *sqlx.DB        // Pool connection to DB (return by sql.Open("postgres", ".....db_settings))
 }
 
-func (dbS *DbSettings) String() string {
+func (dbS *PgDB) String() string {
 	return fmt.Sprintf("host=%s port=%s dbname=%s "+
-		"sslmode=%s user=%s password=%s", dbS.Host, dbS.Port, dbS.DbName, dbS.SSL, dbS.User, dbS.Pass)
-}
-
-type DbWorker struct {
-	nameWorker         string      // имя воркера для логов и различия воркеров м/у собой
-	Db                 *sqlx.DB    // пул коннекшенов к БД (ссылка возвращаемая sql.Open("postgres", ".....db_settings)
-	settings           *DbSettings // настройки подключения к БД
-	logger             *gl.Logger  // логгер описание базовой структуры для работы с БД
-	cntAttemptRequest  uint        // число попыток сделать запрос к БД
-	timeAttemptRequest uint        // время между попытками сделать запрос к БД
-	repeatRequest      bool        // пытаться повторить сделать запрос
+		"sslmode=%s user=%s password=%s", dbS.Host, dbS.Port, dbS.Database, dbS.SSL, dbS.User, dbS.Pass)
 }
 
 //Функция создания нового воркера для работы с БД
@@ -59,48 +59,35 @@ func CreateDBWorker(nameWorker string, config *DbSettings, logger *gl.Logger, at
 }
 
 // Создание пула коннекшенов к БД
-func (dbW *DbWorker) Connect() error {
+func (pg *DbWorker) Connect() error {
 	var err error
 	dbW.Db, err = sqlx.Open("postgres", dbW.settings.String())
 	if err != nil {
-		(*dbW.logger).Error("connect()", "db_worker", "Can't open (get handle to database) to DB server!", dbW.settings.String(), err)
+		(*dbW.logger).Error("connect()", "db_worker", "Can't open (get handle to database) to Db server!", dbW.settings.String(), err)
 	}
 
 	if err = dbW.Db.Ping(); err != nil {
-		(*dbW.logger).Error("connect()", "db_worker", "Can't open connect (can't Ping) to DB server!", dbW.settings.String(), err)
+		(*dbW.logger).Error("connect()", "db_worker", "Can't open connect (can't Ping) to Db server!", dbW.settings.String(), err)
 	}
 	return err
 }
 
 //Закрытие соединения
-func (dbW *DbWorker) Close() {
+func (pg *PgDB) Close() {
 	dbW.Db.Close()
 	(*dbW.logger).Info("close()", "DbWorker",
-		fmt.Sprintf("Connection to database %v:%v close()", dbW.settings.Host, dbW.settings.DbName))
+		fmt.Sprintf("Connection to database %v:%v close()", dbW.settings.Host, dbW.settings.Database))
 }
 
-func (dbW *DbWorker) dbDefer(funcName string, fRecovery func(r interface{})) {
+func (pg *PgDB) dbDefer(funcName string, fRecovery func(r interface{})) {
 	if r := recover(); r != nil {
 		(*dbW.logger).Error("Defer! For "+funcName, dbW.nameWorker, "PANIC!", r)
 		fRecovery(r)
 	}
 }
 
-func sendEmail(body string) {
-	email.SendEmailMsgDefaultTemplate(
-		email.EmailMessage{
-			"ars-saz@yandex.ru",
-			[]string{"ars-saz@ya.ru"},
-			"DB Postgres Panic!",
-			body,
-		}, email.EmailCredentials{"ars-saz@yandex.ru",
-			"ivszzngrsydkcyea",
-			"smtp.yandex.ru",
-			25})
-}
-
 // Функция обертка над execute. Запросы с ожиданием данных от БД. (SELECT и т.д. возращающие значения)
-func (dbW *DbWorker) ExecuteQuery(nameFunc string, query string, args ...interface{}) (rows *sql.Rows, err error) {
+func (pg *PgDB) ExecuteQuery(nameFunc string, query string, args ...interface{}) (rows *sql.Rows, err error) {
 	defer dbW.dbDefer(nameFunc+"-->"+"ExecuteQuery()", func(r interface{}) {
 		sendEmail(fmt.Sprintf("Func: %v call this func: ExecuteQuery() \n Panic was! \n %v \n While do this SQL query: \n %v  \n With args: %v", nameFunc, r, query, args))
 		err = errors.New(fmt.Sprintf("SQL query err: %v", r))
@@ -109,7 +96,7 @@ func (dbW *DbWorker) ExecuteQuery(nameFunc string, query string, args ...interfa
 }
 
 // Функция обертка над execute. Запросы без ожидания данных от БД. (Update и т.д. не возращающие значения)
-func (dbW *DbWorker) Execute(nameFunc string, query string, args ...interface{}) (err error) {
+func (pg *PgDB) Execute(nameFunc string, query string, args ...interface{}) (err error) {
 	defer dbW.dbDefer(nameFunc+"-->"+"Execute()", func(r interface{}) {
 		sendEmail(fmt.Sprintf("Func: %v call this func: ExecuteQuery() \n Panic was! \n %v \n While do this SQL query: \n %v  \n With args: %v", nameFunc, r, query, args))
 		err = errors.New(fmt.Sprintf("SQL query err: %v", r))
@@ -126,11 +113,11 @@ func (dbW *DbWorker) Execute(nameFunc string, query string, args ...interface{})
 //     args...      interface{} - аргументы
 // @return
 //     row          sql.Rows -  результат запроса, данные от БД
-func (dbW *DbWorker) execute(returnValue bool, nameFunc string, SQL string, args ...interface{}) (row *sql.Rows) {
+func (pg *PgDB) execute(returnValue bool, nameFunc string, SQL string, args ...interface{}) (row *sql.Rows) {
 	var err error
 	// Проверка коннекта к БД
 	if err = dbW.Db.Ping(); err != nil {
-		(*dbW.logger).Error(nameFunc+"-->"+"execute()", "DbWorker", "Can't open connect (can't Ping) to DB server!", err)
+		(*dbW.logger).Error(nameFunc+"-->"+"execute()", "DbWorker", "Can't open connect (can't Ping) to Db server!", err)
 		err = errors.New("no connect")
 		panic(err)
 	}
@@ -159,7 +146,7 @@ func (dbW *DbWorker) execute(returnValue bool, nameFunc string, SQL string, args
 			}
 		}
 	}
-	(*dbW.logger).Error(nameFunc+"()-->"+"execute()", "DbWorker", "All try estimates! Panic!", err)
+	(*pg.logger).Error(nameFunc+"()-->"+"execute()", "DbWorker", "All try estimates! Panic!", err)
 	panic(err)
 }
 
@@ -168,12 +155,14 @@ func (dbW *DbWorker) execute(returnValue bool, nameFunc string, SQL string, args
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Функция обертка над QueryX (sqlX). Запросы с ожиданием данных от БД.
-func (dbW *DbWorker) ExecuteQueryX(nameFunc string, query string, args ...interface{}) (rows *sqlx.Rows, err error) {
-	defer dbW.dbDefer(nameFunc+"-->"+"ExecuteQueryX()", func(r interface{}) {
-		sendEmail(fmt.Sprintf("Func: %v call this func: ExecuteQueryX() \n Panic was! \n %v \n While do this SQL query: \n %v  \n With args: %v", nameFunc, r, query, args))
-		err = errors.New(fmt.Sprintf("SQL query err: %v", r))
+func (pg *PgDB) ExecuteQueryX(nameFunc string, query string, args ...interface{}) (rows *sqlx.Rows, err error) {
+	defer pg.dbDefer(nameFunc+"-->"+"ExecuteQueryX()", func(r interface{}) {
+		err = pg.Email.SendEmailByDefaultTemplate(fmt.Sprintf("Func: %v call this func: ExecuteQueryX() \n Panic was! \n %v \n While do this SQL query: \n %v  \n With args: %v", nameFunc, r, query, args))
+		if err == nil {
+			err = errors.New(fmt.Sprintf("SQL query err: %v", r))
+		}
 	})
-	return dbW.executeX(nameFunc, query, args...), err
+	return pg.executeX(nameFunc, query, args...), err
 }
 
 // Функция выполнения запроса queryX
@@ -183,25 +172,25 @@ func (dbW *DbWorker) ExecuteQueryX(nameFunc string, query string, args ...interf
 //     args...      interface{} - аргументы
 //  @return
 //     row          *sqlx.Rows
-func (dbW *DbWorker) executeX(nameFunc string, SQL string, args ...interface{}) (row *sqlx.Rows) {
+func (pg *PgDB) executeX(nameFunc string, SQL string, args ...interface{}) (row *sqlx.Rows) {
 	var err error
 	// Проверка коннекта к БД
-	if err = dbW.Db.Ping(); err != nil {
-		(*dbW.logger).Error(nameFunc+"-->"+"executeX()", "DbWorker", "Can't open connect (can't Ping) to DB server!", err)
+	if err = pg.db.Ping(); err != nil {
+		(*pg.logger).Error(nameFunc+"-->"+"executeX()", "DbWorker", "Can't open connect (can't Ping) to Db server!", err)
 		err = errors.New("no connect")
 		panic(err)
 	}
-	for cnt := uint(0); cnt < dbW.cntAttemptRequest; cnt++ {
-		(*dbW.logger).Debug(nameFunc+"-->"+"executeX()", "DbWorker", fmt.Sprintf("Attemp execute SQL: %d", cnt))
-		row, err = dbW.Db.Queryx(SQL, args...)
+	for cnt := uint(0); cnt < pg.CntAttemptRequest; cnt++ {
+		(*pg.logger).Debug(nameFunc+"-->"+"executeX()", "DbWorker", fmt.Sprintf("Attemp execute SQL: %d", cnt))
+		row, err = pg.db.Queryx(SQL, args...)
 		if err != nil {
-			(*dbW.logger).Log(gl.DB_FAIL, SQL, nameFunc+"-->"+"ExecuteX QueryX()", "Failed! Err:", err, "ARGS:", args)
+			(*pg.logger).Log(gl.DB_FAIL, SQL, nameFunc+"-->"+"ExecuteX QueryX()", "Failed! Err:", err, "ARGS:", args)
 		} else {
-			(*dbW.logger).Log(gl.DB_OK, SQL, nameFunc+"-->"+"ExecuteX QueryX()", "SUCCESSES!", "ARGS:", args)
+			(*pg.logger).Log(gl.DB_OK, SQL, nameFunc+"-->"+"ExecuteX QueryX()", "SUCCESSES!", "ARGS:", args)
 			return row
 		}
-		time.Sleep(time.Duration(dbW.timeAttemptRequest) * time.Second)
+		time.Sleep(time.Duration(pg.TimeAttemptRequest) * time.Second)
 	}
-	(*dbW.logger).Error(nameFunc+"()-->"+"executeX()", "DbWorker", "All try estimates! Panic!", err)
+	(*pg.logger).Error(nameFunc+"()-->"+"executeX()", "DbWorker", "All try estimates! Panic!", err)
 	panic(err)
 }

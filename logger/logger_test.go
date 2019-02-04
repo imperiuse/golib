@@ -1,17 +1,18 @@
 package gologger
 
 import (
-	"github.com/imperiuse/golib/colormap"
 	"io"
 	"io/ioutil"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/imperiuse/golib/colormap"
 )
 
 func TestPrint(t *testing.T) {
 	f, _ := os.Create("log")
-	Log := NewLogger(os.Stdout, OFF_ALL, 100, 0, Ldate|Ltime|Lshortfile, "\t",
+	Log := NewLogger(os.Stdout, OffAll, 100, 0, Ldate|Ltime|Lshortfile, "\t",
 		colormap.CSMthemePicker("arseny"))
 
 	defer Log.Close()
@@ -25,15 +26,15 @@ func TestPrint(t *testing.T) {
 	time.Sleep(time.Millisecond * 10)
 
 	newDestinations := GetDefaultDestinations()
-	newDestinations[INFO] = []io.Writer{NoColor: ioutil.Discard, Color: io.MultiWriter(f, os.Stdout)}
-	newDestinations[DEBUG] = []io.Writer{NoColor: os.Stdout, Color: os.Stdout}
-	newDestinations[ERROR] = []io.Writer{NoColor: f, Color: os.Stdout}
+	newDestinations[Info] = []io.Writer{NoColor: ioutil.Discard, Color: io.MultiWriter(f, os.Stdout)}
+	newDestinations[Debug] = []io.Writer{NoColor: os.Stdout, Color: os.Stdout}
+	newDestinations[Error] = []io.Writer{NoColor: f, Color: os.Stdout}
 
 	Log.SetNewDestinations(newDestinations)
 
-	Log.Info("INFO MSG", "I", "N", "F", "0", 0)
-	Log.Debug("DEBUG MSG", "DE", "BU", "G", new(int))
-	Log.Error("ERROR MSG", "!!!!", struct{}{})
+	Log.Info("Info MSG", "I", "N", "F", "0", 0)
+	Log.Debug("Debug MSG", "DE", "BU", "G", new(int))
+	Log.Error("Error MSG", "!!!!", struct{}{})
 
 	time.Sleep(time.Millisecond * 10)
 
@@ -45,7 +46,7 @@ func TestPrint(t *testing.T) {
 	Log.Print("This is printed text") // Output: This is printed text
 	time.Sleep(time.Millisecond * 10)
 
-	Log = NewLogger(os.Stdout, ON_COLOR, 100, 0, Ldate|Ltime|Lshortfile, "\t",
+	Log = NewLogger(os.Stdout, OnColor, 100, 0, Ldate|Ltime|Lshortfile, "\t",
 		colormap.CSMthemePicker("arseny"))
 
 	Log.Info("It's Color Info msg!", "Info")
@@ -55,7 +56,7 @@ func TestPrint(t *testing.T) {
 	Log.P()
 	time.Sleep(time.Millisecond * 10)
 
-	Log = NewLogger(os.Stdout, ON_NO_COLOR, 100, 0, Ldate|Ltime|Lshortfile, "\t",
+	Log = NewLogger(os.Stdout, OnNoColor, 100, 0, Ldate|Ltime|Lshortfile, "\t",
 		colormap.CSMthemePicker("arseny"))
 
 	Log.Info("It's  No Color Info msg!", "Info")
@@ -65,7 +66,7 @@ func TestPrint(t *testing.T) {
 	Log.P()
 	time.Sleep(time.Millisecond * 10)
 
-	Log = NewLogger(os.Stdout, ON_ALL, 100, 0, Ldate|Ltime|Lshortfile, "\t",
+	Log = NewLogger(os.Stdout, OnAll, 100, 0, Ldate|Ltime|Lshortfile, "\t",
 		colormap.CSMthemePicker("arseny"))
 
 	Log.Info("It's  Both NO Color and COLOR :) Info msg!", "Info")
@@ -75,30 +76,30 @@ func TestPrint(t *testing.T) {
 	Log.P()
 	time.Sleep(time.Millisecond * 10)
 
-	Log.DisableDestinationLvl(INFO)
+	Log.DisableDestinationLvl(Info)
 	Log.Info("YOU MUST NOT SEE THIS TEXT!!!")
 
-	Log.DisableDestinationLvlColor(PRINT, Color)
+	Log.DisableDestinationLvlColor(Print, Color)
 	Log.Print("ONLY NO COLOR!")
 
-	Log.DisableDestinationLvlColor(TEST, NoColor)
+	Log.DisableDestinationLvlColor(Test, NoColor)
 	Log.Test("ONLY COLOR!")
 
-	Log.EnableDestinationLvlColor(INFO, Color)
+	Log.EnableDestinationLvlColor(Info, Color)
 	Log.Info("Enable only COLOR info!")
 
-	Log.SetAndEnableDestinationLvlColor(ERROR, Color, ioutil.Discard)
-	Log.Error("MUST NOT SEE THISE TEXT ERROR DISCARD!")
+	Log.SetAndEnableDestinationLvlColor(Error, Color, ioutil.Discard)
+	Log.Error("MUST NOT SEE THISE TEXT Error DISCARD!")
 
-	Log.SetAndEnableDestinationLvl(ERROR, []io.Writer{ioutil.Discard, ioutil.Discard})
-	Log.Error("COLOR ERROR!")
+	Log.SetAndEnableDestinationLvl(Error, []io.Writer{ioutil.Discard, ioutil.Discard})
+	Log.Error("COLOR Error!")
 
 	time.Sleep(time.Millisecond * 10)
 }
 
 func BenchmarkNewBasicLogger(b *testing.B) {
 	//f, _ := os.Create("log")
-	Log := NewLogger(os.Stdout, ON_NO_COLOR, 100, 0, Ldate|Ltime|Lshortfile, "\t",
+	Log := NewLogger(os.Stdout, OnNoColor, 100, 0, Ldate|Ltime|Lshortfile, "\t",
 		colormap.CSMthemePicker("arseny"))
 
 	for i := 0; i < b.N; i++ {

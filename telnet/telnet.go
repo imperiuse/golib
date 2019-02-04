@@ -2,16 +2,17 @@ package telnet
 
 import (
 	"fmt"
-	"github.com/imperiuse/golib/colormap"
-	"github.com/imperiuse/golib/colors"
-	gl "github.com/imperiuse/golib/logger"
-	"github.com/imperiuse/golib/safemap"
 	"io"
 	"net"
 	"os"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/imperiuse/golib/colormap"
+	"github.com/imperiuse/golib/colors"
+	gl "github.com/imperiuse/golib/logger"
+	"github.com/imperiuse/golib/safemap"
 )
 
 // Структура описывающего TCP сервер для управления утилиты
@@ -222,7 +223,7 @@ func (server *ServerTelnet) Run() {
 	defer recoveryFunc("file_create") // Обработка возможной паники при создании файла
 	defer f.Close()                   // Дефер для закрытия файла
 
-	// Создание экземпляра Логгера для Логирования всех действий утилиты см. Пакет gologger/gologger.go
+	// Создание экземпляра Логгера для Логирования всех действий утилиты см. Пакет gologger/logger.go
 	Log = gl.NewLogger(os.Stdout, gl.ON_ALL, 1, 0, 0, "\t", colormap.CSMthemePicker("arseny"))
 
 	ln, err := net.Listen("tcp", fmt.Sprintf(":%v", server.Port))
