@@ -119,9 +119,7 @@ func (r *Redis) Do(nameFuncWhoCall string, command string, args ...interface{}) 
 					"ARGS:",
 					fmt.Sprintf("%v %v", args[0], args[1:]))
 			}
-			if r.TimeRepeatAttempt > 0 {
-				time.Sleep(time.Nanosecond * time.Duration(r.TimeRepeatAttempt))
-			}
+			time.Sleep(time.Nanosecond * time.Duration(r.TimeRepeatAttempt))
 			continue
 		} else {
 			if logging {

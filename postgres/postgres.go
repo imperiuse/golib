@@ -29,7 +29,7 @@ type PgDB struct {
 	Pass string // The user's password
 
 	CntAttemptRequest  int  // Cnt attempts connect to DB
-	TimeAttemptRequest int  // Time between attempts
+	TimeAttemptRequest int  // Time between attempts  ! SECONDS !
 	RepeatRequest      bool // Cnt try repeat execute SQL request to DB
 
 	Email  *email.MailBean // Email Bean for send error info
