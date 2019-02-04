@@ -21,7 +21,7 @@ type Redis struct {
 	DB       int    // Номер БД
 
 	CountRepeatAttempt int  // число попыток
-	TimeRepeatAttempt  int  // время между попытками
+	TimeRepeatAttempt  int  // время между попытками ! NanoSeconds !
 	RepeatFailDo       bool // пытаться повторить сделать запрос в редис
 
 	Email  *email.MailBean
@@ -101,7 +101,7 @@ func (r *Redis) Do(nameFuncWhoCall string, command string, args ...interface{}) 
 		}
 	}()
 
-	logging := nameFuncWhoCall != "" // если пустая строка в параметрах значит не логирвоать обращение к Redis
+	logging := nameFuncWhoCall != "" // если пустая строка в параметрах значит не логировать обращение к Redis
 	for tryCnt := 0; tryCnt < r.CountRepeatAttempt; tryCnt++ {
 		if logging {
 			(*r.logger).Debug(
@@ -118,6 +118,9 @@ func (r *Redis) Do(nameFuncWhoCall string, command string, args ...interface{}) 
 					err,
 					"ARGS:",
 					fmt.Sprintf("%v %v", args[0], args[1:]))
+			}
+			if r.TimeRepeatAttempt > 0 {
+				time.Sleep(time.Nanosecond * time.Duration(r.TimeRepeatAttempt))
 			}
 			continue
 		} else {
