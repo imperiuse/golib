@@ -15,6 +15,14 @@ import (
 	//_ "github.com/lib/pq"  // go meta linter says that does not need
 )
 
+// SSL mod
+const (
+	DisableSSL    = "disable"
+	RequireSSL    = "require"
+	VerifyCASSL   = "verify-ca"
+	VerifyFullSSL = "verify-full"
+)
+
 // PgDB - Bean for work with Postgres DB
 type PgDB struct {
 	Name string // Name DB (better uniq id in program)
@@ -23,8 +31,13 @@ type PgDB struct {
 	Host   string // Hostname domain (IP)
 	Port   string // Port Db (Postgres 5432)
 	DbName string // Db name (main)
-	SSL    string // SSL mod (disable/enable)  @see https://godoc.org/github.com/lib/pq
+
+	SSL string // SSL mod (disable/enable)  @see https://godoc.org/github.com/lib/pq
 	// * disable - No SSL * require - Always SSL (skip verification) * verify-ca - Always SSL * verify-full - Always SSL
+	SSLCert     string // sslcert Cert file location. The file must contain PEM encoded data.
+	SSLKey      string // sslkey Key file location. The file must contain PEM encoded data.
+	SSLRootCert string // sslrootcert The location of the root certificate file. The file
+
 	User string // The user to sign in as
 	Pass string // The user's password
 
@@ -48,9 +61,23 @@ func (pg *PgDB) GetName() string {
 }
 
 // ConfigString - config connect DB
-func (pg *PgDB) ConfigString() string {
-	return fmt.Sprintf("host=%s port=%s dbname=%s sslmode=%s user=%s password=%s",
-		pg.Host, pg.Port, pg.DbName, pg.SSL, pg.User, pg.Pass)
+func (pg *PgDB) ConfigString() (config string) {
+	switch pg.SSL {
+	case VerifyFullSSL:
+		fallthrough
+	case VerifyCASSL:
+		fallthrough
+	case RequireSSL:
+		config = fmt.Sprintf("sslmod=%s sslcert=%s sslkey=%s sslrootcert=%s "+
+			"host=%s port=%s dbname=%s sslmode=%s user=%s password=%s ",
+			pg.SSL, pg.SSLCert, pg.SSLKey, pg.SSLRootCert, pg.Host, pg.Port, pg.DbName, pg.SSL, pg.User, pg.Pass)
+	case DisableSSL:
+		fallthrough
+	default:
+		config = fmt.Sprintf("sslmod=%s host=%s port=%s dbname=%s sslmode=%s user=%s password=%s",
+			pg.SSL, pg.Host, pg.Port, pg.DbName, pg.SSL, pg.User, pg.Pass)
+	}
+	return
 }
 
 // Connect - Создание пула коннекшенов к БД
