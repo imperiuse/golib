@@ -44,6 +44,9 @@ type PgDB struct {
 	CntAttemptRequest  int  // Cnt attempts connect to DB
 	TimeAttemptRequest int  // Time between attempts  ! SECONDS !
 	RepeatRequest      bool // Cnt try repeat execute SQL request to DB
+	ConnMaxLifetime    int  // time in Nanosecond
+	MaxIdleConns       int  // max idle connections
+	MaxOpenConns       int  // max open connections
 
 	Email  *email.MailBean // Email Bean for send error info
 	logger *l.Logger       // Pointer to logger interface
@@ -90,10 +93,15 @@ func (pg *PgDB) Connect() (err error) {
 		(*pg.logger).Error("PgDB.Connect()", pg.Name, "Can't open connect (can't Ping) to DB server!",
 			pg.ConfigString(), err)
 	}
-	// TODO think about this settings!
-	//pg.db.SetConnMaxLifetime()
-	//pg.db.SetMaxIdleConns()
-	//pg.db.SetMaxOpenConns()
+	if pg.ConnMaxLifetime > 0 {
+		pg.db.SetConnMaxLifetime(time.Duration(pg.ConnMaxLifetime))
+	}
+	if pg.MaxIdleConns > 0 {
+		pg.db.SetMaxIdleConns(pg.MaxIdleConns)
+	}
+	if pg.MaxOpenConns > 0 {
+		pg.db.SetMaxOpenConns(pg.MaxOpenConns)
+	}
 	return err
 }
 
