@@ -49,7 +49,7 @@ type PgDB struct {
 	MaxOpenConns       int  // max open connections
 
 	Email  *email.MailBean // Email Bean for send error info
-	Logger *l.Logger       // Pointer to Logger interface
+	Logger *l.LoggerI      // Pointer to Logger interface
 	db     *sqlx.DB        // Pool connection to DB (return by sql.Open("postgres", ".....db_settings))
 }
 
