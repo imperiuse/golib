@@ -23,11 +23,6 @@ const (
 	VerifyFullSSL = "verify-full"
 )
 
-// Interface of Bean
-type PgDBI interface {
-	Connect() (err error)
-}
-
 // PgDB - Bean for work with Postgres DB
 type PgDB struct {
 	Name string // Name DB (better uniq id in program)
@@ -54,7 +49,7 @@ type PgDB struct {
 	MaxOpenConns       int  // max open connections
 
 	Email  *email.MailBean // Email Bean for send error info
-	logger *l.Logger       // Pointer to logger interface
+	Logger *l.Logger       // Pointer to Logger interface
 	db     *sqlx.DB        // Pool connection to DB (return by sql.Open("postgres", ".....db_settings))
 }
 
@@ -91,11 +86,11 @@ func (pg *PgDB) ConfigString() (config string) {
 // Connect - Создание пула коннекшенов к БД
 func (pg *PgDB) Connect() (err error) {
 	if pg.db, err = sqlx.Open("postgres", pg.ConfigString()); err != nil {
-		(*pg.logger).Error("PgDB.Connect()", pg.Name, "Can't open (get handle to database) to DB server!",
+		(*pg.Logger).Error("PgDB.Connect()", pg.Name, "Can't open (get handle to database) to DB server!",
 			pg.ConfigString(), err)
 	}
 	if err = pg.db.Ping(); err != nil {
-		(*pg.logger).Error("PgDB.Connect()", pg.Name, "Can't open connect (can't Ping) to DB server!",
+		(*pg.Logger).Error("PgDB.Connect()", pg.Name, "Can't open connect (can't Ping) to DB server!",
 			pg.ConfigString(), err)
 	}
 	if pg.ConnMaxLifetime > 0 {
@@ -113,18 +108,18 @@ func (pg *PgDB) Connect() (err error) {
 // Close - Закрытие соединения
 func (pg *PgDB) Close() {
 	if err := pg.db.Close(); err != nil {
-		(*pg.logger).Error("PgDB.close()", pg.Name, "Can't close DB connection!", err)
+		(*pg.Logger).Error("PgDB.close()", pg.Name, "Can't close DB connection!", err)
 	}
-	(*pg.logger).Info("PgDB.close()", pg.Name,
+	(*pg.Logger).Info("PgDB.close()", pg.Name,
 		fmt.Sprintf("Connection to database %v:%v successfull close()", pg.Host, pg.DbName))
 }
 
 func (pg *PgDB) executeDefer(where string, query string, err error, args ...interface{}) {
 	if r := recover(); r != nil {
-		(*pg.logger).Error("[DEFER] PgDB.executeDefer()", where, pg.Name, "PANIC!", r)
+		(*pg.Logger).Error("[DEFER] PgDB.executeDefer()", where, pg.Name, "PANIC!", r)
 		if err = pg.Email.SendEmailByDefaultTemplate(
 			fmt.Sprintf("PANIC!\n%v\nErr:\n%+v\nSQL:\n%v\nWith args:\n%+v", where, r, query, args)); err == nil {
-			(*pg.logger).Error("pg.dbDefer()", where, pg.Name, "Can't send email!", err)
+			(*pg.Logger).Error("pg.dbDefer()", where, pg.Name, "Can't send email!", err)
 		}
 	}
 }
@@ -154,21 +149,21 @@ func (pg *PgDB) execute(returnValue bool, nameFuncWhoCall string, SQL string, ar
 	var err error
 	// Проверка коннекта к БД
 	if err = pg.db.Ping(); err != nil {
-		(*pg.logger).Error(concat.Strings(nameFuncWhoCall, "() --> execute()"), pg.Name,
+		(*pg.Logger).Error(concat.Strings(nameFuncWhoCall, "() --> execute()"), pg.Name,
 			"Can't open connect (can't Ping) to Db server!", err)
 		err = fmt.Errorf("no connect")
 		panic(err)
 	}
 	for cnt := 0; cnt < pg.CntAttemptRequest; cnt++ {
-		(*pg.logger).Debug(concat.Strings(nameFuncWhoCall, "() --> execute()"), pg.Name,
+		(*pg.Logger).Debug(concat.Strings(nameFuncWhoCall, "() --> execute()"), pg.Name,
 			fmt.Sprintf("Attemp execute SQL: %d", cnt))
 		if returnValue { // TRUE == Execute_Query
 			row, err = pg.db.Query(SQL, args...)
 			if err != nil {
-				(*pg.logger).Log(l.DbFail, SQL, concat.Strings(nameFuncWhoCall, "() --> execute()"),
+				(*pg.Logger).Log(l.DbFail, SQL, concat.Strings(nameFuncWhoCall, "() --> execute()"),
 					pg.Name, "Failed! Err:", err, "ARGS:", args)
 			} else {
-				(*pg.logger).Log(l.DbOk, SQL, concat.Strings(nameFuncWhoCall, "() --> execute()"), "SUCCESSES!",
+				(*pg.Logger).Log(l.DbOk, SQL, concat.Strings(nameFuncWhoCall, "() --> execute()"), "SUCCESSES!",
 					"ARGS:", args)
 				return row
 			}
@@ -177,19 +172,19 @@ func (pg *PgDB) execute(returnValue bool, nameFuncWhoCall string, SQL string, ar
 			var results sql.Result
 			results, err = pg.db.Exec(SQL, args...)
 			if err != nil {
-				(*pg.logger).Log(l.DbFail, SQL, concat.Strings(nameFuncWhoCall, "() --> execute()"), pg.Name,
+				(*pg.Logger).Log(l.DbFail, SQL, concat.Strings(nameFuncWhoCall, "() --> execute()"), pg.Name,
 					"Failed! Err:", err, "ARGS:", args)
 			} else {
-				(*pg.logger).Log(l.DbOk, SQL, concat.Strings(nameFuncWhoCall, "() --> execute()"), "SUCCESSES!",
+				(*pg.Logger).Log(l.DbOk, SQL, concat.Strings(nameFuncWhoCall, "() --> execute()"), "SUCCESSES!",
 					"ARGS:", args)
 				if rA, err1 := results.RowsAffected(); err1 == nil {
-					(*pg.logger).Info("Rows affected:", rA)
+					(*pg.Logger).Info("Rows affected:", rA)
 				}
 				return nil
 			}
 		}
 	}
-	(*pg.logger).Error(concat.Strings(nameFuncWhoCall, "() --> execute()"), pg.Name, "All try estimates! Panic!", err)
+	(*pg.Logger).Error(concat.Strings(nameFuncWhoCall, "() --> execute()"), pg.Name, "All try estimates! Panic!", err)
 	panic(err)
 }
 
@@ -214,26 +209,26 @@ func (pg *PgDB) executeX(nameFuncWhoCall string, SQL string, args ...interface{}
 	var err error
 	// Проверка коннекта к БД
 	if err = pg.db.Ping(); err != nil {
-		(*pg.logger).Error(concat.Strings(nameFuncWhoCall, "() --> pg.db.Ping()"), pg.Name,
+		(*pg.Logger).Error(concat.Strings(nameFuncWhoCall, "() --> pg.db.Ping()"), pg.Name,
 			"Can't open connect (can't Ping) to Db server!", err)
 		err = errors.New("no connect")
 		panic(err)
 	}
 	for cnt := 0; cnt < pg.CntAttemptRequest; cnt++ {
-		(*pg.logger).Debug(concat.Strings(nameFuncWhoCall, "() --> executeX()"), pg.Name,
+		(*pg.Logger).Debug(concat.Strings(nameFuncWhoCall, "() --> executeX()"), pg.Name,
 			fmt.Sprintf("Attemp execute SQL: %d", cnt))
 		row, err = pg.db.Queryx(SQL, args...)
 		if err != nil {
-			(*pg.logger).Log(l.DbFail, SQL, concat.Strings(nameFuncWhoCall, "() --> executeX()"), pg.Name,
+			(*pg.Logger).Log(l.DbFail, SQL, concat.Strings(nameFuncWhoCall, "() --> executeX()"), pg.Name,
 				"Failed! Err:", err, "ARGS:", args)
 		} else {
-			(*pg.logger).Log(l.DbOk, SQL, concat.Strings(nameFuncWhoCall, "() --> executeX()"), pg.Name,
+			(*pg.Logger).Log(l.DbOk, SQL, concat.Strings(nameFuncWhoCall, "() --> executeX()"), pg.Name,
 				"SUCCESSES!", "ARGS:", args)
 			return row
 		}
 		time.Sleep(time.Duration(pg.TimeAttemptRequest) * time.Second)
 	}
-	(*pg.logger).Error(concat.Strings(nameFuncWhoCall, "() --> executeX()"), pg.Name,
+	(*pg.Logger).Error(concat.Strings(nameFuncWhoCall, "() --> executeX()"), pg.Name,
 		"All try estimates! Panic!", err)
 	panic(err)
 }
