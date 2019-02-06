@@ -12,7 +12,8 @@ import (
 	l "github.com/imperiuse/golib/logger"
 
 	"github.com/jmoiron/sqlx"
-	_ "github.com/lib/pq" // go meta linter says that does not need
+	//nolint
+	_ "github.com/lib/pq"
 )
 
 // SSL mod
