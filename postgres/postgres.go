@@ -30,7 +30,7 @@ type PgDB struct {
 
 	URL    string // Domain name (localhost - default)
 	Host   string // Hostname domain (IP)
-	Port   string // Port Db (Postgres 5432)
+	Port   int    // Port Db (Postgres 5432)
 	DbName string // Db name (main)
 
 	SSL string // SSL mod (disable/enable)  @see https://godoc.org/github.com/lib/pq
