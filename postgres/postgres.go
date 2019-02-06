@@ -23,6 +23,11 @@ const (
 	VerifyFullSSL = "verify-full"
 )
 
+// Interface of Bean
+type PgDBI interface {
+	Connect() (err error)
+}
+
 // PgDB - Bean for work with Postgres DB
 type PgDB struct {
 	Name string // Name DB (better uniq id in program)
