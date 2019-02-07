@@ -72,14 +72,14 @@ func (pg *PgDB) ConfigString() (config string) {
 	case VerifyCASSL:
 		fallthrough
 	case RequireSSL:
-		config = fmt.Sprintf("sslmod=%s sslcert=%s sslkey=%s sslrootcert=%s "+
-			"host=%s port=%d dbname=%s sslmode=%s user=%s password=%s ",
-			pg.SSL, pg.SSLCert, pg.SSLKey, pg.SSLRootCert, pg.Host, pg.Port, pg.DbName, pg.SSL, pg.User, pg.Pass)
+		config = fmt.Sprintf("host=%s port=%d dbname=%s user=%s password=%s "+
+			"sslmod=%s sslcert=%s sslkey=%s sslrootcert=%s",
+			pg.Host, pg.Port, pg.DbName, pg.User, pg.Pass, pg.SSL, pg.SSLCert, pg.SSLKey, pg.SSLRootCert)
 	case DisableSSL:
 		fallthrough
 	default:
-		config = fmt.Sprintf("sslmod=%s host=%s port=%d dbname=%s sslmode=%s user=%s password=%s",
-			pg.SSL, pg.Host, pg.Port, pg.DbName, pg.SSL, pg.User, pg.Pass)
+		config = fmt.Sprintf("host=%s port=%d dbname=%s user=%s password=%s sslmod=%s ",
+			pg.Host, pg.Port, pg.DbName, pg.User, pg.Pass, pg.SSL)
 	}
 	return
 }
