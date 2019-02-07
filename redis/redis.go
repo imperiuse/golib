@@ -24,10 +24,19 @@ type Redis struct {
 	CountRepeatAttempt int  // try cnt repeat command  (RepeatFailDo == true)
 	TimeRepeatAttempt  int  //  ! NanoSeconds ! time out repeat command (RepeatFailDo == true)
 
-	MaxIdle          int           // max cnt idle connection
-	MaxActive        int           // max cnt active
-	IdleTimeout      time.Duration // ! NanoSeconds !  max live time
+	MaxIdle     int           // max cnt idle connection
+	MaxActive   int           // max cnt active
+	IdleTimeout time.Duration // ! NanoSeconds !  max live time
+	Wait        bool          // If Wait is true and the pool is at the MaxActive limit, then Get() waits
+	// for a connection to be returned to the pool before returning.
+	MaxConnLifetime time.Duration // Close connections older than this duration. If the value is zero, then
+	// the pool does not close connections based on age.
 	TestOnBorrowTime time.Duration // ! NanoSeconds !  timeout for test on alive
+	// TestOnBorrow() is an optional application supplied function for checking
+	// the health of an idle connection before the connection is used again by
+	// the application. Argument t is the time that the connection was returned
+	// to the pool. If the function returns an error, then the connection is
+	// closed.
 
 	Email  *email.MailBean // Mail Bean
 	pool   *redis.Pool     // Pool connect к Redis
@@ -36,6 +45,7 @@ type Redis struct {
 
 // InitNewPool - инициализировать внутренний пул подключений к Redis
 func (r *Redis) InitNewPool() {
+
 	r.pool = &redis.Pool{
 		MaxIdle:     r.MaxIdle,
 		IdleTimeout: r.IdleTimeout,
