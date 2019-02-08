@@ -49,8 +49,10 @@ type LoggerController interface {
 	SetDefaultDestinations(io.Writer, DestinationFlag)
 	SetNewDestinations(Destinations)
 
-	SetDestinationLvl(lvl LogLvl, sWriters []io.Writer)
-	SetDestinationLvlColor(lvl LogLvl, flag ColorFlag, writer io.Writer)
+	SetDestinationLvl(LogLvl, []io.Writer)
+	GetDestinationLvl(LogLvl) []io.Writer
+	SetDestinationLvlColor(LogLvl, ColorFlag, io.Writer)
+	GetDestinationLvlColor(LogLvl, ColorFlag) io.Writer
 
 	DisableDestinationLvl(LogLvl)
 	DisableDestinationLvlColor(LogLvl, ColorFlag)
@@ -295,14 +297,24 @@ func (l *Logger) SetDefaultDestinations(defaultWriter io.Writer, flag Destinatio
 	}
 }
 
-// SetDestinationLvl - set destination lvl
+// SetDestinationLvl - set destination to lvl
 func (l *Logger) SetDestinationLvl(lvl LogLvl, sWriters []io.Writer) {
 	l.Destinations[lvl] = sWriters
 }
 
-// SetDestinationLvlColor - set destination lvl  color
+// GetDestinationLvl - get destination by lvl
+func (l *Logger) GetDestinationLvl(lvl LogLvl) []io.Writer {
+	return l.Destinations[lvl]
+}
+
+// SetDestinationLvlColor - set destination to lvl & color
 func (l *Logger) SetDestinationLvlColor(lvl LogLvl, color ColorFlag, writer io.Writer) {
 	l.Destinations[lvl][color] = writer
+}
+
+// GetDestinationLvlColor - get destination  by lvl & color
+func (l *Logger) GetDestinationLvlColor(lvl LogLvl, color ColorFlag) io.Writer {
+	return l.Destinations[lvl][color]
 }
 
 // SetNewDestinations - set new destination
