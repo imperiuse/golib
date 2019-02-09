@@ -44,7 +44,12 @@ type Redis struct {
 }
 
 // InitNewPool - инициализировать внутренний пул подключений к Redis
-func (r *Redis) InitNewPool() {
+func (r *Redis) InitNewPool() (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("error while init new redis pool. %v", r)
+		}
+	}()
 
 	r.pool = &redis.Pool{
 		MaxIdle:     r.MaxIdle,
@@ -65,6 +70,7 @@ func (r *Redis) InitNewPool() {
 			return err
 		},
 	}
+	return nil
 }
 
 // GetName - get name obj Redis
