@@ -140,43 +140,43 @@ func (pg *PgDB) Execute(nameFuncWhoCall string, query string, args ...interface{
 
 // Функция выполнения запроса query
 // @param
-//     return_flag  bool        -  флаг типа запроса
-//     name_func    string      -  имя вызывающей функции для логирования
-//     SQL          string      -  строка SQL запрос
+//     returnValue  bool        -  флаг типа запроса
+//     callBy       string      -  имя вызывающей функции для логирования
+//     query        string      -  строка SQL запрос
 //     args...      interface{} - аргументы
 // @return
 //     row          sql.Rows -  результат запроса, данные от БД
-func (pg *PgDB) execute(returnValue bool, nameFuncWhoCall string, SQL string, args ...interface{}) (row *sql.Rows) {
+func (pg *PgDB) execute(returnValue bool, callBy string, query string, args ...interface{}) (row *sql.Rows) {
 	var err error
 	// Проверка коннекта к БД
 	if err = pg.db.Ping(); err != nil {
-		(*pg.Logger).Error(concat.Strings(nameFuncWhoCall, "() --> execute()"), pg.Name,
+		(*pg.Logger).Error(concat.Strings(callBy, "() --> execute()"), pg.Name,
 			"Can't open connect (can't Ping) to Db server!", err)
 		err = fmt.Errorf("no connect")
 		panic(err)
 	}
 	for cnt := 0; cnt < pg.CntAttemptRequest; cnt++ {
-		(*pg.Logger).Debug(concat.Strings(nameFuncWhoCall, "() --> execute()"), pg.Name,
-			fmt.Sprintf("Attemp execute SQL: %d", cnt))
+		(*pg.Logger).Debug(concat.Strings(callBy, "() --> execute()"), pg.Name,
+			fmt.Sprintf("Attemp execute query: %d", cnt))
 		if returnValue { // TRUE == Execute_Query
-			row, err = pg.db.Query(SQL, args...)
+			row, err = pg.db.Query(query, args...)
 			if err != nil {
-				(*pg.Logger).Log(l.DbFail, SQL, concat.Strings(nameFuncWhoCall, "() --> execute()"),
+				(*pg.Logger).Log(l.DbFail, query, concat.Strings(callBy, "() --> execute()"),
 					pg.Name, "Failed! Err:", err, "ARGS:", args)
 			} else {
-				(*pg.Logger).Log(l.DbOk, SQL, concat.Strings(nameFuncWhoCall, "() --> execute()"), "SUCCESSES!",
+				(*pg.Logger).Log(l.DbOk, query, concat.Strings(callBy, "() --> execute()"), "SUCCESSES!",
 					"ARGS:", args)
 				return row
 			}
 			time.Sleep(time.Duration(pg.TimeAttemptRequest) * time.Second)
 		} else { // FALSE == Execute
 			var results sql.Result
-			results, err = pg.db.Exec(SQL, args...)
+			results, err = pg.db.Exec(query, args...)
 			if err != nil {
-				(*pg.Logger).Log(l.DbFail, SQL, concat.Strings(nameFuncWhoCall, "() --> execute()"), pg.Name,
+				(*pg.Logger).Log(l.DbFail, query, concat.Strings(callBy, "() --> execute()"), pg.Name,
 					"Failed! Err:", err, "ARGS:", args)
 			} else {
-				(*pg.Logger).Log(l.DbOk, SQL, concat.Strings(nameFuncWhoCall, "() --> execute()"), "SUCCESSES!",
+				(*pg.Logger).Log(l.DbOk, query, concat.Strings(callBy, "() --> execute()"), "SUCCESSES!",
 					"ARGS:", args)
 				if rA, err1 := results.RowsAffected(); err1 == nil {
 					(*pg.Logger).Info("Rows affected:", rA)
@@ -185,7 +185,7 @@ func (pg *PgDB) execute(returnValue bool, nameFuncWhoCall string, SQL string, ar
 			}
 		}
 	}
-	(*pg.Logger).Error(concat.Strings(nameFuncWhoCall, "() --> execute()"), pg.Name, "All try estimates! Panic!", err)
+	(*pg.Logger).Error(concat.Strings(callBy, "() --> execute()"), pg.Name, "All try estimates! Panic!", err)
 	panic(err)
 }
 
@@ -201,35 +201,75 @@ func (pg *PgDB) ExecuteQueryX(nameFuncWhoCall string, query string, args ...inte
 
 // Функция выполнения запроса queryX
 // @param
-//     name_func    string      -  имя вызывающей функции для логирования
-//     SQL          string      -  строка SQL запрос
+//     callBy       string      -  имя вызывающей функции для логирования
+//     query        string      -  строка SQL запрос
 //     args...      interface{} - аргументы
 //  @return
 //     row          *sqlx.Rows
-func (pg *PgDB) executeX(nameFuncWhoCall string, SQL string, args ...interface{}) (row *sqlx.Rows) {
+func (pg *PgDB) executeX(callBy string, query string, args ...interface{}) (row *sqlx.Rows) {
 	var err error
 	// Проверка коннекта к БД
 	if err = pg.db.Ping(); err != nil {
-		(*pg.Logger).Error(concat.Strings(nameFuncWhoCall, "() --> pg.db.Ping()"), pg.Name,
+		(*pg.Logger).Error(concat.Strings(callBy, "() --> pg.db.Ping()"), pg.Name,
 			"Can't open connect (can't Ping) to Db server!", err)
 		err = errors.New("no connect")
 		panic(err)
 	}
 	for cnt := 0; cnt < pg.CntAttemptRequest; cnt++ {
-		(*pg.Logger).Debug(concat.Strings(nameFuncWhoCall, "() --> executeX()"), pg.Name,
-			fmt.Sprintf("Attemp execute SQL: %d", cnt))
-		row, err = pg.db.Queryx(SQL, args...)
+		(*pg.Logger).Debug(concat.Strings(callBy, "() --> executeX()"), pg.Name,
+			fmt.Sprintf("Attemp execute query: %d", cnt))
+		row, err = pg.db.Queryx(query, args...)
 		if err != nil {
-			(*pg.Logger).Log(l.DbFail, SQL, concat.Strings(nameFuncWhoCall, "() --> executeX()"), pg.Name,
-				"Failed! Err:", err, "ARGS:", args)
+			(*pg.Logger).Log(l.DbFail, query, concat.Strings(callBy, "() --> executeX()"), pg.Name, "Failed! Err:",
+				err, "ARGS:", args)
 		} else {
-			(*pg.Logger).Log(l.DbOk, SQL, concat.Strings(nameFuncWhoCall, "() --> executeX()"), pg.Name,
-				"SUCCESSES!", "ARGS:", args)
+			(*pg.Logger).Log(l.DbOk, query, concat.Strings(callBy, "() --> executeX()"), pg.Name, "SUCCESSES!",
+				"ARGS:", args)
 			return row
 		}
 		time.Sleep(time.Duration(pg.TimeAttemptRequest) * time.Second)
 	}
-	(*pg.Logger).Error(concat.Strings(nameFuncWhoCall, "() --> executeX()"), pg.Name,
+	(*pg.Logger).Error(concat.Strings(callBy, "() --> executeX()"), pg.Name,
 		"All try estimates! Panic!", err)
 	panic(err)
+}
+
+// Select - syntax sugar of `SELECT ... ` method;
+// @param
+//     callBy       string      -  имя вызывающей функции для логирования
+//     dest         interface   -  интерфейс указатель куда запишем данные
+//     query        string      -  строка SQL запрос
+//     args...      interface{} - аргументы
+//  @return
+//     row          *sqlx.Rows
+func (pg *PgDB) Select(callBy string, dest interface{}, query string, args ...interface{}) interface{} {
+	// NOTE  // if you have null fields and use SELECT *, you must use sql.Null* in your struct
+	if err := pg.db.Select(dest, query, args...); err != nil {
+		(*pg.Logger).Log(l.DbFail, query, concat.Strings(callBy, "() --> Select()"), pg.Name, "Failed! Err:", err,
+			"ARGS:", args)
+		return nil
+	} else {
+		(*pg.Logger).Log(l.DbOk, query, concat.Strings(callBy, "() --> Select()"), pg.Name, "SUCCESSES!", "ARGS:",
+			args)
+		return dest
+	}
+}
+
+// Get - syntax sugar of `SELECT ... LIMIT 1` method;
+// @param
+//     callBy       string      -  имя вызывающей функции для логирования
+//     dest         interface   -  интерфейс указатель куда запишем данные
+//     query        string      -  строка SQL запрос
+//     args...      interface{} - аргументы
+//  @return
+//     dest         interface{}
+func (pg *PgDB) Get(callBy string, dest interface{}, query string, args ...interface{}) interface{} {
+	if err := pg.db.Get(dest, query, args...); err != nil {
+		(*pg.Logger).Log(l.DbFail, query, concat.Strings(callBy, "() --> Get()"), pg.Name, "Failed! Err:", err,
+			"ARGS:", args)
+		return nil
+	} else {
+		(*pg.Logger).Log(l.DbOk, query, concat.Strings(callBy, "() --> Get()"), pg.Name, "SUCCESSES!", "ARGS:", args)
+		return dest
+	}
 }
