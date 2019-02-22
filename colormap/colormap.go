@@ -88,8 +88,9 @@ type SchemeAttributes int
 
 //ON ATTRIBUTE
 const (
-	NEW_LINE = "\n"
-	TAB      = "\t"
+	REPEAT_COLOR = ""
+	NEW_LINE     = "\n"
+	TAB          = "\t"
 
 	CLR_RESET     SchemeAttributes = 0 // reset; clears all colors and styles (to white on black) // 0 нормальный режим
 	CLR_BOLD      SchemeAttributes = 1 // bold on                                                 // 1 жирный
@@ -157,13 +158,13 @@ func CSMthemePicker(ThemeName string) (cs CSM) {
 		cs[CS_FATAL_ERROR] = ColorSheme{CreateCS(CLR_FG_RED, CLR_BOLD, CLR_STRIKE)}
 		cs[CS_TEST] = ColorSheme{CreateCS(CLR_FG_BLUE)}
 		cs[CS_PRINT] = ColorSheme{CreateCS(CLR_FG_MAGENTA, CLR_BOLD)}
-		cs[CS_DB] = ColorSheme{CreateCS(CLR_FG_BLUE, CLR_BOLD), CreateCS(NEW_LINE, CLR_BG_CYAN, CLR_BOLD)}
-		cs[CS_DB_OK] = ColorSheme{CreateCS(CLR_FG_BLUE, CLR_BOLD), CreateCS(CLR_FG_GREEN, CLR_BOLD), CreateCS(NEW_LINE, CLR_BG_CYAN, CLR_BOLD)}
-		cs[CS_DB_FAIL] = ColorSheme{CreateCS(CLR_FG_BLUE, CLR_BOLD), CreateCS(CLR_FG_RED, CLR_BOLD), CreateCS(NEW_LINE, CLR_BG_CYAN, CLR_BOLD)}
-		cs[CS_REDIS] = ColorSheme{CreateCS(CLR_FG_MAGENTA, CLR_BOLD), CreateCS(CLR_FG_BLUE, CLR_BOLD), CreateCS(NEW_LINE, CLR_BG_MAGENTA, CLR_BOLD)}
-		cs[CS_REDIS_OK] = ColorSheme{CreateCS(CLR_FG_MAGENTA, CLR_BOLD), CreateCS(CLR_FG_GREEN, CLR_BOLD), CreateCS(NEW_LINE, CLR_BG_MAGENTA, CLR_BOLD)}
-		cs[CS_REDIS_FAIL] = ColorSheme{CreateCS(CLR_FG_MAGENTA, CLR_BOLD), CreateCS(CLR_FG_RED, CLR_BOLD), CreateCS(NEW_LINE, CLR_BG_MAGENTA, CLR_BOLD)}
-		cs[CS_MEMCHD] = ColorSheme{CreateCS(CLR_FG_GREEN, CLR_BOLD), CreateCS(CLR_FG_BLUE, CLR_BOLD), CreateCS(NEW_LINE, CLR_BG_GREEN, CLR_BOLD)}
+		cs[CS_DB] = ColorSheme{CreateCS(CLR_FG_BLUE, CLR_BOLD), CreateCS(CLR_BG_CYAN, CLR_BOLD)}
+		cs[CS_DB_OK] = ColorSheme{CreateCS(CLR_FG_BLUE, CLR_BOLD), CreateCS(CLR_FG_MAGENTA, CLR_BOLD), CreateCS(CLR_FG_GREEN, CLR_BOLD), NEW_LINE, CreateCS(CLR_BG_CYAN, CLR_BOLD)}
+		cs[CS_DB_FAIL] = ColorSheme{CreateCS(CLR_FG_BLUE, CLR_BOLD), CreateCS(CLR_FG_MAGENTA, CLR_BOLD), CreateCS(CLR_FG_RED, CLR_BOLD), REPEAT_COLOR, NEW_LINE, CreateCS(CLR_BG_CYAN, CLR_BOLD)}
+		cs[CS_REDIS] = ColorSheme{CreateCS(CLR_FG_MAGENTA, CLR_BOLD), CreateCS(CLR_FG_BLUE, CLR_BOLD), NEW_LINE, CreateCS(CLR_BG_MAGENTA, CLR_BOLD)}
+		cs[CS_REDIS_OK] = ColorSheme{CreateCS(CLR_FG_MAGENTA, CLR_BOLD), CreateCS(CLR_FG_GREEN, CLR_BOLD), NEW_LINE, CreateCS(CLR_BG_MAGENTA, CLR_BOLD)}
+		cs[CS_REDIS_FAIL] = ColorSheme{CreateCS(CLR_FG_MAGENTA, CLR_BOLD), CreateCS(CLR_FG_RED, CLR_BOLD), NEW_LINE, CreateCS(CLR_BG_MAGENTA, CLR_BOLD)}
+		cs[CS_MEMCHD] = ColorSheme{CreateCS(CLR_FG_GREEN, CLR_BOLD), CreateCS(CLR_FG_BLUE, CLR_BOLD), NEW_LINE, CreateCS(CLR_BG_GREEN, CLR_BOLD)}
 		return
 	default:
 		return // copy of Deafult CSM
