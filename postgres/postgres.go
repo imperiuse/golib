@@ -220,17 +220,16 @@ func (pg *PgDB) executeX(callBy string, query string, args ...interface{}) (row 
 			fmt.Sprintf("Attemp execute query: %d", cnt))
 		row, err = pg.db.Queryx(query, args...)
 		if err != nil {
-			(*pg.Logger).Log(l.DbFail, query, concat.Strings(callBy, "() --> executeX()"), pg.Name, "Failed! Err:",
-				err, "ARGS:", args)
+			(*pg.Logger).Log(l.DbFail, query, pg.Name, "Failed! Err:", err,
+				"ARGS:", args)
 		} else {
-			(*pg.Logger).Log(l.DbOk, query, concat.Strings(callBy, "() --> executeX()"), pg.Name, "SUCCESSES!",
+			(*pg.Logger).Log(l.DbOk, query, pg.Name, "Successful!",
 				"ARGS:", args)
 			return row
 		}
 		time.Sleep(time.Duration(pg.TimeAttemptRequest) * time.Second)
 	}
-	(*pg.Logger).Error(concat.Strings(callBy, "() --> executeX()"), pg.Name,
-		"All try estimates! Panic!", err)
+	(*pg.Logger).Error(concat.Strings(callBy, "() --> executeX()"), pg.Name, "All try estimates! Panic!", err)
 	panic(err)
 }
 
