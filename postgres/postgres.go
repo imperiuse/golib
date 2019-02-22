@@ -161,10 +161,10 @@ func (pg *PgDB) execute(returnValue bool, callBy string, query string, args ...i
 		if returnValue { // TRUE == Execute_Query
 			row, err = pg.db.Query(query, args...)
 			if err != nil {
-				(*pg.Logger).Log(l.DbFail, query, concat.Strings(callBy, "() --> execute()"),
-					pg.Name, "Failed! Err:", err, "ARGS:", args)
+				(*pg.Logger).Log(l.DbFail, query, pg.Name, "Failed! Err:", err,
+					"ARGS:", args)
 			} else {
-				(*pg.Logger).Log(l.DbOk, query, concat.Strings(callBy, "() --> execute()"), "SUCCESSES!",
+				(*pg.Logger).Log(l.DbOk, query, pg.Name, "SUCCESSES!",
 					"ARGS:", args)
 				return row
 			}
@@ -173,10 +173,10 @@ func (pg *PgDB) execute(returnValue bool, callBy string, query string, args ...i
 			var results sql.Result
 			results, err = pg.db.Exec(query, args...)
 			if err != nil {
-				(*pg.Logger).Log(l.DbFail, query, concat.Strings(callBy, "() --> execute()"), pg.Name,
-					"Failed! Err:", err, "ARGS:", args)
+				(*pg.Logger).Log(l.DbFail, query, pg.Name, "Failed! Err:", err,
+					"ARGS:", args)
 			} else {
-				(*pg.Logger).Log(l.DbOk, query, concat.Strings(callBy, "() --> execute()"), "SUCCESSES!",
+				(*pg.Logger).Log(l.DbOk, query, pg.Name, "SUCCESSES!",
 					"ARGS:", args)
 				if rA, err1 := results.RowsAffected(); err1 == nil {
 					(*pg.Logger).Info("Rows affected:", rA)
@@ -235,20 +235,19 @@ func (pg *PgDB) executeX(callBy string, query string, args ...interface{}) (row 
 
 // Select - syntax sugar of `SELECT ... ` method;
 // @param
-//     callBy       string      -  имя вызывающей функции для логирования
 //     dest         interface   -  интерфейс указатель куда запишем данные
 //     query        string      -  строка SQL запрос
 //     args...      interface{} - аргументы
 //  @return
 //     row          *sqlx.Rows
-func (pg *PgDB) Select(callBy string, dest interface{}, query string, args ...interface{}) interface{} {
+func (pg *PgDB) Select(dest interface{}, query string, args ...interface{}) interface{} {
 	// NOTE  // if you have null fields and use SELECT *, you must use sql.Null* in your struct
 	if err := pg.db.Select(dest, query, args...); err != nil {
-		(*pg.Logger).Log(l.DbFail, query, concat.Strings(callBy, "() --> Select()"), pg.Name, "Failed! Err:", err,
+		(*pg.Logger).Log(l.DbFail, query, pg.Name, "Failed! Err:", err,
 			"ARGS:", args)
 		return nil
 	} else {
-		(*pg.Logger).Log(l.DbOk, query, concat.Strings(callBy, "() --> Select()"), pg.Name, "SUCCESSES!", "ARGS:",
+		(*pg.Logger).Log(l.DbOk, query, pg.Name, "SUCCESSES!", "ARGS:",
 			args)
 		return dest
 	}
@@ -256,19 +255,18 @@ func (pg *PgDB) Select(callBy string, dest interface{}, query string, args ...in
 
 // Get - syntax sugar of `SELECT ... LIMIT 1` method;
 // @param
-//     callBy       string      -  имя вызывающей функции для логирования
 //     dest         interface   -  интерфейс указатель куда запишем данные
 //     query        string      -  строка SQL запрос
 //     args...      interface{} - аргументы
 //  @return
 //     dest         interface{}
-func (pg *PgDB) Get(callBy string, dest interface{}, query string, args ...interface{}) interface{} {
+func (pg *PgDB) Get(dest interface{}, query string, args ...interface{}) interface{} {
 	if err := pg.db.Get(dest, query, args...); err != nil {
-		(*pg.Logger).Log(l.DbFail, query, concat.Strings(callBy, "() --> Get()"), pg.Name, "Failed! Err:", err,
+		(*pg.Logger).Log(l.DbFail, query, pg.Name, "Failed! Err:", err,
 			"ARGS:", args)
 		return nil
 	} else {
-		(*pg.Logger).Log(l.DbOk, query, concat.Strings(callBy, "() --> Get()"), pg.Name, "SUCCESSES!", "ARGS:", args)
+		(*pg.Logger).Log(l.DbOk, query, pg.Name, "SUCCESSES!", "ARGS:", args)
 		return dest
 	}
 }
