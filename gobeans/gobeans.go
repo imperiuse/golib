@@ -308,7 +308,7 @@ func (bs BeansStorage) addNewBeanInstance(processingFieldsAndReference bool, bea
 					Type: tempType,
 					Tag:  reflect.StructTag(descStructField.Tag)}
 			} else {
-				panic(fmt.Errorf("Not found Struct by Name (Anonumous Struct): %v", descStructField.Type))
+				panic(fmt.Errorf("Not found Struct by Name (Anonumous Struct): %v ", descStructField.Type))
 			}
 		}
 		typ = reflect.StructOf(structFields)
@@ -318,7 +318,7 @@ func (bs BeansStorage) addNewBeanInstance(processingFieldsAndReference bool, bea
 		if tempType, found := bs.FoundAndGetReflectTypeByName(beanSettings.Struct); found {
 			typ = tempType
 		} else {
-			panic(fmt.Errorf("Not found Struct by Name: %v", beanSettings.Struct))
+			panic(fmt.Errorf("Not found Struct by Name: %v ", beanSettings.Struct))
 		}
 	}
 
