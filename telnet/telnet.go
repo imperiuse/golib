@@ -51,7 +51,7 @@ type CommandList []CommandTelnet
 // 	  connection   network.connection  - сетевое соединнение
 // 	  msg     	 string              - анализируемое сообщеие (потенциальная команда)
 func (server *ServerTelnet) CommandAnalyze(connection net.Conn, msgChan <-chan string, stopChan chan interface{}) {
-	var count int = 0
+	var count int
 	var oldMsg string
 	for {
 		msg := <-msgChan
@@ -69,10 +69,10 @@ func (server *ServerTelnet) CommandAnalyze(connection net.Conn, msgChan <-chan s
 			msg = "exit"
 		}
 
-		no_one_match := true
+		noOneMatch := true
 		for _, command := range server.TCL {
 			if command.RegExp.MatchString(msg) {
-				no_one_match = false
+				noOneMatch = false
 				exit, err := command.Func(server, connection, msg)
 				if err != nil {
 					// BAD
@@ -89,8 +89,8 @@ func (server *ServerTelnet) CommandAnalyze(connection net.Conn, msgChan <-chan s
 			}
 		}
 
-		// UnKnown сommand
-		if no_one_match {
+		//  Unknown command
+		if noOneMatch {
 			Log.Info("Telnet", "command_analyze()", "Receive command: Unknown command!")
 			SafetyWrite(connection, fmt.Sprintf("Bad command send!  - %s ", msg))
 		}
@@ -205,7 +205,7 @@ func recoveryFunc(f string) {
 	}
 }
 
-var Log gl.Logger // Интерфейс для логирования
+var Log gl.LoggerI // Интерфейс для логирования
 /*
 * Основная функция Telnet
 * На каждое открываемое соединение вызывается своя горутина, которая в свою очередь создает еще одну горутину для
@@ -224,7 +224,7 @@ func (server *ServerTelnet) Run() {
 	defer f.Close()                   // Дефер для закрытия файла
 
 	// Создание экземпляра Логгера для Логирования всех действий утилиты см. Пакет gologger/logger.go
-	Log = gl.NewLogger(os.Stdout, gl.ON_ALL, 1, 0, 0, "\t", colormap.CSMthemePicker("arseny"))
+	Log = gl.NewLogger(os.Stdout, gl.OnAll, 1, 0, 0, "\t", colormap.CSMthemePicker("arseny"))
 
 	ln, err := net.Listen("tcp", fmt.Sprintf(":%v", server.Port))
 	if err != nil {

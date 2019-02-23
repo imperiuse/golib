@@ -208,7 +208,7 @@ func (sm safeMap) run() {
 			command.data <- store
 		case mget:
 			out := make(map[interface{}]interface{})
-			for key, _ := range command.items {
+			for key := range command.items {
 				if val, f := store[key]; f {
 					out[key] = val
 				}
