@@ -157,10 +157,13 @@ func (pg *PgDB) execute(returnValue bool, callBy string, query string, args ...i
 		if returnValue { // TRUE == Execute_Query
 			row, err = pg.db.Query(query, args...)
 			if err != nil {
-				(*pg.Logger).Log(l.DbFail, query, pg.Name, "FAILED", err,
+				(*pg.Logger).Log(l.DbFail, callBy, pg.Name, "SQL FAILED",
+					err,
+					query,
 					"ARGS:", args)
 			} else {
-				(*pg.Logger).Log(l.DbOk, query, pg.Name, "SUCCESS",
+				(*pg.Logger).Log(l.DbOk, callBy, pg.Name, "SQL SUCCESS",
+					query,
 					"ARGS:", args)
 				return row
 			}
@@ -169,13 +172,16 @@ func (pg *PgDB) execute(returnValue bool, callBy string, query string, args ...i
 			var results sql.Result
 			results, err = pg.db.Exec(query, args...)
 			if err != nil {
-				(*pg.Logger).Log(l.DbFail, query, pg.Name, "FAILED", err,
+				(*pg.Logger).Log(l.DbFail, callBy, pg.Name, "SQL FAILED",
+					err,
+					query,
 					"ARGS:", args)
 			} else {
-				(*pg.Logger).Log(l.DbOk, query, pg.Name, "SUCCESS",
+				(*pg.Logger).Log(l.DbOk, callBy, pg.Name, "SQL SUCCESS",
+					query,
 					"ARGS:", args)
 				if rA, err1 := results.RowsAffected(); err1 == nil {
-					(*pg.Logger).Info("Rows affected:", rA)
+					(*pg.Logger).Debug("Rows affected:", rA)
 				}
 				return nil
 			}
@@ -214,10 +220,13 @@ func (pg *PgDB) executeX(callBy string, query string, args ...interface{}) (row 
 		(*pg.Logger).Debug(callBy, pg.Name, concat.Strings("Attemp execute query: ", strconv.Itoa(cnt)))
 		row, err = pg.db.Queryx(query, args...)
 		if err != nil {
-			(*pg.Logger).Log(l.DbFail, query, pg.Name, "FAILED", err,
+			(*pg.Logger).Log(l.DbFail, query, pg.Name, "SQL FAILED",
+				err,
+				query,
 				"ARGS:", args)
 		} else {
-			(*pg.Logger).Log(l.DbOk, query, pg.Name, "SUCCESS",
+			(*pg.Logger).Log(l.DbOk, callBy, pg.Name, "SQL SUCCESS",
+				query,
 				"ARGS:", args)
 			return row
 		}
