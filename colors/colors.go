@@ -17,14 +17,14 @@ var (
 )
 
 func init() {
-	RED = colormap.CreateCS(colormap.CLR_FG_RED, colormap.CLR_BOLD)
-	GREEN = colormap.CreateCS(colormap.CLR_FG_GREEN, colormap.CLR_BOLD)
-	BLUE = colormap.CreateCS(colormap.CLR_FG_BLUE, colormap.CLR_BOLD)
-	MAGENTA = colormap.CreateCS(colormap.CLR_FG_MAGENTA, colormap.CLR_BOLD)
-	YELLOW = colormap.CreateCS(colormap.CLR_FG_YELLOW, colormap.CLR_BOLD)
-	NBLACK = colormap.CreateCS(colormap.CLR_BG_BLACK, colormap.CLR_BOLD)
-	BLACK = colormap.CreateCS(colormap.CLR_FG_BLACK, colormap.CLR_BOLD)
-	RESET = colormap.CreateCS(colormap.CLR_RESET)
+	RED = colormap.CreateCS(colormap.ClrFgRed, colormap.ClrBold)
+	GREEN = colormap.CreateCS(colormap.ClrFgGreen, colormap.ClrBold)
+	BLUE = colormap.CreateCS(colormap.ClrFgBlue, colormap.ClrBold)
+	MAGENTA = colormap.CreateCS(colormap.ClrFgMagenta, colormap.ClrBold)
+	YELLOW = colormap.CreateCS(colormap.ClrFgYellow, colormap.ClrBold)
+	NBLACK = colormap.CreateCS(colormap.ClrBgBlack, colormap.ClrBold)
+	BLACK = colormap.CreateCS(colormap.ClrFgBlack, colormap.ClrBold)
+	RESET = colormap.CreateCS(colormap.ClrReset)
 }
 
 // Функция для логирования ошибки или статуса что ее нет.
