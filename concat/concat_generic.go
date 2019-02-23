@@ -14,3 +14,15 @@ func Strings(x, y string) string {
 	copy(b[len(x):], y)
 	return goString(&b[0], length)
 }
+
+func recursiveConcat(ss []strings) string {
+	if len(ss) > 1 {
+		return Strings(ss[0], recursiveConcat(ss[1:]))
+	} else {
+		return ss[0]
+	}
+}
+
+func StringsMulti(args ...string) string {
+	return recursiveConcat(args)
+}
