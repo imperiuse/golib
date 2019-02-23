@@ -162,8 +162,8 @@ func CSMthemePicker(ThemeName string) (cs CSM) {
 		cs[CsTest] = ColorSheme{CreateCS(ClrFgBlue)}
 		cs[CsPrint] = ColorSheme{CreateCS(ClrFgMagenta, ClrBold)}
 		cs[CsDb] = ColorSheme{CreateCS(ClrFgBlue, ClrBold), CreateCS(ClrBgCyan, ClrBold)}
-		cs[CsDbOk] = ColorSheme{CreateCS(ClrFgYellow), CreateCS(ClrFgMagenta), CreateCS(ClrFgGreen, ClrBold), NLTab8, CreateCS(ClrFgCyan, ClrBold), NLTab8, CreateCS(ClrBgCyan, ClrBold)}
-		cs[CsDbFail] = ColorSheme{CreateCS(ClrFgYellow), CreateCS(ClrFgMagenta), CreateCS(ClrFgRed, ClrBold), NLTab8, RepeatColor, NLTab8, RepeatColor, NLTab8, CreateCS(ClrBgCyan, ClrBold)}
+		cs[CsDbOk] = ColorSheme{CreateCS(ClrFgYellow), CreateCS(ClrFgMagenta), CreateCS(ClrFgGreen, ClrBold), concat.Strings(NLTab8, CreateCS(ClrFgCyan, ClrBold)), NLTab8, CreateCS(ClrBgCyan, ClrBold)}
+		cs[CsDbFail] = ColorSheme{CreateCS(ClrFgYellow), CreateCS(ClrFgMagenta), CreateCS(ClrFgRed, ClrBold), NLTab8, NLTab8, NLTab8, CreateCS(ClrBgCyan, ClrBold)}
 		cs[CsRedis] = ColorSheme{CreateCS(ClrFgMagenta, ClrBold), CreateCS(ClrFgBlue, ClrBold), NewLine, CreateCS(ClrBgMagenta, ClrBold)}
 		cs[CsRedisOk] = ColorSheme{CreateCS(ClrFgYellow, ClrBold), CreateCS(ClrFgMagenta, ClrBold), CreateCS(ClrFgBlue, ClrBold), CreateCS(ClrFgGreen, ClrBold), NewLine, CreateCS(ClrBgMagenta, ClrBold)}
 		cs[CsRedisFail] = ColorSheme{CreateCS(ClrFgYellow, ClrBold), CreateCS(ClrFgRed, ClrBold), CreateCS(ClrFgBlue, ClrBold), CreateCS(ClrFgRed, ClrBold), NewLine, CreateCS(ClrBgMagenta, ClrBold)}
