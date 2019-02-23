@@ -175,24 +175,24 @@ var defaultDestinations = Destinations{
 
 // LoggerColorSchemeDetached - Привязка обозначений цветовой схемы colormap к уровням логирования
 var LoggerColorSchemeDetached = map[LogLvl]colormap.CSN{
-	Info:       colormap.CS_INFO,
-	Debug:      colormap.CS_DEBUG,
-	Warning:    colormap.CS_WARNING,
-	Error:      colormap.CS_ERROR,
-	Fatal:      colormap.CS_FATAL_ERROR,
-	Test:       colormap.CS_TEST,
-	Print:      colormap.CS_PRINT,
-	P:          colormap.CS_PRINT,
-	Other:      colormap.CS_PRINT,
-	Db:         colormap.CS_DB,
-	Redis:      colormap.CS_REDIS,
-	Memchd:     colormap.CS_MEMCHD,
-	DbOk:       colormap.CS_DB_OK,
-	DbFail:     colormap.CS_DB_FAIL,
-	RedisOk:    colormap.CS_REDIS_OK,
-	RedisFail:  colormap.CS_REDIS_FAIL,
-	MemchdOk:   colormap.CS_MEMCHD_OK,
-	MemchdFail: colormap.CS_MEMCHD_FAIL,
+	Info:       colormap.CsInfo,
+	Debug:      colormap.CsDebug,
+	Warning:    colormap.CsWarning,
+	Error:      colormap.CsError,
+	Fatal:      colormap.CsFatalError,
+	Test:       colormap.CsTest,
+	Print:      colormap.CsPrint,
+	P:          colormap.CsPrint,
+	Other:      colormap.CsPrint,
+	Db:         colormap.CsDb,
+	Redis:      colormap.CsRedis,
+	Memchd:     colormap.CsMemchd,
+	DbOk:       colormap.CsDbOk,
+	DbFail:     colormap.CsDbFail,
+	RedisOk:    colormap.CsRedisOk,
+	RedisFail:  colormap.CsRedisFail,
+	MemchdOk:   colormap.CsMemchdOk,
+	MemchdFail: colormap.CsMemchdFail,
 }
 
 // LogHandler - function of handlers
@@ -238,7 +238,7 @@ func genLogFunc(lvl LogLvl) LogHandler {
 func genColorLogFunc(lvl LogLvl, csn colormap.CSN) LogHandler {
 	return func(l *Logger, msg ...interface{}) {
 		l.log(lvl, Color,
-			colorConcatInterfaces(l.colorMap[csn], l.colorMap[colormap.CS_RESET][0], l.delimiter, msg...))
+			colorConcatInterfaces(l.colorMap[csn], l.colorMap[colormap.CsReset][0], l.delimiter, msg...))
 	}
 }
 
