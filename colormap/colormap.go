@@ -91,6 +91,9 @@ const (
 	RepeatColor = ""
 	NewLine     = "\n"
 	Tab         = "\t"
+	Tab4        = "\t\t\t\t"
+	Tab8        = "\t\t\t\t\t\t\t\t"
+	NLTab8      = "\n\t\t\t\t\t\t\t\t"
 
 	ClrReset     SchemeAttributes = 0 // reset; clears all colors and styles (to white on black) // 0 нормальный режим
 	ClrBold      SchemeAttributes = 1 // bold on                                                 // 1 жирный
@@ -159,8 +162,8 @@ func CSMthemePicker(ThemeName string) (cs CSM) {
 		cs[CsTest] = ColorSheme{CreateCS(ClrFgBlue)}
 		cs[CsPrint] = ColorSheme{CreateCS(ClrFgMagenta, ClrBold)}
 		cs[CsDb] = ColorSheme{CreateCS(ClrFgBlue, ClrBold), CreateCS(ClrBgCyan, ClrBold)}
-		cs[CsDbOk] = ColorSheme{CreateCS(ClrFgYellow), CreateCS(ClrFgMagenta), CreateCS(ClrFgGreen, ClrBold), concat.StringsMulti(NewLine, Tab, Tab, Tab, Tab), CreateCS(ClrFgCyan, ClrBold), concat.StringsMulti(NewLine, Tab, Tab, Tab, Tab), CreateCS(ClrBgCyan, ClrBold)}
-		cs[CsDbFail] = ColorSheme{CreateCS(ClrFgYellow), CreateCS(ClrFgMagenta), CreateCS(ClrFgRed, ClrBold), concat.StringsMulti(NewLine, Tab, Tab, Tab, Tab), RepeatColor, concat.StringsMulti(NewLine, Tab, Tab, Tab, Tab), RepeatColor, RepeatColor, concat.StringsMulti(NewLine, Tab, Tab, Tab, Tab), CreateCS(ClrBgCyan, ClrBold)}
+		cs[CsDbOk] = ColorSheme{CreateCS(ClrFgYellow), CreateCS(ClrFgMagenta), CreateCS(ClrFgGreen, ClrBold), NLTab8, CreateCS(ClrFgCyan, ClrBold), NLTab8, CreateCS(ClrBgCyan, ClrBold)}
+		cs[CsDbFail] = ColorSheme{CreateCS(ClrFgYellow), CreateCS(ClrFgMagenta), CreateCS(ClrFgRed, ClrBold), NLTab8, RepeatColor, NLTab8, RepeatColor, NLTab8, CreateCS(ClrBgCyan, ClrBold)}
 		cs[CsRedis] = ColorSheme{CreateCS(ClrFgMagenta, ClrBold), CreateCS(ClrFgBlue, ClrBold), NewLine, CreateCS(ClrBgMagenta, ClrBold)}
 		cs[CsRedisOk] = ColorSheme{CreateCS(ClrFgYellow, ClrBold), CreateCS(ClrFgMagenta, ClrBold), CreateCS(ClrFgBlue, ClrBold), CreateCS(ClrFgGreen, ClrBold), NewLine, CreateCS(ClrBgMagenta, ClrBold)}
 		cs[CsRedisFail] = ColorSheme{CreateCS(ClrFgYellow, ClrBold), CreateCS(ClrFgRed, ClrBold), CreateCS(ClrFgBlue, ClrBold), CreateCS(ClrFgRed, ClrBold), NewLine, CreateCS(ClrBgMagenta, ClrBold)}
