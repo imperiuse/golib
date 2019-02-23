@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/imperiuse/golib/concat"
-
 	"github.com/garyburd/redigo/redis"
+	"github.com/imperiuse/golib/concat"
 	"github.com/imperiuse/golib/email"
 	l "github.com/imperiuse/golib/logger"
 )
@@ -73,6 +72,13 @@ func (r *Redis) InitNewPool() (err error) {
 	return nil
 }
 
+// Close - закрыть pool коннекшенов к Redis
+func (r *Redis) Close() {
+	if err := r.pool.Close(); err != nil {
+		(*r.Logger).Error("Redis.Close()", "Error while r.pool.Close()", err)
+	}
+}
+
 // GetName - get name obj Redis
 func (r *Redis) GetName() string {
 	return r.Name
@@ -83,12 +89,12 @@ func (r *Redis) GetPool() *redis.Pool {
 	return r.pool
 }
 
-func (r *Redis) doDefer(where string, com string, err error, args ...interface{}) {
+func (r *Redis) doDefer(callBy string, com string, err error, args ...interface{}) {
 	if rec := recover(); rec != nil {
-		(*r.Logger).Error("[DEFER] Redis.doDefer()", where, r.Name, "PANIC!", rec)
+		(*r.Logger).Error(callBy, r.Name, "PANIC!", rec)
 		if err = r.Email.SendEmails(
-			fmt.Sprintf("PANIC!\n%v\nErr:\n%+v\nSQL:\n%v\nWith args:\n%+v", where, rec, com, args)); err == nil {
-			(*r.Logger).Error("pg.dbDefer()", where, r.Name, "Can't send email!", err)
+			fmt.Sprintf("PANIC!\n%v\nErr:\n%+v\nSQL:\n%v\nWith args:\n%+v", callBy, rec, com, args)); err == nil {
+			(*r.Logger).Error(callBy, r.Name, "Can't send email!", err)
 		}
 	}
 }
@@ -111,50 +117,46 @@ func (r *Redis) PingPongTest() (err error) {
 	return nil
 }
 
-// Do - MAIN method for execute any Redis Command
-func (r *Redis) Do(nameFuncWhoCall string, command string, args ...interface{}) (reply interface{}, err error) {
-	defer r.doDefer(nameFuncWhoCall, command, err, args...)
+// Do - main method for executing any Redis Command
+func (r *Redis) Do(callBy string, command string, args ...interface{}) (reply interface{}, err error) {
+	callBy = concat.Strings(callBy, " --> redis.Do()")
+	defer r.doDefer(concat.Strings(callBy, " [DEFER] [DO]"), command, err, args...)
 
 	conn := r.pool.Get()
 	defer func() {
 		if err = conn.Close(); err != nil {
-			(*r.Logger).Error("Redis.Do()", r.Name, "Err while do conn.Close()", err)
+			(*r.Logger).Error(concat.Strings(callBy, " [DEFER] [CLOSE]"), r.Name,
+				"Err while conn.Close()", err)
 		}
 	}()
 
-	logging := nameFuncWhoCall != "" // если пустая строка в параметрах значит не логировать обращение к Redis
 	for tryCnt := 0; tryCnt < r.CountRepeatAttempt; tryCnt++ {
-		if logging {
-			(*r.Logger).Debug(
-				concat.Strings(nameFuncWhoCall, "--> Do()"),
-				r.Name, fmt.Sprintf("Attemp execute Redis command: %v", tryCnt))
-		}
+		(*r.Logger).Debug(
+			callBy,
+			r.Name,
+			fmt.Sprintf("Attemp execute Redis command: %v", tryCnt))
 		reply, err = conn.Do(command, args...)
 		if err != nil {
-			if logging {
-				(*r.Logger).Log(l.RedisFail,
-					concat.Strings(nameFuncWhoCall, "--> Do()"),
-					concat.Strings(command, concat.Strings("", args[0].(string))),
-					"Failed! Err:",
-					err,
-					"ARGS:",
-					fmt.Sprintf("%v %v", args[0], args[1:]))
-			}
+			(*r.Logger).Log(l.RedisFail,
+				callBy,
+				concat.StringsMulti(command, " ", args[0].(string)),
+				"Failed! Err:",
+				err,
+				"ARGS:",
+				fmt.Sprintf("%v %v", args[0], args[1:]))
 			time.Sleep(time.Nanosecond * time.Duration(r.TimeRepeatAttempt))
 			continue
 		} else {
-			if logging {
-				(*r.Logger).Log(l.RedisOk,
-					concat.Strings(nameFuncWhoCall, "--> Do()"),
-					concat.Strings(command, concat.Strings("", args[0].(string))),
-					"SUCCESSES!",
-					"ARGS:",
-					fmt.Sprintf("%v %v", args[0], args[1:]))
-			}
+			(*r.Logger).Log(l.RedisOk,
+				callBy,
+				concat.StringsMulti(command, " ", args[0].(string)),
+				"SUCCESSES!",
+				"ARGS:",
+				fmt.Sprintf("%v %v", args[0], args[1:]))
 			return
 		}
 	}
-	err = fmt.Errorf("all try count end")
-	(*r.Logger).Error(concat.Strings(nameFuncWhoCall, "--> Do()"), r.Name, "All try estimates! Panic!", err)
+	err = fmt.Errorf("All try count end ")
+	(*r.Logger).Error(callBy, r.Name, "All try estimates! Panic!", err)
 	panic(err)
 }
