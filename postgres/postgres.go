@@ -238,11 +238,13 @@ func (pg *PgDB) executeX(callBy string, query string, args ...interface{}) (row 
 func (pg *PgDB) Select(callBy string, dest interface{}, query string, args ...interface{}) interface{} {
 	// NOTE  // if you have null fields and use SELECT *, you must use sql.Null* in your struct
 	if err := pg.db.Select(dest, query, args...); err != nil {
-		(*pg.Logger).Log(l.DbFail, concat.Strings(callBy, " --> postgres.Select()"), query, pg.Name, "FAILED", err,
+		(*pg.Logger).Log(l.DbFail, concat.Strings(callBy, " --> postgres.Select()"), pg.Name, "SQL FAILED", err,
+			query,
 			"ARGS:", args)
 		return nil
 	} else {
-		(*pg.Logger).Log(l.DbOk, concat.Strings(callBy, " --> postgres.Select()"), query, pg.Name, "SUCCESS",
+		(*pg.Logger).Log(l.DbOk, concat.Strings(callBy, " --> postgres.Select()"), pg.Name, "SQL SUCCESS",
+			query,
 			"ARGS:", args)
 		return dest
 	}
@@ -258,11 +260,13 @@ func (pg *PgDB) Select(callBy string, dest interface{}, query string, args ...in
 //     dest         interface{}
 func (pg *PgDB) Get(callBy string, dest interface{}, query string, args ...interface{}) interface{} {
 	if err := pg.db.Get(dest, query, args...); err != nil {
-		(*pg.Logger).Log(l.DbFail, concat.Strings(callBy, " --> postgres.Get()"), query, pg.Name, "FAILED", err,
+		(*pg.Logger).Log(l.DbFail, concat.Strings(callBy, " --> postgres.Get()"), pg.Name, "SQL FAILED", err,
+			query,
 			"ARGS:", args)
 		return nil
 	} else {
-		(*pg.Logger).Log(l.DbOk, concat.Strings(callBy, " --> postgres.Get()"), query, pg.Name, "SUCCESS",
+		(*pg.Logger).Log(l.DbOk, concat.Strings(callBy, " --> postgres.Get()"), pg.Name, "SQL SUCCESS",
+			query,
 			"ARGS:", args)
 		return dest
 	}

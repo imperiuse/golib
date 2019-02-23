@@ -159,8 +159,8 @@ func CSMthemePicker(ThemeName string) (cs CSM) {
 		cs[CsTest] = ColorSheme{CreateCS(ClrFgBlue)}
 		cs[CsPrint] = ColorSheme{CreateCS(ClrFgMagenta, ClrBold)}
 		cs[CsDb] = ColorSheme{CreateCS(ClrFgBlue, ClrBold), CreateCS(ClrBgCyan, ClrBold)}
-		cs[CsDbOk] = ColorSheme{CreateCS(ClrFgYellow, ClrBold), CreateCS(ClrFgCyan, ClrBold), CreateCS(ClrFgMagenta), CreateCS(ClrFgGreen, ClrBold), NewLine + Tab + Tab, CreateCS(ClrBgCyan, ClrBold)}
-		cs[CsDbFail] = ColorSheme{CreateCS(ClrFgYellow, ClrBold), CreateCS(ClrFgRed, ClrBold), CreateCS(ClrFgMagenta), CreateCS(ClrFgRed, ClrBold), NewLine + Tab + Tab, NewLine + Tab + Tab, CreateCS(ClrBgCyan, ClrBold)}
+		cs[CsDbOk] = ColorSheme{CreateCS(ClrFgYellow), CreateCS(ClrFgMagenta), CreateCS(ClrFgGreen, ClrBold), concat.StringsMulti(NewLine, Tab, Tab, Tab, Tab), CreateCS(ClrFgCyan, ClrBold), concat.StringsMulti(NewLine, Tab, Tab, Tab, Tab), CreateCS(ClrBgCyan, ClrBold)}
+		cs[CsDbFail] = ColorSheme{CreateCS(ClrFgYellow), CreateCS(ClrFgMagenta), CreateCS(ClrFgRed, ClrBold), concat.StringsMulti(NewLine, Tab, Tab, Tab, Tab), RepeatColor, concat.StringsMulti(NewLine, Tab, Tab, Tab, Tab), RepeatColor, RepeatColor, concat.StringsMulti(NewLine, Tab, Tab, Tab, Tab), CreateCS(ClrBgCyan, ClrBold)}
 		cs[CsRedis] = ColorSheme{CreateCS(ClrFgMagenta, ClrBold), CreateCS(ClrFgBlue, ClrBold), NewLine, CreateCS(ClrBgMagenta, ClrBold)}
 		cs[CsRedisOk] = ColorSheme{CreateCS(ClrFgYellow, ClrBold), CreateCS(ClrFgMagenta, ClrBold), CreateCS(ClrFgBlue, ClrBold), CreateCS(ClrFgGreen, ClrBold), NewLine, CreateCS(ClrBgMagenta, ClrBold)}
 		cs[CsRedisFail] = ColorSheme{CreateCS(ClrFgYellow, ClrBold), CreateCS(ClrFgRed, ClrBold), CreateCS(ClrFgBlue, ClrBold), CreateCS(ClrFgRed, ClrBold), NewLine, CreateCS(ClrBgMagenta, ClrBold)}
