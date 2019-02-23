@@ -2,6 +2,7 @@ package redis
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/garyburd/redigo/redis"
@@ -131,28 +132,19 @@ func (r *Redis) Do(callBy string, command string, args ...interface{}) (reply in
 	}()
 
 	for tryCnt := 0; tryCnt < r.CountRepeatAttempt; tryCnt++ {
-		(*r.Logger).Debug(
-			callBy,
-			r.Name,
-			fmt.Sprintf("Attemp execute Redis command: %v", tryCnt))
+		(*r.Logger).Debug(callBy, r.Name, concat.Strings("Execute Redis command attempt: ", strconv.Itoa(tryCnt)))
 		reply, err = conn.Do(command, args...)
 		if err != nil {
-			(*r.Logger).Log(l.RedisFail,
-				callBy,
-				concat.StringsMulti(command, " ", args[0].(string)),
-				"Failed! Err:",
+			(*r.Logger).Log(l.RedisFail, callBy, "REDIS FAILED",
 				err,
-				"ARGS:",
-				fmt.Sprintf("%v %v", args[0], args[1:]))
+				concat.StringsMulti(command, " ", args[0].(string)),
+				"ARGS:", fmt.Sprintf("%v %v", args[0], args[1:]))
 			time.Sleep(time.Nanosecond * time.Duration(r.TimeRepeatAttempt))
 			continue
 		} else {
-			(*r.Logger).Log(l.RedisOk,
-				callBy,
+			(*r.Logger).Log(l.RedisOk, callBy, "SUCCESSES!",
 				concat.StringsMulti(command, " ", args[0].(string)),
-				"SUCCESSES!",
-				"ARGS:",
-				fmt.Sprintf("%v %v", args[0], args[1:]))
+				"ARGS:", fmt.Sprintf("%v %v", args[0], args[1:]))
 			return
 		}
 	}
