@@ -56,9 +56,9 @@ func sendEmail(from, to mail.Address, subj, body string, c Credentials) (err err
 	// Setup message
 	message := ""
 	for k, v := range headers {
-		concat.Strings(message, fmt.Sprintf("%s: %s\r\n", k, v))
+		message = concat.Strings(message, fmt.Sprintf("%s: %s\r\n", k, v))
 	}
-	concat.StringsMulti(message, "\r\n", body)
+	message = concat.StringsMulti(message, "\r\n", body)
 
 	// Connect to the SMTP Server
 	host, _, _ := net.SplitHostPort(c.ServerName)
