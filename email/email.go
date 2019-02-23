@@ -12,16 +12,11 @@ import (
 
 // MailBean - all settings for email package in Bean-like struct
 type MailBean struct {
-	Message
+	from mail.Address   // mail.Address{"FromMe", "from@yandex.ru"}
+	to   []mail.Address // mail.Address{"ToYou", "to@yandex.ru"}
+	Subj string
 	Credentials
 	EnableNotify bool
-}
-
-// Message - email message struct
-type Message struct {
-	From          mail.Address   // mail.Address{"FromMe", "from@yandex.ru"}
-	To            []mail.Address // mail.Address{"ToYou", "to@yandex.ru"}
-	Subject, Body string
 }
 
 // Credentials - credentials
@@ -32,11 +27,17 @@ type Credentials struct {
 	Identity   string // ""
 }
 
+// SetFromAndToEmailAddresses - set from and to email addresses
+func (m *MailBean) SetFromAndToEmailAddresses(from mail.Address, to []mail.Address) {
+	m.from = from
+	m.to = to
+}
+
 // SendEmailByDefaultTemplate -  send email with default template @see email.emailTemplate const
 func (m *MailBean) SendEmails(body string) error {
 	if m.EnableNotify {
-		for _, to := range m.To {
-			if err := sendEmail(m.Message.From, to, m.Message.Subject, body, m.Credentials); err != nil {
+		for _, to := range m.to {
+			if err := sendEmail(m.from, to, m.Subj, body, m.Credentials); err != nil {
 				return err
 			}
 		}
@@ -48,8 +49,8 @@ func (m *MailBean) SendEmails(body string) error {
 func sendEmail(from, to mail.Address, subj, body string, c Credentials) (err error) {
 	// Setup headers
 	headers := make(map[string]string)
-	headers["From"] = from.String()
-	headers["To"] = to.String()
+	headers["from"] = from.String()
+	headers["to"] = to.String()
 	headers["Subject"] = subj
 
 	// Setup message
@@ -88,7 +89,7 @@ func sendEmail(from, to mail.Address, subj, body string, c Credentials) (err err
 		log.Panic(err)
 	}
 
-	// To && From
+	// to && from
 	if err = client.Mail(from.Address); err != nil {
 		log.Panic(err)
 	}
