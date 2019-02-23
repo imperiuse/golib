@@ -86,7 +86,7 @@ func (r *Redis) GetPool() *redis.Pool {
 func (r *Redis) doDefer(where string, com string, err error, args ...interface{}) {
 	if rec := recover(); rec != nil {
 		(*r.Logger).Error("[DEFER] Redis.doDefer()", where, r.Name, "PANIC!", rec)
-		if err = r.Email.SendEmailByDefaultTemplate(
+		if err = r.Email.SendEmails(
 			fmt.Sprintf("PANIC!\n%v\nErr:\n%+v\nSQL:\n%v\nWith args:\n%+v", where, rec, com, args)); err == nil {
 			(*r.Logger).Error("pg.dbDefer()", where, r.Name, "Can't send email!", err)
 		}

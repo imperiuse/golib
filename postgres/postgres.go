@@ -86,12 +86,9 @@ func (pg *PgDB) ConfigString() (config string) {
 
 // Connect - Создание пула коннекшенов к БД
 func (pg *PgDB) Connect() (err error) {
-	if pg.db, err = sqlx.Open("postgres", pg.ConfigString()); err != nil {
-		(*pg.Logger).Error("PgDB.Connect()", pg.Name, "Can't open (get handle to database) to DB server!",
-			pg.ConfigString(), err)
-	}
-	if err = pg.db.Ping(); err != nil {
-		(*pg.Logger).Error("PgDB.Connect()", pg.Name, "Can't open connect (can't Ping) to DB server!",
+	// Use connect to "true" check connect to DB
+	if pg.db, err = sqlx.Connect("postgres", pg.ConfigString()); err != nil {
+		(*pg.Logger).Error("PgDB.Connect()", pg.Name, "Can't connect to DB server!",
 			pg.ConfigString(), err)
 	}
 	if pg.ConnMaxLifetime > 0 {
@@ -112,13 +109,13 @@ func (pg *PgDB) Close() {
 		(*pg.Logger).Error("PgDB.close()", pg.Name, "Can't close DB connection!", err)
 	}
 	(*pg.Logger).Info("PgDB.close()", pg.Name,
-		fmt.Sprintf("Connection to database %v:%v successfull close()", pg.Host, pg.DbName))
+		concat.StringsMulti("Connection to database", pg.Host, ":", pg.DbName, "successful close()"))
 }
 
 func (pg *PgDB) executeDefer(where string, query string, err error, args ...interface{}) {
 	if r := recover(); r != nil {
 		(*pg.Logger).Error("[DEFER] PgDB.executeDefer()", where, pg.Name, "PANIC!", r)
-		if err = pg.Email.SendEmailByDefaultTemplate(
+		if err = pg.Email.SendEmails(
 			fmt.Sprintf("PANIC!\n%v\nErr:\n%+v\nSQL:\n%v\nWith args:\n%+v", where, r, query, args)); err == nil {
 			(*pg.Logger).Error("pg.dbDefer()", where, pg.Name, "Can't send email!", err)
 		}
