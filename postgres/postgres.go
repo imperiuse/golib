@@ -123,8 +123,28 @@ func (pg *PgDB) executeDefer(callBy string, query string, err error, args ...int
 }
 
 // ExecuteQuery - Функция обертка над execute. Запросы с ожиданием данных от БД. (SELECT и т.д. возращающие значения)
-func (pg *PgDB) ExecuteQuery(callBy string, query string, args ...interface{}) (*sql.Rows, error) {
-	return pg.execute(true, concat.Strings(callBy, " --> postgres.execute()"), query, args...)
+func (pg *PgDB) ExecuteQuery(callBy string, query string, args ...interface{}) (rows *sql.Rows, err error) {
+	callBy = concat.Strings(callBy, " postgres.ExecuteQuery()")
+	defer pg.executeDefer(concat.Strings(callBy, " [DEFER]"), query, err, args...)
+
+	for cnt := 0; cnt < pg.CntAttemptRequest; cnt++ {
+		(*pg.Logger).Debug(callBy, pg.Name, concat.Strings("Attemp execute query: ", strconv.Itoa(cnt)))
+		rows, err = pg.db.Query(query, args...)
+		if err != nil {
+			(*pg.Logger).Log(l.DbFail, callBy, pg.Name, "SQL FAILED",
+				err,
+				query,
+				"ARGS:", args)
+		} else {
+			(*pg.Logger).Log(l.DbOk, callBy, pg.Name, "SQL SUCCESS",
+				query,
+				"ARGS:", args)
+			return rows, nil
+		}
+		time.Sleep(time.Duration(pg.TimeAttemptRequest) * time.Second)
+	}
+	err = fmt.Errorf("all try estimates! %v", err)
+	return nil, err
 }
 
 // ExecuteRowAffected - Функция обертка над Execute. Запрос без ожидания данных, с ожиданием кол-ва затронутых строк.
@@ -155,54 +175,13 @@ func (pg *PgDB) ExecuteRowAffected(callBy string, query string, args ...interfac
 	return rowAffected, err
 }
 
-// Функция выполнения запроса query
-// @param
-//     callBy       string      - кто вызвал, важно для логирования, чтобы не вызывать runtime.Caller()
-//     query        string      - строка SQL запрос
-//     args...      interface{} - аргументы
-// @return
-//                  sql.Rows    - результат запроса, данные от БД
-//                  error       - ошибки
-func (pg *PgDB) execute(returnValue bool, callBy string, query string, args ...interface{}) (rows *sql.Rows, err error) {
-	defer pg.executeDefer(concat.Strings(callBy, " [DEFER]"), query, err, args...)
-
-	for cnt := 0; cnt < pg.CntAttemptRequest; cnt++ {
-		(*pg.Logger).Debug(callBy, pg.Name, concat.Strings("Attemp execute query: ", strconv.Itoa(cnt)))
-		rows, err = pg.db.Query(query, args...)
-		if err != nil {
-			(*pg.Logger).Log(l.DbFail, callBy, pg.Name, "SQL FAILED",
-				err,
-				query,
-				"ARGS:", args)
-		} else {
-			(*pg.Logger).Log(l.DbOk, callBy, pg.Name, "SQL SUCCESS",
-				query,
-				"ARGS:", args)
-			return rows, nil
-		}
-		time.Sleep(time.Duration(pg.TimeAttemptRequest) * time.Second)
-	}
-	err = fmt.Errorf("all try estimates! %v", err)
-	return nil, err
-}
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////   Расширение SQLX              //////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // ExecuteQueryX - Функция обертка над QueryX (sqlX). Запросы с ожиданием данных от БД.
-func (pg *PgDB) ExecuteQueryX(callBy string, query string, args ...interface{}) (*sqlx.Rows, error) {
-	return pg.executeX(concat.Strings(callBy, " --> postgres.executeX()"), query, args...)
-}
-
-// Функция выполнения запроса queryX
-// @param
-//     callBy       string      - кто вызвал, важно для логирования, чтобы не вызывать runtime.Caller()
-//     query        string      - строка SQL запрос
-//     args...      interface{} - аргументы
-//  @return
-//     row          *sqlx.Rows
-func (pg *PgDB) executeX(callBy string, query string, args ...interface{}) (rows *sqlx.Rows, err error) {
+func (pg *PgDB) ExecuteQueryX(callBy string, query string, args ...interface{}) (rows *sqlx.Rows, err error) {
+	callBy = concat.Strings(callBy, " --> postgres.ExecuteQueryX()")
 	defer pg.executeDefer(concat.Strings(callBy, " [DEFER]"), query, err, args...)
 
 	for cnt := 0; cnt < pg.CntAttemptRequest; cnt++ {
@@ -238,17 +217,16 @@ func (pg *PgDB) Select(callBy string, dest interface{}, query string, args ...in
 	defer pg.executeDefer(concat.Strings(callBy, " [DEFER]"), query, err, args...)
 
 	// NOTE  // if you have null fields and use SELECT *, you must use sql.Null* in your struct
-	if err := pg.db.Select(dest, query, args...); err != nil {
+	if err = pg.db.Select(dest, query, args...); err != nil {
 		(*pg.Logger).Log(l.DbFail, callBy, pg.Name, "SQL FAILED", err,
 			query,
 			"ARGS:", args)
-		return err
 	} else {
 		(*pg.Logger).Log(l.DbOk, callBy, pg.Name, "SQL SUCCESS",
 			query,
 			"ARGS:", args)
-		return nil
 	}
+	return err
 }
 
 // Get - syntax sugar of `SELECT ... LIMIT 1` method;
@@ -263,15 +241,14 @@ func (pg *PgDB) Get(callBy string, dest interface{}, query string, args ...inter
 	callBy = concat.Strings(callBy, " --> postgres.Get()")
 	defer pg.executeDefer(concat.Strings(callBy, " [DEFER]"), query, err, args...)
 
-	if err := pg.db.Get(dest, query, args...); err != nil {
+	if err = pg.db.Get(dest, query, args...); err != nil {
 		(*pg.Logger).Log(l.DbFail, callBy, pg.Name, "SQL FAILED", err,
 			query,
 			"ARGS:", args)
-		return err
 	} else {
 		(*pg.Logger).Log(l.DbOk, callBy, pg.Name, "SQL SUCCESS",
 			query,
 			"ARGS:", args)
-		return nil
 	}
+	return err
 }

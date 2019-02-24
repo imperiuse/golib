@@ -15,7 +15,7 @@ import (
 	"github.com/imperiuse/golib/safemap"
 )
 
-// Структура описывающего TCP сервер для управления утилиты
+// ServerTelnet - Struct of TCP server management
 type ServerTelnet struct {
 	Port        uint             // Порт на кототором запущен TCP сервер (Telnet)
 	Timeout     uint             // Таймаут после timeout sec секунд неактивности коннект закрывается - connect.Close()
@@ -26,7 +26,7 @@ type ServerTelnet struct {
 	CommandChan chan Command     // Канал передачи команд управления и связи наверх
 }
 
-// Структура команды для передачи наверх (в функцию которую мониторим)
+// Command - Структура команды для передачи наверх (в функцию которую мониторим)
 type Command struct {
 	Name string
 	Code int
@@ -37,20 +37,22 @@ type Command struct {
 	ValueInterface interface{}
 }
 
-// Команда и ее обработка Telnet
+// CommandTelnet  - Команда и ее обработка Telnet
 type CommandTelnet struct {
 	Name   string                                                                           // Наименование
 	RegExp *regexp.Regexp                                                                   // RegExp для определения
 	Func   func(server *ServerTelnet, connection net.Conn, msg string) (interface{}, error) // функция обработки команды
 }
 
+// CommandList - command list
 type CommandList []CommandTelnet
 
-// Функция обработки одного подключения
-// @param
-// 	  connection   network.connection  - сетевое соединнение
-// 	  msg     	 string              - анализируемое сообщеие (потенциальная команда)
+// CommandAnalyze - Функция обработки одного подключения
+// nolint
 func (server *ServerTelnet) CommandAnalyze(connection net.Conn, msgChan <-chan string, stopChan chan interface{}) {
+	// @param
+	// 	  connection   network.connection  - сетевое соединнение
+	// 	  msg     	 string              - анализируемое сообщеие (потенциальная команда)
 	var count int
 	var oldMsg string
 	for {
@@ -103,12 +105,12 @@ func (server *ServerTelnet) CommandAnalyze(connection net.Conn, msgChan <-chan s
 //       connection  net.Conn  - сетевое соединение
 //  @return
 func (server *ServerTelnet) handleConnection(connection net.Conn) {
-	defer connection.Close()
+	defer func() { _ = connection.Close() }()
 	defer (*server.Stats).Dec("telnet_now_connect")
 	defer func() {
 		if r := recover(); r != nil {
 			Log.Error("Telnet", "handleConnection()", "Panic!", r)
-			connection.Close()
+			_ = connection.Close()
 			(*server.Stats).Dec("telnet_connect")
 			(*server.Stats).Inc("telnet_panic_recover_handle_connection")
 		}
@@ -127,7 +129,7 @@ func (server *ServerTelnet) handleConnection(connection net.Conn) {
 	buf := make([]byte, server.BufSize)
 
 	for {
-		connection.SetReadDeadline(time.Now().Add(time.Second * 5))
+		_ = connection.SetReadDeadline(time.Now().Add(time.Second * 5))
 		n, err := connection.Read(buf)
 		if buf[0] == 0x04 {
 			err = io.EOF
@@ -171,14 +173,14 @@ func (server *ServerTelnet) handleConnection(connection net.Conn) {
 	}
 }
 
-//Функция для форматирванной отправки текста по через TCP коннект (н-р на консоль подключившегося по Telnet)
-//    @param
-//        c     network.connect  - сетевое соединение
-//        a...  string           - строки для отпарвляления в конце каждой строки добавляю x10 (/r) 0x13 (/n) перевод каретки и на новую строку)
-//    @return
-//
+// SafetyWrite - Функция для форматирванной отправки текста по через TCP коннект (н-р на консоль подключившегося по Telnet)
 func SafetyWrite(c net.Conn, a ...string) {
-	c.SetWriteDeadline(time.Now().Add(time.Second * 1))
+	//    @param
+	//        c     network.connect  - сетевое соединение
+	//        a...  string           - строки для отправления в конце каждой строки добавляю x10 (/r) 0x13 (/n) перевод каретки и на новую строку)
+	//    @return
+	//
+	_ = c.SetWriteDeadline(time.Now().Add(time.Second * 1))
 	bytes := []byte("[Telnet]: ")
 	for _, arg := range a {
 		bytes = append(bytes, []byte(arg)...)
@@ -205,15 +207,14 @@ func recoveryFunc(f string) {
 	}
 }
 
-var Log gl.LoggerI // Интерфейс для логирования
-/*
-* Основная функция Telnet
-* На каждое открываемое соединение вызывается своя горутина, которая в свою очередь создает еще одну горутину для
-* обработки получаемых данных первой. При получении кода EXIT/exit/Exit первая утилита посылает второй сообщение:
-* на остановку, закрытие соединение и выход из goroutine-ы
- */
+// Log - pcg logger
+var Log gl.LoggerI
 
+// Run - Основная функция Telnet
 func (server *ServerTelnet) Run() {
+	// На каждое открываемое соединение вызывается своя горутина, которая в свою очередь создает еще одну горутину для
+	// обработки получаемых данных первой. При получении кода EXIT/exit/Exit первая утилита посылает второй сообщение:
+	// на остановку, закрытие соединение и выход из goroutine-ы
 	// Создание файла для логирования
 	f, err := os.Create(server.LogFile + ".log")
 	checkErrorFunc(err, "Create log file for Telnet")

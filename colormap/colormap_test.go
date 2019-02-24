@@ -2,6 +2,7 @@ package colormap
 
 import "testing"
 
+// nolint
 func TestCreateCS(t *testing.T) {
 	if CreateCS(ClrFgBlack) != "\x1b[30m" {
 		t.Fail()

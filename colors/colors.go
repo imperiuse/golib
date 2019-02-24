@@ -2,9 +2,11 @@ package colors
 
 import (
 	"fmt"
+
 	"github.com/imperiuse/golib/colormap"
 )
 
+// colors
 var (
 	RED     string
 	GREEN   string
@@ -27,7 +29,7 @@ func init() {
 	RESET = colormap.CreateCS(colormap.ClrReset)
 }
 
-// Функция для логирования ошибки или статуса что ее нет.
+// CheckErrorFunc - logging func of error
 func CheckErrorFunc(err error, f string) {
 	if err != nil {
 		fmt.Println("[CheckErrFunc]", RED, "Error while ", f, err, "\n", RESET)
@@ -35,40 +37,50 @@ func CheckErrorFunc(err error, f string) {
 		fmt.Println("[CheckErrFunc]", GREEN, "Successful ", f, "\n", RESET)
 	}
 }
+
+// ColorizedString - make color string
 func ColorizedString(color string, value string) string {
 	return fmt.Sprint(color, value, RESET)
 }
+
+// ColorizedFloat64 - make color float64
 func ColorizedFloat64(color string, value float64) string {
 	return fmt.Sprintf("%v%.8f%v", color, value, RESET)
 }
+
+// Colorized - make color some string representation of interface
 func Colorized(color string, v interface{}) string {
 	return fmt.Sprintf("%v%v%v", color, v, RESET)
 }
+
+// ChooseColorBool - if colorized
 func ChooseColorBool(trueColor, falseColor string, v bool) string {
 	if v {
 		return fmt.Sprint(trueColor, v, RESET)
-	} else {
-		return fmt.Sprint(falseColor, v, RESET)
 	}
+	return fmt.Sprint(falseColor, v, RESET)
 }
+
+// ChooseColorMoreThanValueInt - if more Colorized
 func ChooseColorMoreThanValueInt(moreColor, lowerColor string, moreValue, v int) string {
 	if v > moreValue {
 		return fmt.Sprint(moreColor, v, RESET)
-	} else {
-		return fmt.Sprint(lowerColor, v, RESET)
 	}
+	return fmt.Sprint(lowerColor, v, RESET)
 }
+
+// ChooseColorMoreThanValueFloat -if more Colorized (float)
 func ChooseColorMoreThanValueFloat(moreColor, lowerColor string, moreValue, v float64) string {
 	if v > moreValue {
 		return fmt.Sprintf("%v%.8f%v", moreColor, v, RESET)
-	} else {
-		return fmt.Sprintf("%v%.8f%v", lowerColor, v, RESET)
 	}
+	return fmt.Sprintf("%v%.8f%v", lowerColor, v, RESET)
 }
+
+// ChooseColorNonEqValueFloat - if not equals colorized
 func ChooseColorNonEqValueFloat(moreColor, lowerColor string, moreValue, v float64) string {
 	if v != moreValue {
 		return fmt.Sprintf("%v%.8f%v", moreColor, v, RESET)
-	} else {
-		return fmt.Sprintf("%v%.8f%v", lowerColor, v, RESET)
 	}
+	return fmt.Sprintf("%v%.8f%v", lowerColor, v, RESET)
 }

@@ -8,11 +8,13 @@ import (
 	"time"
 )
 
+// MaxTryCntSwap - max try const swap
 const MaxTryCntSwap = 3
 
 var m sync.Mutex
 var mapProfiler map[string]*profiler
 
+// Profiler interface
 type Profiler interface {
 	Start() time.Time
 	End(time.Time) time.Duration
@@ -33,6 +35,7 @@ func init() {
 	mapProfiler = map[string]*profiler{}
 }
 
+// GetProfiler - get profiler instance
 func GetProfiler(name string) Profiler {
 	emptyProfiler := &profiler{}
 	emptyProfiler.MinTime = math.MaxUint64
@@ -48,17 +51,18 @@ func GetProfiler(name string) Profiler {
 
 	if profiler, ok := mapProfiler[name]; ok {
 		return profiler
-	} else {
-		mapProfiler[name] = emptyProfiler
-		return emptyProfiler
 	}
+	mapProfiler[name] = emptyProfiler
+	return emptyProfiler
 }
 
+// Start -
 func (p *profiler) Start() time.Time {
 	atomic.AddUint64(&p.CntStart, 1)
 	return time.Now()
 }
 
+// End -
 func (p *profiler) End(startTime time.Time) time.Duration {
 	atomic.AddUint64(&p.CntEnd, 1)
 	delta := time.Now().Sub(startTime)

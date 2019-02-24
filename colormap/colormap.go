@@ -2,16 +2,19 @@ package colormap
 
 import (
 	"fmt"
-	"github.com/imperiuse/golib/concat"
 	"strconv"
+
+	"github.com/imperiuse/golib/concat"
 )
 
+// CSN - ColorSchemeNumber
 type CSN int // ColorSchemeNumber
 
+//nolint
 const (
 	CsReset CSN = iota
-	// Настройка цветов сообщений (по типу сообщения)
-	CsInfo
+
+	CsInfo // Настройка цветов сообщений (по типу сообщения)
 	CsDebug
 	CsWarning
 	CsTest
@@ -19,8 +22,7 @@ const (
 	CsFatalError
 	CsPrint
 
-	// Дополнительные цвета для сообщений (хранилище данных)
-	CsDb
+	CsDb // Дополнительные цвета для сообщений (хранилище данных)
 	CsDbOk
 	CsDbFail
 
@@ -32,16 +34,15 @@ const (
 	CsMemchdOk
 	CsMemchdFail
 
-	// Префикс логера(дата, время, место в коде)
-	CsDatetime
+	CsDatetime // Префикс логера(дата, время, место в коде)
 
 	ColorschemeNext
 )
 
-// Color Sheme - it's element of Color Scheme Map
+// ColorSheme - it's element of Color Scheme Map
 type ColorSheme []string
 
-// Color Scheme Map  - central unit of colormap package
+// CSM  - Color Scheme Map  - central unit of colormap package
 type CSM map[CSN]ColorSheme
 
 // Default Color Scheme Map
@@ -77,6 +78,7 @@ func CreateCS(attrs ...interface{}) (s string) {
 	return
 }
 
+// SchemeAttributes - number of Scheme attr
 type SchemeAttributes int
 
 //Шаблон для использования в современных командных оболочках и языках программирования таков:
