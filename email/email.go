@@ -3,11 +3,12 @@ package email
 import (
 	"crypto/tls"
 	"fmt"
-	"github.com/imperiuse/golib/concat"
 	"log"
 	"net"
 	"net/mail"
 	"net/smtp"
+
+	"github.com/imperiuse/golib/concat"
 )
 
 // MailBean - all settings for email package in Bean-like struct
@@ -33,7 +34,7 @@ func (m *MailBean) SetFromAndToEmailAddresses(from mail.Address, to []mail.Addre
 	m.to = to
 }
 
-// SendEmailByDefaultTemplate -  send email with default template @see email.emailTemplate const
+// SendEmails -  send email with default template @see email.emailTemplate const
 func (m *MailBean) SendEmails(body string) error {
 	if m.EnableNotify {
 		for _, to := range m.to {
@@ -66,6 +67,7 @@ func sendEmail(from, to mail.Address, subj, body string, c Credentials) (err err
 	auth := smtp.PlainAuth(c.Identity, c.Username, c.Password, host)
 
 	// TLS config
+	// nolint i undestang so it bad for sec set True, but i need do this!
 	tlsconfig := &tls.Config{
 		InsecureSkipVerify: true,
 		ServerName:         host,

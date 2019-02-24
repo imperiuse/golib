@@ -11,7 +11,6 @@ func StringsMulti(args ...string) string {
 func recursiveConcat(ss []string) string {
 	if len(ss) > 1 {
 		return Strings(ss[0], recursiveConcat(ss[1:]))
-	} else {
-		return ss[0]
 	}
+	return ss[0]
 }
