@@ -141,7 +141,7 @@ func (r *Redis) Do(callBy string, command string, args ...interface{}) (reply in
 			time.Sleep(time.Nanosecond * time.Duration(r.TimeRepeatAttempt))
 			continue
 		} else {
-			(*r.Logger).Log(l.RedisOk, concat.StringsMulti(command, " ", args[0].(string)), callBy, "REDIS SUCCESSES!",
+			(*r.Logger).Log(l.RedisOk, callBy, concat.StringsMulti(command, " ", args[0].(string)), "REDIS SUCCESSES!",
 				fmt.Sprintf("%s %v", command, args))
 			return
 		}
