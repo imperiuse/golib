@@ -236,7 +236,7 @@ func (pg *PgDB) Select(callBy string, dest interface{}, query string, args ...in
 			query,
 			"ARGS:", args)
 	}
-	return err
+	return
 }
 
 // Get - syntax sugar of `SELECT ... LIMIT 1` method;
@@ -260,5 +260,55 @@ func (pg *PgDB) Get(callBy string, dest interface{}, query string, args ...inter
 			query,
 			"ARGS:", args)
 	}
-	return err
+	return
+}
+
+// NamedExec - syntax sugar of sql.NamedExec `INSERT INTO person (first_name,last_name,email) VALUES (:first,:last,:email)`,;
+// 													map[string]interface{}{
+// 													           "first": "Bin",
+// 													           "last": "Smuth",
+// 													           "email": "bensmith@allblacks.nz",
+// @param
+//     callBy       string                 - кто вызвал, важно для логирования, чтобы не вызывать runtime.Caller()
+//     query        string                 - строка SQL запрос
+//     nameArgs     map[string]interface{} - map с именнованными аргументами
+//  @return
+//                  error       - есть ли ошибка в запросе
+func (pg *PgDB) NamedExec(callBy string, dest interface{}, query string, nameArgs map[string]interface{}) (result sql.Result, err error) {
+	callBy = concat.Strings(callBy, " --> postgres.NamedExec()")
+	defer pg.executeDefer(concat.Strings(callBy, " [DEFER]"), query, err, nameArgs)
+
+	if result, err = pg.db.NamedExec(query, nameArgs); err != nil {
+		(*pg.Logger).Log(l.DbFail, callBy, pg.Name, "SQL FAILED", err,
+			query,
+			"ARGS:", nameArgs)
+	} else {
+		(*pg.Logger).Log(l.DbOk, callBy, pg.Name, "SQL SUCCESS",
+			query,
+			"ARGS:", nameArgs)
+	}
+	return
+}
+
+// NamedQuery - syntax sugar of sql.NamedQuery `SELECT * FROM person WHERE first_name=:first_name`, jason`,;
+// @param
+//     callBy       string      - кто вызвал, важно для логирования, чтобы не вызывать runtime.Caller()
+//     query        string      - строка SQL запрос
+//     data         interface{} - map с именнованными аргументами
+//  @return
+//                  error       - есть ли ошибка в запросе
+func (pg *PgDB) NamedQuery(callBy string, dest interface{}, query string, data interface{}) (rows *sqlx.Rows, err error) {
+	callBy = concat.Strings(callBy, " --> postgres.NamedQuery()")
+	defer pg.executeDefer(concat.Strings(callBy, " [DEFER]"), query, err, data)
+
+	if rows, err = pg.db.NamedQuery(query, data); err != nil {
+		(*pg.Logger).Log(l.DbFail, callBy, pg.Name, "SQL FAILED", err,
+			query,
+			"ARGS:", data)
+	} else {
+		(*pg.Logger).Log(l.DbOk, callBy, pg.Name, "SQL SUCCESS",
+			query,
+			"ARGS:", data)
+	}
+	return
 }
