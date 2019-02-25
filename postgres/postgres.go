@@ -62,6 +62,8 @@ type IPgDB interface {
 	ExecuteQueryX(string, string, ...interface{}) (*sqlx.Rows, error)
 	Select(string, interface{}, string, ...interface{}) error
 	Get(string, interface{}, string, ...interface{}) error
+	NamedExec(string, string, map[string]interface{}) (sql.Result, error)
+	NamedQuery(string, string, interface{}) (*sqlx.Rows, error)
 }
 
 // GetDB - get current DB connect
@@ -273,8 +275,9 @@ func (pg *PgDB) Get(callBy string, dest interface{}, query string, args ...inter
 //     query        string                 - строка SQL запрос
 //     nameArgs     map[string]interface{} - map с именнованными аргументами
 //  @return
+//                  sql.Result  - результаты запроса
 //                  error       - есть ли ошибка в запросе
-func (pg *PgDB) NamedExec(callBy string, dest interface{}, query string, nameArgs map[string]interface{}) (result sql.Result, err error) {
+func (pg *PgDB) NamedExec(callBy string, query string, nameArgs map[string]interface{}) (result sql.Result, err error) {
 	callBy = concat.Strings(callBy, " --> postgres.NamedExec()")
 	defer pg.executeDefer(concat.Strings(callBy, " [DEFER]"), query, err, nameArgs)
 
@@ -296,8 +299,9 @@ func (pg *PgDB) NamedExec(callBy string, dest interface{}, query string, nameArg
 //     query        string      - строка SQL запрос
 //     data         interface{} - map с именнованными аргументами
 //  @return
+//                  *sqlx.Rows  - результаты зароса строки
 //                  error       - есть ли ошибка в запросе
-func (pg *PgDB) NamedQuery(callBy string, dest interface{}, query string, data interface{}) (rows *sqlx.Rows, err error) {
+func (pg *PgDB) NamedQuery(callBy string, query string, data interface{}) (rows *sqlx.Rows, err error) {
 	callBy = concat.Strings(callBy, " --> postgres.NamedQuery()")
 	defer pg.executeDefer(concat.Strings(callBy, " [DEFER]"), query, err, data)
 
