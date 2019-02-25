@@ -73,6 +73,15 @@ func (r *Redis) InitNewPool() (err error) {
 	return nil
 }
 
+// IRedis - public interface describes Redis struct
+type IRedis interface {
+	Do(string, string, ...interface{}) (interface{}, error)
+	PingPongTest() (err error)
+	GetPool()
+	GetName()
+	Close()
+}
+
 // Close - закрыть pool коннекшенов к Redis
 func (r *Redis) Close() {
 	if err := r.pool.Close(); err != nil {
