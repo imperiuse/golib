@@ -57,11 +57,6 @@ type PgDB struct {
 // IPgDB - public interface describes PgDB
 type IPgDB interface {
 	GetDB() *sqlx.DB
-	GetName() string
-	ConfigString() string
-	Connect() error
-	Close()
-	executeDefer(string, string, error, ...interface{})
 	ExecuteQuery(string, string, ...interface{}) (*sql.Rows, error)
 	ExecuteRowAffected(string, string, ...interface{}) (int64, error)
 	ExecuteQueryX(string, string, ...interface{}) (*sqlx.Rows, error)
