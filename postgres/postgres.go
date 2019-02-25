@@ -54,6 +54,21 @@ type PgDB struct {
 	db     *sqlx.DB        // Pool connection to DB (return by sql.Open("postgres", ".....db_settings))
 }
 
+// IPgDB - public interface describes PgDB
+type IPgDB interface {
+	GetDB() *sqlx.DB
+	GetName() string
+	ConfigString() string
+	Connect() error
+	Close()
+	executeDefer(string, string, error, ...interface{})
+	ExecuteQuery(string, string, ...interface{}) (*sql.Rows, error)
+	ExecuteRowAffected(string, string, ...interface{}) (int64, error)
+	ExecuteQueryX(string, string, ...interface{}) (*sqlx.Rows, error)
+	Select(string, interface{}, string, ...interface{}) error
+	Get(string, interface{}, string, ...interface{}) error
+}
+
 // GetDB - get current DB connect
 func (pg *PgDB) GetDB() *sqlx.DB {
 	return pg.db
