@@ -142,13 +142,13 @@ func (r *Redis) Do(callBy string, command string, args ...interface{}) (reply in
 		(*r.Logger).Debug(callBy, r.Name, concat.Strings("Execute Redis command attempt: ", strconv.Itoa(tryCnt)))
 		reply, err = conn.Do(command, args...)
 		if err != nil {
-			(*r.Logger).Log(l.RedisFail, callBy, concat.StringsMulti(command, " ", args[0].(string)), "REDIS FAILED",
+			(*r.Logger).Log(l.RedisFail, callBy, concat.Strings(command, " ", args[0].(string)), "REDIS FAILED",
 				err,
 				fmt.Sprintf("%s %v", command, args))
 			time.Sleep(time.Nanosecond * time.Duration(r.TimeRepeatAttempt))
 			continue
 		} else {
-			(*r.Logger).Log(l.RedisOk, callBy, concat.StringsMulti(command, " ", args[0].(string)), "REDIS SUCCESSES!",
+			(*r.Logger).Log(l.RedisOk, callBy, concat.Strings(command, " ", args[0].(string)), "REDIS SUCCESSES!",
 				fmt.Sprintf("%s %v", command, args))
 			return
 		}

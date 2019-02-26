@@ -121,7 +121,7 @@ func (pg *PgDB) Close() {
 		(*pg.Logger).Error("PgDB.close()", pg.Name, "Can't close DB connection!", err)
 	}
 	(*pg.Logger).Info("PgDB.close()", pg.Name,
-		concat.StringsMulti("Connection to database", pg.Host, ":", pg.DbName, "successful close()"))
+		concat.Strings("Connection to database", pg.Host, ":", pg.DbName, "successful close()"))
 }
 
 func (pg *PgDB) executeDefer(callBy string, query string, err error, args ...interface{}) {
