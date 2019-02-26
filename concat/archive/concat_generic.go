@@ -1,6 +1,6 @@
 // +build !amd64
 
-package concat
+package archive
 
 // Strings returns x+y concatenation result.
 // Works faster than Go "+" operator if neither of strings is empty.
