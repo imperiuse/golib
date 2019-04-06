@@ -65,7 +65,7 @@ type LoggerController interface {
 }
 
 // NewLogger - Constructor LoggerI
-func NewLogger(defaultOutput io.Writer, destFlag DestinationFlag, n, callDepth, settingFlags int, delimiter string, csm colormap.CSM) Logger {
+func NewLogger(defaultOutput io.Writer, destFlag DestinationFlag, n, callDepth, settingFlags int, delimiter string, csm colormap.CSM) LoggerI {
 
 	i := 0
 	l := Logger{
