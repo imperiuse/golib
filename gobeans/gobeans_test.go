@@ -38,8 +38,14 @@ type TestStruct3 struct {
 
 func ExampleCreateBeanStorage() {
 
-	Beans := CreateBeanStorage()
-	err := Beans.RegType((*float64)(nil), (*int)(nil), (*uint)(nil), (*string)(nil), (*TestStruct1)(nil),
+	Beans, err := CreateBeanStorage()
+	if err != nil {
+		print("\nError while gobeans.CreateBeanStorage: %v\n", err)
+	} else {
+		fmt.Print("\nStorage successful created!\n")
+	}
+
+	err = Beans.RegTypes((*float64)(nil), (*int)(nil), (*uint)(nil), (*string)(nil), (*TestStruct1)(nil),
 		(*TestStruct2)(nil), (*TestStruct3)(nil))
 
 	if err != nil {
@@ -59,16 +65,25 @@ func ExampleCreateBeanStorage() {
 }
 
 func TestCreateBeanStorage(t *testing.T) {
-	Beans := CreateBeanStorage()
+	Beans, err := CreateBeanStorage()
+	if err != nil {
+		t.Errorf("\nError while gobeans.CreateBeanStorage: %v\n", err)
+	} else {
+		fmt.Print("\nStorage successful created!\n")
+	}
 	if Beans.typeMap == nil || Beans.beansMap == nil {
 		t.Errorf("Unxpected value of field Beans!")
 	}
 }
 
 func TestRegType(t *testing.T) {
-	Beans := CreateBeanStorage()
-	err := Beans.RegType((*float64)(nil), (*int)(nil), (*uint)(nil), (*string)(nil), (*TestStruct1)(nil),
-		(*TestStruct2)(nil), (*TestStruct3)(nil))
+	Beans, err := CreateBeanStorage()
+	if err != nil {
+		t.Errorf("\nError while gobeans.CreateBeanStorage: %v\n", err)
+	} else {
+		fmt.Print("\nStorage successful created!\n")
+	}
+	err = Beans.RegTypes((*TestStruct1)(nil), (*TestStruct2)(nil), (*TestStruct3)(nil))
 	if err != nil {
 		t.Errorf("error while gobeans.RegType: %v\n", err)
 	} else {
@@ -77,9 +92,13 @@ func TestRegType(t *testing.T) {
 }
 
 func TestGetAllNamesRegistryTypes(t *testing.T) {
-	Beans := CreateBeanStorage()
-	err := Beans.RegType((*float64)(nil), (*int)(nil), (*uint)(nil), (*string)(nil), (*TestStruct1)(nil),
-		(*TestStruct2)(nil), (*TestStruct3)(nil))
+	Beans, err := CreateBeanStorage()
+	if err != nil {
+		t.Errorf("\nError while gobeans.CreateBeanStorage: %v\n", err)
+	} else {
+		fmt.Print("\nStorage successful created!\n")
+	}
+	err = Beans.RegTypes((*TestStruct1)(nil), (*TestStruct2)(nil), (*TestStruct3)(nil))
 	if err != nil {
 		t.Errorf("error while gobeans.RegType: %v\n", err)
 	} else {
@@ -89,14 +108,19 @@ func TestGetAllNamesRegistryTypes(t *testing.T) {
 }
 
 func TestGetAllNamesRegistryTypesNegative(t *testing.T) {
-	Beans := CreateBeanStorage()
-	err := Beans.RegType((************TestStruct1)(nil))
+	Beans, err := CreateBeanStorage()
+	if err != nil {
+		t.Errorf("\nError while gobeans.CreateBeanStorage: %v\n", err)
+	} else {
+		fmt.Print("\nStorage successful created!\n")
+	}
+	err = Beans.RegTypes((************TestStruct1)(nil))
 	if err == nil {
 		t.Errorf("\nNO Error while gobeans.RegType: %v\n", err)
 	} else {
 		fmt.Printf("\nRegistrate types: %v\n", Beans.ShowRegTypes())
 	}
-	err = Beans.RegType((************TestStruct2)(nil))
+	err = Beans.RegTypes((************TestStruct2)(nil))
 	if err == nil {
 		t.Errorf("\nNO Error while gobeans.RegType: %v\n", err)
 	} else {
@@ -106,9 +130,14 @@ func TestGetAllNamesRegistryTypesNegative(t *testing.T) {
 }
 
 func TestCreateBeansFromJSON(t *testing.T) {
-	Beans := CreateBeanStorage()
-	err := Beans.RegType((*float64)(nil), (*int)(nil), (*uint)(nil), (*string)(nil), (*TestStruct1)(nil),
-		(*TestStruct2)(nil), (*TestStruct3)(nil), (**TestStruct1)(nil), (**TestStruct2)(nil))
+	Beans, err := CreateBeanStorage()
+	if err != nil {
+		t.Errorf("\nError while gobeans.CreateBeanStorage: %v\n", err)
+	} else {
+		fmt.Print("\nStorage successful created!\n")
+	}
+	err = Beans.RegTypes((*TestStruct1)(nil), (*TestStruct2)(nil), (*TestStruct3)(nil),
+		(**TestStruct1)(nil), (**TestStruct2)(nil))
 	if err != nil {
 		t.Errorf("\nError while gobeans.RegType: %v\n", err)
 	} else {
@@ -120,9 +149,14 @@ func TestCreateBeansFromJSON(t *testing.T) {
 }
 
 func TestCreateBeansFromJSONNegative(t *testing.T) {
-	Beans := CreateBeanStorage()
-	err := Beans.RegType((*float64)(nil), (*int)(nil), (*uint)(nil), (*string)(nil), (*TestStruct1)(nil),
-		(*TestStruct2)(nil), (*TestStruct3)(nil), (**TestStruct1)(nil), (**TestStruct2)(nil))
+	Beans, err := CreateBeanStorage()
+	if err != nil {
+		t.Errorf("\nError while gobeans.CreateBeanStorage: %v\n", err)
+	} else {
+		fmt.Print("\nStorage created!\n")
+	}
+	err = Beans.RegTypes((*TestStruct1)(nil), (*TestStruct2)(nil), (*TestStruct3)(nil),
+		(**TestStruct1)(nil), (**TestStruct2)(nil))
 	if err != nil {
 		t.Errorf("\nError while gobeans.RegType: %v\n", err)
 	} else {
@@ -150,9 +184,14 @@ func TestCreateBeansFromJSONNegative(t *testing.T) {
 
 //nolint
 func TestGetBeansAndGetReflectType(t *testing.T) {
-	Beans := CreateBeanStorage()
-	err := Beans.RegType((*float64)(nil), (*int)(nil), (*uint)(nil), (*string)(nil), (*TestStruct1)(nil),
-		(*TestStruct2)(nil), (*TestStruct3)(nil), (**TestStruct1)(nil), (**TestStruct2)(nil))
+	Beans, err := CreateBeanStorage()
+	if err != nil {
+		t.Errorf("\nError while gobeans.CreateBeanStorage: %v\n", err)
+	} else {
+		fmt.Print("\nStorage created!\n")
+	}
+	err = Beans.RegTypes((*TestStruct1)(nil), (*TestStruct2)(nil), (*TestStruct3)(nil), (**TestStruct1)(nil),
+		(**TestStruct2)(nil))
 	if err != nil {
 		t.Errorf("\nError while gobeans.RegType: %v\n", err)
 	} else {
@@ -179,9 +218,14 @@ func TestGetBeansAndGetReflectType(t *testing.T) {
 }
 
 func TestClonesFunc(t *testing.T) {
-	Beans := CreateBeanStorage()
-	err := Beans.RegType((*float64)(nil), (*int)(nil), (*uint)(nil), (*string)(nil), (*TestStruct1)(nil),
-		(*TestStruct2)(nil), (*TestStruct3)(nil), (**TestStruct1)(nil), (**TestStruct2)(nil))
+	Beans, err := CreateBeanStorage()
+	if err != nil {
+		t.Errorf("\nError while gobeans.CreateBeanStorage: %v\n", err)
+	} else {
+		fmt.Print("\nStorage created!\n")
+	}
+	err = Beans.RegTypes((*TestStruct1)(nil), (*TestStruct2)(nil), (*TestStruct3)(nil),
+		(**TestStruct1)(nil), (**TestStruct2)(nil))
 	if err != nil {
 		t.Errorf("\nError while gobeans.RegType: %v\n", err)
 	} else {

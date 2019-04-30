@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/pkg/errors"
+
 	"github.com/jinzhu/copier"
+	"github.com/mitchellh/mapstructure"
 
 	"github.com/imperiuse/golib/colors"
 	"github.com/imperiuse/golib/concat"
@@ -37,10 +40,11 @@ type StructField struct {
 
 // Типы свойств по аналогии с JAVA BEANS
 const (
-	Natural      = "nat"  // Простые типы: int, float, string или []T или map[string]T - где T простой тип
-	DeepCopyObj  = "copy" // Глубокая копия сложный объект
-	PointerToObj = "link" // Ссылка на объект
-	BeansObj     = "obj"  // @NOT_USED  (Reserved for recursive initial by Bean inside another Bean obj)
+	Natural       = "nat"      // Простые типы: int, float, string или []T или map[string]T - где T простой тип
+	DeepCopyObj   = "copy"     // Глубокая копия сложный объект
+	PointerToObj  = "link"     // Ссылка на объект
+	BeansObj      = "obj"      // @NOT_USED  (Reserved for recursive initial by Bean inside another Bean obj)
+	SliceBeansObj = "sliceobj" // @NOT_USED
 )
 
 // AnonStructPrefixTypeName - Префикс обозначения типа анонимных структур
@@ -122,7 +126,7 @@ func CreateBeanStorage() (BeansStorage, error) {
 }
 
 // GetAllNamesRegistryTypes - функция которая возращает slice имен зарегистрированных типов
-func (bs BeansStorage) GetAllNamesRegistryTypes() (nameRegistryType []string) {
+func (bs *BeansStorage) GetAllNamesRegistryTypes() (nameRegistryType []string) {
 	for nameType := range bs.typeMap {
 		nameRegistryType = append(nameRegistryType, nameType)
 	}
@@ -130,7 +134,7 @@ func (bs BeansStorage) GetAllNamesRegistryTypes() (nameRegistryType []string) {
 }
 
 // GetIDBeans - функция которая возращает slice BeanID (имён бинов) хранимых bean типов
-func (bs BeansStorage) GetIDBeans() (beansIDs []BeanID) {
+func (bs *BeansStorage) GetIDBeans() (beansIDs []BeanID) {
 	for beanID := range bs.beansMap {
 		beansIDs = append(beansIDs, beanID)
 	}
@@ -138,48 +142,48 @@ func (bs BeansStorage) GetIDBeans() (beansIDs []BeanID) {
 }
 
 // GetBean - получить объект Bean по ID
-func (bs BeansStorage) GetBean(id BeanID) *BeanInstance {
+func (bs *BeansStorage) GetBean(id BeanID) *BeanInstance {
 	return bs.beansMap[id]
 }
 
 // GetBeanPIO - получить объект PIO Bean-а по его ID
-func (bs BeansStorage) GetBeanPIO(id BeanID) interface{} {
+func (bs *BeansStorage) GetBeanPIO(id BeanID) interface{} {
 	return bs.beansMap[id].PIO
 }
 
 // GetCloneBeanPIO - получить клонированный объект PIO Bean-а по его ID
-func (bs BeansStorage) GetCloneBeanPIO(id BeanID) interface{} {
+func (bs *BeansStorage) GetCloneBeanPIO(id BeanID) interface{} {
 	return bs.beansMap[id].ClonePIO()
 }
 
 // GetBeanJFI - получить объект JFI Bean-а по его ID
-func (bs BeansStorage) GetBeanJFI(id BeanID) interface{} {
+func (bs *BeansStorage) GetBeanJFI(id BeanID) interface{} {
 	return bs.beansMap[id].JFI
 }
 
 // GetCloneBeanJFI - получить клонированный объект JFI Bean-а по его ID
-func (bs BeansStorage) GetCloneBeanJFI(id BeanID) interface{} {
+func (bs *BeansStorage) GetCloneBeanJFI(id BeanID) interface{} {
 	return bs.beansMap[id].CloneJFI()
 }
 
 // GetMapBeans - получить map Beans
-func (bs BeansStorage) GetMapBeans() MapBeansType {
+func (bs *BeansStorage) GetMapBeans() MapBeansType {
 	return bs.beansMap
 }
 
 // GetReflectTypeByName - получить reflect.Type по typeName
-func (bs BeansStorage) GetReflectTypeByName(typeName string) reflect.Type {
+func (bs *BeansStorage) GetReflectTypeByName(typeName string) reflect.Type {
 	return bs.typeMap[typeName]
 }
 
 // FoundAndGetReflectTypeByName - получить reflect.Type по typeName
-func (bs BeansStorage) FoundAndGetReflectTypeByName(typeName string) (reflect.Type, bool) {
+func (bs *BeansStorage) FoundAndGetReflectTypeByName(typeName string) (reflect.Type, bool) {
 	typ, found := bs.typeMap[typeName]
 	return typ, found
 }
 
 // RegType - регистрирует типы в MapRegistryType, именует согласно пути пакета
-func (bs BeansStorage) RegTypes(typesNil ...interface{}) error {
+func (bs *BeansStorage) RegTypes(typesNil ...interface{}) error {
 	for _, typeT := range typesNil {
 		if err := bs.regType(typeT, ""); err != nil {
 			return err
@@ -189,7 +193,7 @@ func (bs BeansStorage) RegTypes(typesNil ...interface{}) error {
 }
 
 // RegNamedType -  регистрирует типы в MapRegistryType, и именует согласно переданному имени, нечетные типы, четные имя типа
-func (bs BeansStorage) RegNamedTypes(typesAndNames ...interface{}) error {
+func (bs *BeansStorage) RegNamedTypes(typesAndNames ...interface{}) error {
 	lenTaN := len(typesAndNames)
 	if lenTaN%2 != 0 {
 		return fmt.Errorf("mistmatch count type and their names. len args not even!: %d", lenTaN)
@@ -212,12 +216,12 @@ func (bs BeansStorage) RegNamedTypes(typesAndNames ...interface{}) error {
 }
 
 // ShowRegTypes - Метод возращает список зарегистрированных названий типов
-func (bs BeansStorage) ShowRegTypes() []string {
+func (bs *BeansStorage) ShowRegTypes() []string {
 	return bs.GetAllNamesRegistryTypes()
 }
 
 // regType - промежуточная оберточная функция для перехвата возможной panic
-func (bs BeansStorage) regType(typeT interface{}, nameT string) (err error) {
+func (bs *BeansStorage) regType(typeT interface{}, nameT string) (err error) {
 
 	if nameT != "" {
 		// эта проверка вероятно важна, т.к. человек может перетереть уже сохраненный тип
@@ -240,7 +244,7 @@ func (bs BeansStorage) regType(typeT interface{}, nameT string) (err error) {
 
 // unsafeRegType - базовая функция регистрации типа, может паниковать! поэтому небезопасна!
 // !ATTENTION! can panic use at list func regType(typeT interface{}) (err error)    @see upper
-func (bs BeansStorage) unsafeRegType(typeT interface{}) {
+func (bs *BeansStorage) unsafeRegType(typeT interface{}) {
 	// 3 - it's mean support only *T pointer's (поддержка указателей на объект с именем T)
 	pkgName, typeName := recursiveGetPkgAndTypeName(reflect.TypeOf(typeT).Elem().PkgPath(),
 		reflect.TypeOf(typeT).Elem().Name(), reflect.TypeOf(typeT).Elem(), 3)
@@ -287,7 +291,7 @@ func recursiveGetPkgAndTypeName(pkgname, typeName string, typ reflect.Type, maxC
 //		pathFile       string    - путь к файлу json описания Beans
 // @return
 // 		err            error     - ошибка при создании объектов по данным JSON или ошибка при чтении JSON файла
-func (bs BeansStorage) CreateBeansFromJSON(pathFile string) (err error) {
+func (bs *BeansStorage) CreateBeansFromJSON(pathFile string) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("error while create map of beans. Err: %v ", r)
@@ -312,14 +316,18 @@ func (bs BeansStorage) CreateBeansFromJSON(pathFile string) (err error) {
 	// Пробегаемся по слайсу первый раз строим объекты и простые поля
 	for _, beanSettings := range BeansSlice {
 		if beanSettings.Enable { // если Bean включен
-			bs.addNewBeanInstance(false, beanSettings)
+			if err := bs.addNewBeanInstance(false, beanSettings); err != nil {
+				return err
+			}
 		}
 	}
 
 	// Пробегаемся второй раз строим ссылки на сложные объекты или делаем их deep copy
 	for _, beanSettings := range BeansSlice {
 		if beanSettings.Enable { // если Bean включен
-			bs.addNewBeanInstance(true, beanSettings)
+			if err := bs.addNewBeanInstance(true, beanSettings); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -339,47 +347,33 @@ func (bs BeansStorage) CreateBeansFromJSON(pathFile string) (err error) {
 //// 			bean.StructFields           []StructField -  анонимной runtime генерирующейся структуры
 //// 			bean.properties             []Properties  -  свойства Bean которыми инициализурется объект после создания
 //nolint
-func (bs BeansStorage) addNewBeanInstance(processingFieldsAndReference bool, beanSettings BeanSettings) {
-	var typ reflect.Type
-	var s reflect.Value
-	if beanSettings.Struct == "" { // Анонимная структура
-		structFields := make([]reflect.StructField, len(beanSettings.StructFields))
-		for i, descStructField := range beanSettings.StructFields {
-			if tempType, found := bs.FoundAndGetReflectTypeByName(descStructField.Type); found {
-				structFields[i] = reflect.StructField{
-					Name: descStructField.Name,
-					Type: tempType,
-					Tag:  reflect.StructTag(descStructField.Tag)}
-			} else {
-				panic(fmt.Errorf("Not found Struct by Name (Anonumous Struct): %v ", descStructField.Type))
-			}
-		}
-		typ = reflect.StructOf(structFields)
-		// TODO!!! Регистрация типа анонимной структуры
-		bs.typeMap[concat.Strings(AnonStructPrefixTypeName, string(beanSettings.ID))] = typ
-	} else { // Если объект не является анонимной структурой
-		if tempType, found := bs.FoundAndGetReflectTypeByName(beanSettings.Struct); found {
-			typ = tempType
-		} else {
-			panic(fmt.Errorf("Not found Struct by Name: %v ", beanSettings.Struct))
-		}
+func (bs *BeansStorage) addNewBeanInstance(processingFieldsAndReference bool, beanSettings BeanSettings) error {
+
+	// TODO првоерить двойное создание объектов
+	s, typ, err := bs.createEmptyReflectObj(beanSettings)
+	if err != nil {
+		return err
 	}
 
-	if s = reflect.New(typ).Elem(); s.Kind() == reflect.Struct {
-		if processingFieldsAndReference {
-			for _, p := range beanSettings.Properties {
-				switch p.Type {
-				case DeepCopyObj:
+	if s.Kind() == reflect.Struct {
+		for i, p := range beanSettings.Properties {
+			switch p.Type {
+			case DeepCopyObj:
+				if processingFieldsAndReference {
 					x := bs.beansMap[BeanID(p.Value.(string))]
 					s.FieldByName(p.Name).Set(x.r.Obj)
-					//fmt.Println(s.FieldByName(p.Name).Type())  // test get field Type Name
-					//fmt.Println(s.FieldByName(p.Name).Type().Name())
-				case PointerToObj:
+				}
+				//fmt.Println(s.FieldByName(p.Name).Type())  // test get field Type Name
+				//fmt.Println(s.FieldByName(p.Name).Type().Name())
+			case PointerToObj:
+				if processingFieldsAndReference {
 					x := bs.beansMap[BeanID(p.Value.(string))]
 					s.FieldByName(p.Name).Set(x.r.Pobj)
-					//fmt.Println(s.FieldByName(p.Name).Type().Elem().Name())
-					//fmt.Println(s.FieldByName(p.Name).Type().Name())   // test get field Type Name
-				case Natural:
+				}
+				//fmt.Println(s.FieldByName(p.Name).Type().Elem().Name())
+				//fmt.Println(s.FieldByName(p.Name).Type().Name())   // test get field Type Name
+			case Natural:
+				if processingFieldsAndReference {
 					f := s.FieldByName(p.Name)
 					// Поле структуры к которой обращаемся должно быть экспортируемо, т.е. быть public (с большой буквы)
 					if f.IsValid() {
@@ -424,12 +418,54 @@ func (bs BeansStorage) addNewBeanInstance(processingFieldsAndReference bool, bea
 							}
 						}
 					}
-				case BeansObj: // TODO @UNUSED, пока сделано что вначале строится список всех BEAN
-					// (флаг processingFieldsAndReference) , затем идет, заполнение значений
+				}
+			case BeansObj:
+				var beanSettings BeanSettings
+				if err := mapstructure.Decode(p.Value, &beanSettings); err != nil {
+					return errors.WithMessagef(err, "err while convert property[%d] to BeanSettings struct: %+v", i, p.Value)
+				}
+
+				if err := bs.addNewBeanInstance(processingFieldsAndReference, beanSettings); err != nil {
+					return err
 				}
 			}
 		}
 	}
-	bs.beansMap[beanSettings.ID] = &BeanInstance{s.Interface(), s.Addr().Interface(), reflectInstance{Obj: s, Pobj: s.Addr(), Type: typ}}
-	return
+
+	// Сохраняем в Map-у Bean очередной объект
+	bs.beansMap[beanSettings.ID] = &BeanInstance{
+		s.Interface(),
+		s.Addr().Interface(),
+		reflectInstance{Obj: s, Pobj: s.Addr(), Type: typ}}
+
+	return nil
+}
+
+func (bs *BeansStorage) createEmptyReflectObj(beanSettings BeanSettings) (reflect.Value, reflect.Type, error) {
+	var typ reflect.Type
+	var val reflect.Value
+	if beanSettings.Struct == "" { // Анонимная структура
+		structFields := make([]reflect.StructField, len(beanSettings.StructFields))
+		for i, descStructField := range beanSettings.StructFields {
+			if tempType, found := bs.FoundAndGetReflectTypeByName(descStructField.Type); found {
+				structFields[i] = reflect.StructField{
+					Name: descStructField.Name,
+					Type: tempType,
+					Tag:  reflect.StructTag(descStructField.Tag)}
+			} else {
+				return val, typ, fmt.Errorf("Not found Struct by Name (Anonumous Struct): %v ", descStructField.Type)
+			}
+		}
+		// Регистрация созданной анонимной структуры
+		typ = reflect.StructOf(structFields)
+		bs.typeMap[concat.Strings(AnonStructPrefixTypeName, string(beanSettings.ID))] = typ
+	} else { // Если объект не является анонимной структурой
+		if tempType, found := bs.FoundAndGetReflectTypeByName(beanSettings.Struct); found {
+			typ = tempType
+		} else {
+			return val, typ, fmt.Errorf("Not found Struct by Name: %v ", beanSettings.Struct)
+		}
+	}
+
+	return reflect.New(typ).Elem(), typ, nil
 }
