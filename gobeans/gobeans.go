@@ -100,16 +100,25 @@ type BeansStorage struct {
 }
 
 // CreateBeanStorage - главный конструктор, главной структуры - хранилища Bean
-func CreateBeanStorage() BeansStorage {
-	beanStorage := BeansStorage{make(MapRegistryType), make(MapBeansType)}
+func CreateBeanStorage() (BeansStorage, error) {
 
-	// регистрация стандартных необходимых типов (напрямую)
-	// (можно было заюзать и вот эту функцию: beanStorage.RegType()) - но хочется экспериментов :)
-	beanStorage.typeMap["string"] = reflect.TypeOf("123")
-	beanStorage.typeMap["int"] = reflect.TypeOf(123)
-	beanStorage.typeMap["float"] = reflect.TypeOf(1.23)
+	golangInlineTypes := []interface{}{
+		(*int8)(nil), (*int16)(nil), (*int32)(nil), (*int64)(nil), (*int)(nil),
+		(*uint8)(nil), (*uint16)(nil), (*uint32)(nil), (*uint64)(nil), (*uint)(nil),
+		(*float32)(nil), (*float64)(nil), (*complex64)(nil), (*complex128)(nil),
+		(*byte)(nil), (*rune)(nil), (*string)(nil), (*bool)(nil)}
 
-	return beanStorage
+	beanStorage := BeansStorage{make(MapRegistryType, len(golangInlineTypes)), make(MapBeansType)}
+
+	// Пример. Регистрация стандартных необходимых типов (напрямую)
+	//beanStorage.typeMap["string"] = reflect.TypeOf("123")
+	//beanStorage.typeMap["int"] = reflect.TypeOf(123)
+	//beanStorage.typeMap["float"] = reflect.TypeOf(1.23)
+
+	// Но будем делать в общем ввиде :)
+	err := beanStorage.RegTypes(golangInlineTypes...)
+
+	return beanStorage, err
 }
 
 // GetAllNamesRegistryTypes - функция которая возращает slice имен зарегистрированных типов
@@ -169,11 +178,34 @@ func (bs BeansStorage) FoundAndGetReflectTypeByName(typeName string) (reflect.Ty
 	return typ, found
 }
 
-// RegType - Метод регистратор объектов в глобальную переменную typeRegistry  ( map[string]reflect.Type )
-func (bs BeansStorage) RegType(typesNil ...interface{}) error {
+// RegType - регистрирует типы в MapRegistryType, именует согласно пути пакета
+func (bs BeansStorage) RegTypes(typesNil ...interface{}) error {
 	for _, typeT := range typesNil {
-		if err := bs.regType(typeT); err != nil {
+		if err := bs.regType(typeT, ""); err != nil {
 			return err
+		}
+	}
+	return nil
+}
+
+// RegNamedType -  регистрирует типы в MapRegistryType, и именует согласно переданному имени, нечетные типы, четные имя типа
+func (bs BeansStorage) RegNamedTypes(typesAndNames ...interface{}) error {
+	lenTaN := len(typesAndNames)
+	if lenTaN%2 != 0 {
+		return fmt.Errorf("mistmatch count type and their names. len args not even!: %d", lenTaN)
+	}
+
+	for i := 0; ; {
+		typeT := typesAndNames[i]
+		if nameT, ok := typesAndNames[i+1].(string); ok {
+			if err := bs.regType(typeT, nameT); err != nil {
+				return err
+			}
+			if i += 2; i >= lenTaN {
+				break
+			}
+		} else {
+			return fmt.Errorf("can't type assertion to string this arg[%d]: %+v", i+1, typesAndNames[i+1])
 		}
 	}
 	return nil
@@ -185,7 +217,18 @@ func (bs BeansStorage) ShowRegTypes() []string {
 }
 
 // regType - промежуточная оберточная функция для перехвата возможной panic
-func (bs BeansStorage) regType(typeT interface{}) (err error) {
+func (bs BeansStorage) regType(typeT interface{}, nameT string) (err error) {
+
+	if nameT != "" {
+		// эта проверка вероятно важна, т.к. человек может перетереть уже сохраненный тип
+		if _, found := bs.typeMap[nameT]; found {
+			return fmt.Errorf("type with this name: '%s' - alredy registreted", nameT)
+		}
+
+		bs.typeMap[nameT] = reflect.TypeOf(typeT).Elem()
+		return nil
+	}
+
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("error while registrate %v. Err: %v ", typeT, r)
@@ -201,7 +244,7 @@ func (bs BeansStorage) unsafeRegType(typeT interface{}) {
 	// 3 - it's mean support only *T pointer's (поддержка указателей на объект с именем T)
 	pkgName, typeName := recursiveGetPkgAndTypeName(reflect.TypeOf(typeT).Elem().PkgPath(),
 		reflect.TypeOf(typeT).Elem().Name(), reflect.TypeOf(typeT).Elem(), 3)
-	if pkgName != "" {
+	if pkgName != "" { // ниже проверка на существование типа (ключа) не важна, т.к. мы сами строим его
 		bs.typeMap[pkgName+"."+typeName] = reflect.TypeOf(typeT).Elem()
 	} else {
 		bs.typeMap[typeName] = reflect.TypeOf(typeT).Elem()
