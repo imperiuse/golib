@@ -428,6 +428,10 @@ func (bs *BeansStorage) addNewBeanInstance(processingFieldsAndReference bool, be
 				if err := bs.addNewBeanInstance(processingFieldsAndReference, beanSettings); err != nil {
 					return err
 				}
+				// TODO подумать над этим местом тут копия или все таки ссылка ???????
+				// TODO подумать над абстрактной фабрикой объектов + подумать над реорганизацией кода
+				x := bs.beansMap[BeanID(beanSettings.ID)]
+				s.FieldByName(p.Name).Set(x.r.Obj)
 			}
 		}
 	}
