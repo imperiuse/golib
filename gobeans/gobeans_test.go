@@ -207,12 +207,12 @@ func TestGetBeansAndGetReflectType(t *testing.T) {
 	if typ := Beans.GetReflectTypeByName("github.com/imperiuse/golib/gobeans.TestStruct2"); typ != reflect.TypeOf((*TestStruct2)(nil)).Elem() {
 		t.Errorf("Error! Unexpected value of reflect type: TestStruct2")
 	}
-	if typ, found := Beans.FoundAndGetReflectTypeByName("github.com/imperiuse/golib/gobeans.TestStruct3"); !found {
+	if typ, found := Beans.FoundReflectTypeByName("github.com/imperiuse/golib/gobeans.TestStruct3"); !found {
 		t.Errorf("Error while get type of exist registrated struct: TestStruct3 %v", err)
 	} else if typ != reflect.TypeOf((*TestStruct3)(nil)).Elem() {
 		t.Errorf("Error! Unexpected value of reflect type: TestStruct3")
 	}
-	if _, found := Beans.FoundAndGetReflectTypeByName("UnknownType12345"); found {
+	if _, found := Beans.FoundReflectTypeByName("UnknownType12345"); found {
 		t.Errorf("No Error! For un registrated type: UnknownTupe12345")
 	}
 }
