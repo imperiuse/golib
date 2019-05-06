@@ -5,10 +5,10 @@ import (
 	"reflect"
 )
 
-func ReflectCast(vI interface{}, kind reflect.Kind) (reflect.Value, error) {
+func ReflectCast(vI interface{}, origin reflect.Value) (reflect.Value, error) {
 	var r reflect.Value
 
-	switch kind {
+	switch origin.Kind() {
 	// NUMERIC
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Float32,
 		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
@@ -21,7 +21,7 @@ func ReflectCast(vI interface{}, kind reflect.Kind) (reflect.Value, error) {
 		i64 := int64(f64)
 		u64 := uint64(f64)
 
-		switch kind {
+		switch origin.Kind() {
 
 		case reflect.Int:
 			var temp int
@@ -118,6 +118,46 @@ func ReflectCast(vI interface{}, kind reflect.Kind) (reflect.Value, error) {
 		var temp string
 		r = reflect.ValueOf(temp)
 		r.SetString(s)
+
+	case reflect.Slice: // ОГРАНИЧЕНИЯ для SLICE - только: []string, []float64
+		//pSI := p.Value.(origin.Type()) - это решило бы все проблемы!!!!
+
+		// ТАК ТОЖЕ НЕЛЬЗЯ ><
+		//switch x.Interface().(type) {
+		//case []float32:
+		//	pSF32 := p.Value.([]float32)
+		//	for i, v := range pSF32 {
+		//		x.Index(i).Set(reflect.ValueOf(v))
+		//	}
+		//	.....
+		//}
+
+		// Остается так! =(
+
+		pSI := vI.([]interface{})
+		lpSI := len(pSI)
+		r = reflect.MakeSlice(origin.Type(), lpSI, lpSI)
+
+		if lpSI == 0 {
+			break
+		}
+
+		for i, v := range pSI {
+			cv, err := ReflectCast(v, r.Index(0))
+			if err != nil {
+				return r, err
+			}
+			r.Index(i).Set(cv)
+		}
+
+	case reflect.Map: // ОГРАНИЧЕНИЯ для MAP - только: map[string]T
+		r = reflect.New(origin.Type()).Elem()
+		// todo
+		//x = reflect.ValueOf(p.Value)
+		//f.Set(reflect.MakeMap(f.Type()))
+		//for k, v := range p.Value.(map[string]interface{}) {
+		//	f.SetMapIndex(reflect.ValueOf(k), reflect.ValueOf(v))
+		//}
 
 	default:
 		r = reflect.ValueOf(reflect.ValueOf(vI)) // перем значение, а не указатель
