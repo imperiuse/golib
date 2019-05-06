@@ -423,8 +423,6 @@ func (bs *BeansStorage) fillAndLinkBean(beanDescription BeanDescription) error {
 		for i, p := range beanDescription.Properties {
 
 			var f = s.FieldByName(p.Name)
-			//fmt.Println(f.Type())
-			//fmt.Println(f.Type().Name())
 			if !f.IsValid() || !f.CanSet() {
 				// Поле структуры к которой обращаемся должно быть экспортируемо, т.е. быть public (с большой буквы)
 				// A Value can be changed only if it is addressable and was not obtained by  the use of unexported struct fields.
@@ -437,14 +435,14 @@ func (bs *BeansStorage) fillAndLinkBean(beanDescription BeanDescription) error {
 			case DeepCopyObj:
 				b, err := bs.getBeanByInterfaceID(p.Value)
 				if err != nil {
-					return err
+					return errors.WithMessagef(err, "p.Name: %s p.Value: %v beanDescription.ID: %s", p.Name, p.Value, beanDescription.ID)
 				}
 				x = b.r.Obj
 
 			case PointerToObj:
 				b, err := bs.getBeanByInterfaceID(p.Value)
 				if err != nil {
-					return err
+					return errors.WithMessagef(err, "p.Name: %s p.Value: %v beanDescription.ID: %s", p.Name, p.Value, beanDescription.ID)
 				}
 				x = b.r.Obj.Addr()
 
@@ -452,7 +450,7 @@ func (bs *BeansStorage) fillAndLinkBean(beanDescription BeanDescription) error {
 				var err error
 				x, err = dyncast.ReflectCast(p.Value, f)
 				if err != nil {
-					return errors.WithMessagef(err, "Can't get reflect value of p.Value:%v   Bean: %+v", p.Value, beanDescription)
+					return errors.WithMessagef(err, "Can't get reflect value of p.Name: %s, p.Value: %+v BeanID: %s", p.Name, p.Value, beanDescription.ID)
 				}
 
 			case BeansObj:
@@ -460,12 +458,12 @@ func (bs *BeansStorage) fillAndLinkBean(beanDescription BeanDescription) error {
 				var typ reflect.Type
 				err := mapstructure.Decode(p.Value, &bDesc)
 				if err != nil {
-					return errors.WithMessagef(err, "err while convert property[%d] to BeanDescription struct: %+v. Bean: %+v", i, p.Value, beanDescription)
+					return errors.WithMessagef(err, "err while convert property[%d] to BeanDescription struct: %+v. p.Name: %s, p.Value: %+v BeanID: %s", i, beanDescription, p.Name, p.Value, beanDescription.ID)
 				}
 
 				x, typ, err = bs.createEmptyBean(bDesc) // создаем внутренний Bean
 				if err != nil {
-					return errors.WithMessagef(err, "can't create inner Bean [fillAndLinkBean] Bean: %+v", bDesc)
+					return errors.WithMessagef(err, "can't create inner Bean [fillAndLinkBean] p.Name: %s, p.Value: %+v BeanID: %s", p.Name, p.Value, beanDescription.ID)
 				}
 
 				bs.saveBeanToMap(bDesc, x, typ) // сохраняем внутренний Bean
