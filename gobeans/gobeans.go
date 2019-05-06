@@ -67,6 +67,7 @@ type BeanInstance struct {
 	JFI interface{}     // содержит изначальный объект после парсинга Json !!! ВНИМАНИЕ СТАТИЧНЫЙ ОБЪЕКТ !!!!
 	PIO interface{}     // содержит указатель на интерфейс объекта Bean ОСНОВНОЙ ОБЪЕКТ BEAN РЕКОМЕНДУЕТСЯ РАБОТАТЬ С НИМ!
 	r   reflectInstance // рефлексионное представление объекта (для служебного использования)
+	d   BeanDescription // структура описание bean (для служебного использования)
 }
 
 // ClonePIO - метод возращающий clone value of PIO
@@ -95,8 +96,10 @@ type MapRegistryType map[string]reflect.Type
 
 // BeansStorage - Главный объект библиотеки - Beans (Хранилище Beans)
 type BeansStorage struct {
-	typeMap  MapRegistryType
-	beansMap MapBeansType
+	typeMap        MapRegistryType
+	beansMap       MapBeansType
+	listMainBeans  []string
+	listInnerBeans []string
 }
 
 // CreateBeanStorage - главный конструктор, главной структуры - хранилища Bean
@@ -109,7 +112,8 @@ func CreateBeanStorage() (BeansStorage, error) {
 		(*float32)(nil), (*float64)(nil), (*complex64)(nil), (*complex128)(nil),
 		(*byte)(nil), (*rune)(nil), (*string)(nil), (*bool)(nil)}
 
-	beanStorage := BeansStorage{make(MapRegistryType, len(golangInlineTypes)), make(MapBeansType)}
+	beanStorage := BeansStorage{make(MapRegistryType, len(golangInlineTypes)), make(MapBeansType),
+		make([]string, 0), make([]string, 0)}
 
 	// Пример. Регистрация стандартных необходимых типов (напрямую)
 	//beanStorage.typeMap["string"] = reflect.TypeOf("123")
@@ -180,6 +184,14 @@ func (bs *BeansStorage) GetCloneBeanJFI(id string) (interface{}, error) {
 // GetMapBeans - метод возращающий map Beans
 func (bs *BeansStorage) GetMapBeans() MapBeansType {
 	return bs.beansMap
+}
+
+// GetAllBeans - метод для получения списка всех Bean
+func (bs *BeansStorage) GetAllBeans() []string {
+	l := make([]string, len(bs.listMainBeans)+len(bs.listInnerBeans), len(bs.listMainBeans)+len(bs.listInnerBeans))
+	l = append(l, bs.listMainBeans...)
+	l = append(l, bs.listInnerBeans...)
+	return l
 }
 
 // GetReflectTypeByName - метод возращающий reflect.Type по typeName
@@ -336,9 +348,10 @@ func (bs *BeansStorage) BuildBeansInstance(beanDescriptions []BeanDescription) e
 		}
 	}
 
-	for _, v := range beanDescriptions {
-		if v.Enable {
-			if err := bs.fillAndLinkBean(v); err != nil {
+	for _, id := range bs.GetAllBeans() {
+		bean := bs.GetBean(id)
+		if bean.d.Enable {
+			if err := bs.fillAndLinkBean(bean.d); err != nil {
 				return err
 			}
 		}
@@ -355,19 +368,37 @@ func (bs *BeansStorage) addNewBeanInstance(beanDescription BeanDescription) erro
 		return err
 	}
 
-	bs.saveBeanToMap(beanDescription, s, typ)
+	bs.saveNewBean(beanDescription, s, typ)
 
 	return nil
 }
 
+// saveNewMainBean  -  метод сохраняющий в мапу Bean-ов новый Bean
+func (bs *BeansStorage) saveNewBean(d BeanDescription, s reflect.Value, t reflect.Type) {
+	bs.listMainBeans = append(bs.listMainBeans, d.ID)
+	bs._saveBean(d, s, t)
+}
+
+// saveNewInnerBean  -  метод сохраняющий в мапу Bean-ов новый внутренний Bean
+func (bs *BeansStorage) saveNewInnerBean(d BeanDescription, s reflect.Value, t reflect.Type) {
+	bs.listInnerBeans = append(bs.listInnerBeans, d.ID)
+	bs._saveBean(d, s, t)
+}
+
+// updateBean  -  метод обвноляющий информацию о Bean-е
+func (bs *BeansStorage) updateBean(d BeanDescription, s reflect.Value, t reflect.Type) {
+	bs._saveBean(d, s, t)
+}
+
 // saveBeanToMap  -  метод сохраняющий в мапу Bean-ов новый Bean
-func (bs *BeansStorage) saveBeanToMap(d BeanDescription, s reflect.Value, t reflect.Type) {
+func (bs *BeansStorage) _saveBean(d BeanDescription, s reflect.Value, t reflect.Type) {
 	bs.beansMap[d.ID] = &BeanInstance{
 		JFI: s.Interface(),
 		PIO: s.Addr().Interface(),
 		r: reflectInstance{
 			Obj:  s,
 			Type: t},
+		d: d,
 	}
 }
 
@@ -466,13 +497,13 @@ func (bs *BeansStorage) fillAndLinkBean(beanDescription BeanDescription) error {
 					return errors.WithMessagef(err, "can't create inner Bean [fillAndLinkBean] p.Name: %s, p.Value: %+v BeanID: %s", p.Name, p.Value, beanDescription.ID)
 				}
 
-				bs.saveBeanToMap(bDesc, x, typ) // сохраняем внутренний Bean
+				bs.saveNewInnerBean(bDesc, x, typ) // сохраняем внутренний Bean
 			}
 			f.Set(x)
 		}
 	}
 
-	bs.saveBeanToMap(beanDescription, s, bean.r.Type) // обновляем сохраненное
+	bs.updateBean(beanDescription, s, bean.r.Type) // обновляем сохраненное
 
 	return nil
 }
