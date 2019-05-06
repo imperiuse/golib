@@ -5,10 +5,13 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/mitchellh/mapstructure"
+
 	"github.com/jinzhu/copier"
 	"github.com/pkg/errors"
 
 	"github.com/imperiuse/golib/concat"
+	"github.com/imperiuse/golib/dyncast"
 	"github.com/imperiuse/golib/jsonnocomment"
 )
 
@@ -56,7 +59,6 @@ type Properties struct {
 // reflectInstance - структура описывающая объект Bean в "рефлексионном" представлении
 type reflectInstance struct {
 	Obj  reflect.Value // содержит сам объект
-	Pobj reflect.Value // содержит указатель на объект
 	Type reflect.Type  // содержит рефлексионный тип данных объекта
 }
 
@@ -64,7 +66,7 @@ type reflectInstance struct {
 type BeanInstance struct {
 	JFI interface{}     // содержит изначальный объект после парсинга Json !!! ВНИМАНИЕ СТАТИЧНЫЙ ОБЪЕКТ !!!!
 	PIO interface{}     // содержит указатель на интерфейс объекта Bean ОСНОВНОЙ ОБЪЕКТ BEAN РЕКОМЕНДУЕТСЯ РАБОТАТЬ С НИМ!
-	r   reflectInstance // рефлексионное представление объекта
+	r   reflectInstance // рефлексионное представление объекта (для служебного использования)
 }
 
 // ClonePIO - метод возращающий clone value of PIO
@@ -140,6 +142,19 @@ func (bs *BeansStorage) GetIDBeans() []string {
 // GetBean - метод возращающий объект Bean по ID
 func (bs *BeansStorage) GetBean(id string) *BeanInstance {
 	return bs.beansMap[id]
+}
+
+// getBeanByInterfaceID - метод возращающий объект Bean по ID
+func (bs *BeansStorage) getBeanByInterfaceID(v interface{}) (*BeanInstance, error) {
+	id, ok := v.(string)
+	if !ok {
+		return nil, fmt.Errorf("can't convert value to string BeanID %v", v)
+	}
+	bean := bs.GetBean(id)
+	if bean == nil {
+		return nil, fmt.Errorf("not found Bean by ID: %s", id)
+	}
+	return bean, nil
 }
 
 // GetBeanPIO - метод возращающий объект PIO Bean-а по его ID
@@ -310,24 +325,20 @@ func (bs *BeansStorage) CreateBeansFromJSON(pathFile string) (err error) {
 	return nil
 }
 
-// BuildBeansInstance - метод создающий экземпляры Bean по их описанию
+// BuildBeansInstance - метод создающий, заполняющий и связывающий экземпляры Bean по их описанию - BeanDescription
 func (bs *BeansStorage) BuildBeansInstance(beanDescriptions []BeanDescription) error {
 
-	// TODO
-
-	// Пробегаемся по слайсу первый раз строим объекты и простые поля
-	for _, beanSettings := range beanDescriptions {
-		if beanSettings.Enable { // если Bean включен
-			if err := bs.addNewBeanInstance(beanSettings); err != nil {
+	for _, beanDesc := range beanDescriptions {
+		if beanDesc.Enable {
+			if err := bs.addNewBeanInstance(beanDesc); err != nil {
 				return err
 			}
 		}
 	}
 
-	// Пробегаемся второй раз строим ссылки на сложные объекты или делаем их deep copy
-	for _, beanSettings := range beanDescriptions {
-		if beanSettings.Enable { // если Bean включен
-			if err := bs.fillAndLinkBean(beanSettings); err != nil {
+	for _, v := range beanDescriptions {
+		if v.Enable {
+			if err := bs.fillAndLinkBean(v); err != nil {
 				return err
 			}
 		}
@@ -336,22 +347,28 @@ func (bs *BeansStorage) BuildBeansInstance(beanDescriptions []BeanDescription) e
 	return nil
 }
 
-// addNewBeanInstance  - todo name метод нового Bean экземляра заданного согласно его описанию - BeanDescription
+// addNewBeanInstance  -  метод создающий и добавляющий в мапу beanStorage новый Bean согласно его описанию - BeanDescription
 func (bs *BeansStorage) addNewBeanInstance(beanDescription BeanDescription) error {
 
-	// TODO проверить двойное создание объектов
 	s, typ, err := bs.createEmptyBean(beanDescription)
 	if err != nil {
 		return err
 	}
 
-	// Сохраняем в Map-у Bean очередной объект
-	bs.beansMap[beanDescription.ID] = &BeanInstance{
-		s.Interface(),
-		s.Addr().Interface(),
-		reflectInstance{Obj: s, Pobj: s.Addr(), Type: typ}}
+	bs.saveBeanToMap(beanDescription, s, typ)
 
 	return nil
+}
+
+// saveBeanToMap  -  метод сохраняющий в мапу Bean-ов новый Bean
+func (bs *BeansStorage) saveBeanToMap(d BeanDescription, s reflect.Value, t reflect.Type) {
+	bs.beansMap[d.ID] = &BeanInstance{
+		JFI: s.Interface(),
+		PIO: s.Addr().Interface(),
+		r: reflectInstance{
+			Obj:  s,
+			Type: t},
+	}
 }
 
 // createEmptyBean - метод создающий пустой Bean объект по его описанию - BeanDescription
@@ -368,7 +385,7 @@ func (bs *BeansStorage) createEmptyBean(beanDescription BeanDescription) (reflec
 					Type: tempType,
 					Tag:  reflect.StructTag(v.Tag)}
 			} else {
-				return val, typ, fmt.Errorf("not found reflect type by name: %v  [in Anonymous if]", v.Type)
+				return val, typ, fmt.Errorf("not found reflect type by name: %s  [createEmptyBean in Anonymous if]", v.Type)
 			}
 		}
 
@@ -385,7 +402,7 @@ func (bs *BeansStorage) createEmptyBean(beanDescription BeanDescription) (reflec
 		var found bool
 		typ, found = bs.FoundReflectTypeByName(beanDescription.StructName)
 		if !found {
-			return val, typ, fmt.Errorf("not found reflect type by name: %v  [in usual if]", beanDescription.StructName)
+			return val, typ, fmt.Errorf("not found reflect type by name: %s  [createEmptyBean in usual if]", beanDescription.StructName)
 		}
 	}
 
@@ -394,89 +411,70 @@ func (bs *BeansStorage) createEmptyBean(beanDescription BeanDescription) (reflec
 
 // fillAndLinkBean  - метод заполняющий Bean на основе данных и связывающий объект Bean с другими
 func (bs *BeansStorage) fillAndLinkBean(beanDescription BeanDescription) error {
+
+	bean, found := bs.beansMap[beanDescription.ID]
+	if !found {
+		return fmt.Errorf("not found Bean by ID: %s [fillAndLinkBean]", beanDescription.ID)
+	}
+
+	s := bean.r.Obj
+
+	if s.Kind() == reflect.Struct {
+		for i, p := range beanDescription.Properties {
+
+			var f = s.FieldByName(p.Name)
+			//fmt.Println(f.Type())
+			//fmt.Println(f.Type().Name())
+			if !f.IsValid() || !f.CanSet() {
+				// Поле структуры к которой обращаемся должно быть экспортируемо, т.е. быть public (с большой буквы)
+				// A Value can be changed only if it is addressable and was not obtained by  the use of unexported struct fields.
+				continue
+			}
+
+			var x reflect.Value
+
+			switch p.Type {
+			case DeepCopyObj:
+				b, err := bs.getBeanByInterfaceID(p.Value)
+				if err != nil {
+					return err
+				}
+				x = b.r.Obj
+
+			case PointerToObj:
+				b, err := bs.getBeanByInterfaceID(p.Value)
+				if err != nil {
+					return err
+				}
+				x = b.r.Obj.Addr()
+
+			case Natural:
+				var err error
+				x, err = dyncast.ReflectCast(p.Value, f)
+				if err != nil {
+					return errors.WithMessagef(err, "Can't get reflect value of p.Value:%v   Bean: %+v", p.Value, beanDescription)
+				}
+
+			case BeansObj:
+				var bDesc BeanDescription
+				var typ reflect.Type
+				err := mapstructure.Decode(p.Value, &bDesc)
+				if err != nil {
+					return errors.WithMessagef(err, "err while convert property[%d] to BeanDescription struct: %+v. Bean: %+v", i, p.Value, beanDescription)
+				}
+
+				x, typ, err = bs.createEmptyBean(bDesc) // создаем внутренний Bean
+				if err != nil {
+					return errors.WithMessagef(err, "can't create inner Bean [fillAndLinkBean] Bean: %+v", bDesc)
+				}
+
+				bs.saveBeanToMap(bDesc, x, typ) // сохраняем внутренний Bean
+			}
+			f.Set(x)
+		}
+	}
+
+	bs.saveBeanToMap(beanDescription, s, bean.r.Type) // обновляем сохраненное
+
 	return nil
 }
-
-//
-//	if s.Kind() == reflect.Struct {
-//		for i, p := range beanDescription.Properties {
-//			switch p.Type {
-//			case DeepCopyObj:
-//				if processingFieldsAndReference {
-//					x := bs.beansMap[p.Value.(string)]
-//					s.FieldByName(p.Name).Set(x.r.Obj)
-//				}
-//				//fmt.Println(s.FieldByName(p.Name).Type())  // test get field Type Name
-//				//fmt.Println(s.FieldByName(p.Name).Type().Name())
-//			case PointerToObj:
-//				if processingFieldsAndReference {
-//					x := bs.beansMap[p.Value.(string)]
-//					s.FieldByName(p.Name).Set(x.r.Pobj)
-//				}
-//				//fmt.Println(s.FieldByName(p.Name).Type().Elem().Name())
-//				//fmt.Println(s.FieldByName(p.Name).Type().Name())   // test get field Type Name
-//			case Natural:
-//				if processingFieldsAndReference {
-//					f := s.FieldByName(p.Name)
-//					// Поле структуры к которой обращаемся должно быть экспортируемо, т.е. быть public (с большой буквы)
-//					if f.IsValid() {
-//						// A Value can be changed only if it is
-//						// addressable and was not obtained by
-//						// the use of unexported struct fields.
-//						if f.CanSet() {
-//							// Ниже определение "макро" тип поля структуры
-//							switch f.Kind() {
-//							case reflect.Bool:
-//								if x, ok := p.Value.(bool); ok {
-//									f.SetBool(x)
-//								}
-//							case reflect.Int:
-//								if xf, ok := p.Value.(float64); ok { // float64 НЕ ошибка, так надо!
-//									x := int64(xf)
-//									if !f.OverflowInt(x) { // Проверка, что значение не переполняет тип
-//										f.SetInt(x)
-//									}
-//								}
-//							case reflect.Float64:
-//								if x, ok := p.Value.(float64); ok {
-//									if !f.OverflowFloat(x) { // Проверка, что значение не переполняет тип
-//										f.SetFloat(x)
-//									}
-//								}
-//							case reflect.String:
-//								if x, ok := p.Value.(string); ok {
-//									f.SetString(x)
-//								}
-//							case reflect.Slice: // ОГРАНИЧЕНИЯ для SLICE - только: []string, []float64
-//								pI := p.Value.([]interface{})
-//								f.Set(reflect.MakeSlice(f.Type(), len(pI), len(pI)))
-//								for i, v := range pI {
-//									f.Index(i).Set(reflect.ValueOf(v))
-//								}
-//							case reflect.Map: // ОГРАНИЧЕНИЯ для MAP - только: map[string]T
-//								f.Set(reflect.MakeMap(f.Type()))
-//								for k, v := range p.Value.(map[string]interface{}) {
-//									f.SetMapIndex(reflect.ValueOf(k), reflect.ValueOf(v))
-//								}
-//							}
-//						}
-//					}
-//				}
-//			case BeansObj:
-//				var beanSettings BeanDescription
-//				if err := mapstructure.Decode(p.Value, &beanSettings); err != nil {
-//					return errors.WithMessagef(err, "err while convert property[%d] to BeanDescription struct: %+v", i, p.Value)
-//				}
-//
-//				if err := bs.addNewBeanInstance(processingFieldsAndReference, beanSettings); err != nil {
-//					return err
-//				}
-//				// TODO подумать над этим местом тут копия или все таки ссылка ???????
-//				// TODO подумать над абстрактной фабрикой объектов + подумать над реорганизацией кода
-//				x := bs.beansMap[beanSettings.ID]
-//				s.FieldByName(p.Name).Set(x.r.Obj)
-//			}
-//		}
-//	}
-//
-//}
