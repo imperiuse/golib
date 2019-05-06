@@ -235,8 +235,12 @@ func TestClonesFunc(t *testing.T) {
 		t.Errorf("Error while create Beans from json file. %v", err)
 	}
 
-	pc := Beans.GetCloneBeanPIO("IDTestStruct1").(*TestStruct1)
-	jc := Beans.GetCloneBeanJFI("IDTestStruct1").(*TestStruct1)
+	pcI, _ := Beans.GetCloneBeanPIO("IDTestStruct1")
+	jcI, _ := Beans.GetCloneBeanJFI("IDTestStruct1")
+
+	pc := pcI.(*TestStruct1)
+	jc := jcI.(*TestStruct1)
+
 	pc.FieldInt = 0
 
 	p := Beans.GetBeanPIO("IDTestStruct1").(*TestStruct1)
