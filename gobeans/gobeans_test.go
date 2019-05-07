@@ -1,9 +1,9 @@
 package gobeans
 
+// go test -coverprofile=coverage.out && go tool cover -html=coverage.out
+
 import (
 	"fmt"
-	"reflect"
-	"testing"
 )
 
 // TestStruct1 - первая тестовая структура
@@ -45,8 +45,7 @@ func ExampleCreateBeanStorage() {
 		fmt.Print("\nStorage successful created!\n")
 	}
 
-	err = Beans.RegTypes((*float64)(nil), (*int)(nil), (*uint)(nil), (*string)(nil), (*TestStruct1)(nil),
-		(*TestStruct2)(nil), (*TestStruct3)(nil))
+	err = Beans.RegNamedTypes((*TestStruct1)(nil), "TestStruct1", (*TestStruct2)(nil), "TestStruct2", (*TestStruct3)(nil), "TestStruct3")
 
 	if err != nil {
 		print("\nError while gobeans.RegType: %v\n", err)
@@ -64,196 +63,197 @@ func ExampleCreateBeanStorage() {
 	}
 }
 
-func TestCreateBeanStorage(t *testing.T) {
-	Beans, err := CreateBeanStorage()
-	if err != nil {
-		t.Errorf("\nError while gobeans.CreateBeanStorage: %v\n", err)
-	} else {
-		fmt.Print("\nStorage successful created!\n")
-	}
-	if Beans.typeMap == nil || Beans.beansMap == nil {
-		t.Errorf("Unxpected value of field Beans!")
-	}
-}
-
-func TestRegType(t *testing.T) {
-	Beans, err := CreateBeanStorage()
-	if err != nil {
-		t.Errorf("\nError while gobeans.CreateBeanStorage: %v\n", err)
-	} else {
-		fmt.Print("\nStorage successful created!\n")
-	}
-	err = Beans.RegTypes((*TestStruct1)(nil), (*TestStruct2)(nil), (*TestStruct3)(nil))
-	if err != nil {
-		t.Errorf("error while gobeans.RegType: %v\n", err)
-	} else {
-		fmt.Printf("\nRegistrate types: %v\n", Beans.ShowRegTypes())
-	}
-}
-
-func TestGetAllNamesRegistryTypes(t *testing.T) {
-	Beans, err := CreateBeanStorage()
-	if err != nil {
-		t.Errorf("\nError while gobeans.CreateBeanStorage: %v\n", err)
-	} else {
-		fmt.Print("\nStorage successful created!\n")
-	}
-	err = Beans.RegTypes((*TestStruct1)(nil), (*TestStruct2)(nil), (*TestStruct3)(nil))
-	if err != nil {
-		t.Errorf("error while gobeans.RegType: %v\n", err)
-	} else {
-		fmt.Printf("\nRegistrate types: %v\n", Beans.ShowRegTypes())
-	}
-	Beans.ShowRegTypes()
-}
-
-func TestGetAllNamesRegistryTypesNegative(t *testing.T) {
-	Beans, err := CreateBeanStorage()
-	if err != nil {
-		t.Errorf("\nError while gobeans.CreateBeanStorage: %v\n", err)
-	} else {
-		fmt.Print("\nStorage successful created!\n")
-	}
-	err = Beans.RegTypes((************TestStruct1)(nil))
-	if err == nil {
-		t.Errorf("\nNO Error while gobeans.RegType: %v\n", err)
-	} else {
-		fmt.Printf("\nRegistrate types: %v\n", Beans.ShowRegTypes())
-	}
-	err = Beans.RegTypes((************TestStruct2)(nil))
-	if err == nil {
-		t.Errorf("\nNO Error while gobeans.RegType: %v\n", err)
-	} else {
-		fmt.Printf("\nRegistrate types: %v\n", Beans.ShowRegTypes())
-	}
-	Beans.ShowRegTypes()
-}
-
-func TestCreateBeansFromJSON(t *testing.T) {
-	Beans, err := CreateBeanStorage()
-	if err != nil {
-		t.Errorf("\nError while gobeans.CreateBeanStorage: %v\n", err)
-	} else {
-		fmt.Print("\nStorage successful created!\n")
-	}
-	err = Beans.RegTypes((*TestStruct1)(nil), (*TestStruct2)(nil), (*TestStruct3)(nil),
-		(**TestStruct1)(nil), (**TestStruct2)(nil))
-	if err != nil {
-		t.Errorf("\nError while gobeans.RegType: %v\n", err)
-	} else {
-		fmt.Printf("\nRegistrate types: %v\n", Beans.ShowRegTypes())
-	}
-	if err = Beans.CreateBeansFromJSON("./test_json/beansTest.json"); err != nil {
-		t.Errorf("Error while create Beans from json file. %v", err)
-	}
-}
-
-func TestCreateBeansFromJSONNegative(t *testing.T) {
-	Beans, err := CreateBeanStorage()
-	if err != nil {
-		t.Errorf("\nError while gobeans.CreateBeanStorage: %v\n", err)
-	} else {
-		fmt.Print("\nStorage created!\n")
-	}
-	err = Beans.RegTypes((*TestStruct1)(nil), (*TestStruct2)(nil), (*TestStruct3)(nil),
-		(**TestStruct1)(nil), (**TestStruct2)(nil))
-	if err != nil {
-		t.Errorf("\nError while gobeans.RegType: %v\n", err)
-	} else {
-		fmt.Printf("\nRegistrate types: %v\n", Beans.ShowRegTypes())
-	}
-	if err = Beans.CreateBeansFromJSON("./test_json/badBeansTest.json"); err == nil {
-		t.Errorf("No Error while create Beans from BAD BEANS file badBeansTest.json")
-	}
-	if err = Beans.CreateBeansFromJSON("./test_json/badBeansTest2.json"); err == nil {
-		t.Errorf("No Error while create Beans from BAD BEANS2 file badBeansTest2.json")
-	}
-	if err = Beans.CreateBeansFromJSON("./test_json/badBeansTest3.json"); err == nil {
-		t.Errorf("No Error while create Beans from BAD BEANS3 file badBeansTest3.json")
-	}
-	if err = Beans.CreateBeansFromJSON("./test_json/badBeansTest4.json"); err == nil {
-		t.Errorf("No Error while create Beans from BAD BEANS4 file badBeansTest4.json")
-	}
-	if err = Beans.CreateBeansFromJSON("./test_json/badJsonBeansTest.json"); err == nil {
-		t.Errorf("No Error while create Beans from BAD JSON file badJsonBeansTest.json")
-	}
-	if err = Beans.CreateBeansFromJSON("./test_json/unknown.json"); err == nil {
-		t.Errorf("No Error while create Beans from UNKNOWN json file unknown.json")
-	}
-}
-
-//nolint
-func TestGetBeansAndGetReflectType(t *testing.T) {
-	Beans, err := CreateBeanStorage()
-	if err != nil {
-		t.Errorf("\nError while gobeans.CreateBeanStorage: %v\n", err)
-	} else {
-		fmt.Print("\nStorage created!\n")
-	}
-	err = Beans.RegTypes((*TestStruct1)(nil), (*TestStruct2)(nil), (*TestStruct3)(nil), (**TestStruct1)(nil),
-		(**TestStruct2)(nil))
-	if err != nil {
-		t.Errorf("\nError while gobeans.RegType: %v\n", err)
-	} else {
-		fmt.Printf("\nRegistrate types: %v\n", Beans.ShowRegTypes())
-	}
-	if err = Beans.CreateBeansFromJSON("./test_json/beansTest.json"); err != nil {
-		t.Errorf("Error while create Beans from json file. %v", err)
-	}
-
-	Beans.GetBean("IDTestStruct1")
-	Beans.GetMapBeans()
-	Beans.GetIDBeans()
-	if typ := Beans.GetReflectTypeByName("github.com/imperiuse/golib/gobeans.TestStruct2"); typ != reflect.TypeOf((*TestStruct2)(nil)).Elem() {
-		t.Errorf("Error! Unexpected value of reflect type: TestStruct2")
-	}
-	if typ, found := Beans.FoundReflectTypeByName("github.com/imperiuse/golib/gobeans.TestStruct3"); !found {
-		t.Errorf("Error while get type of exist registrated struct: TestStruct3 %v", err)
-	} else if typ != reflect.TypeOf((*TestStruct3)(nil)).Elem() {
-		t.Errorf("Error! Unexpected value of reflect type: TestStruct3")
-	}
-	if _, found := Beans.FoundReflectTypeByName("UnknownType12345"); found {
-		t.Errorf("No Error! For un registrated type: UnknownTupe12345")
-	}
-}
-
-func TestClonesFunc(t *testing.T) {
-	Beans, err := CreateBeanStorage()
-	if err != nil {
-		t.Errorf("\nError while gobeans.CreateBeanStorage: %v\n", err)
-	} else {
-		fmt.Print("\nStorage created!\n")
-	}
-	err = Beans.RegTypes((*TestStruct1)(nil), (*TestStruct2)(nil), (*TestStruct3)(nil),
-		(**TestStruct1)(nil), (**TestStruct2)(nil))
-	if err != nil {
-		t.Errorf("\nError while gobeans.RegType: %v\n", err)
-	} else {
-		fmt.Printf("\nRegistrate types: %v\n", Beans.ShowRegTypes())
-	}
-	if err = Beans.CreateBeansFromJSON("./test_json/beansTest.json"); err != nil {
-		t.Errorf("Error while create Beans from json file. %v", err)
-	}
-
-	pcI, _ := Beans.GetCloneBeanPIO("IDTestStruct1")
-	jcI, _ := Beans.GetCloneBeanJFI("IDTestStruct1")
-
-	pc := pcI.(*TestStruct1)
-	jc := jcI.(*TestStruct1)
-
-	pc.FieldInt = 0
-
-	p := Beans.GetBeanPIO("IDTestStruct1").(*TestStruct1)
-	j := Beans.GetBeanJFI("IDTestStruct1").(TestStruct1)
-
-	p.FieldInt = 5
-
-	if pc == p || p.FieldInt == pc.FieldInt {
-		t.Errorf("\nBeans not clones!")
-	}
-
-	if j != *jc {
-		t.Errorf("JFI change!")
-	}
-
-}
+//
+//func TestCreateBeanStorage(t *testing.T) {
+//	Beans, err := CreateBeanStorage()
+//	if err != nil {
+//		t.Errorf("\nError while gobeans.CreateBeanStorage: %v\n", err)
+//	} else {
+//		fmt.Print("\nStorage successful created!\n")
+//	}
+//	if Beans.typeMap == nil || Beans.beansMap == nil {
+//		t.Errorf("Unxpected value of field Beans!")
+//	}
+//}
+//
+//func TestRegType(t *testing.T) {
+//	Beans, err := CreateBeanStorage()
+//	if err != nil {
+//		t.Errorf("\nError while gobeans.CreateBeanStorage: %v\n", err)
+//	} else {
+//		fmt.Print("\nStorage successful created!\n")
+//	}
+//	err = Beans.RegTypes((*TestStruct1)(nil), (*TestStruct2)(nil), (*TestStruct3)(nil))
+//	if err != nil {
+//		t.Errorf("error while gobeans.RegType: %v\n", err)
+//	} else {
+//		fmt.Printf("\nRegistrate types: %v\n", Beans.ShowRegTypes())
+//	}
+//}
+//
+//func TestGetAllNamesRegistryTypes(t *testing.T) {
+//	Beans, err := CreateBeanStorage()
+//	if err != nil {
+//		t.Errorf("\nError while gobeans.CreateBeanStorage: %v\n", err)
+//	} else {
+//		fmt.Print("\nStorage successful created!\n")
+//	}
+//	err = Beans.RegTypes((*TestStruct1)(nil), (*TestStruct2)(nil), (*TestStruct3)(nil))
+//	if err != nil {
+//		t.Errorf("error while gobeans.RegType: %v\n", err)
+//	} else {
+//		fmt.Printf("\nRegistrate types: %v\n", Beans.ShowRegTypes())
+//	}
+//	Beans.ShowRegTypes()
+//}
+//
+//func TestGetAllNamesRegistryTypesNegative(t *testing.T) {
+//	Beans, err := CreateBeanStorage()
+//	if err != nil {
+//		t.Errorf("\nError while gobeans.CreateBeanStorage: %v\n", err)
+//	} else {
+//		fmt.Print("\nStorage successful created!\n")
+//	}
+//	err = Beans.RegTypes((************TestStruct1)(nil))
+//	if err == nil {
+//		t.Errorf("\nNO Error while gobeans.RegType: %v\n", err)
+//	} else {
+//		fmt.Printf("\nRegistrate types: %v\n", Beans.ShowRegTypes())
+//	}
+//	err = Beans.RegTypes((************TestStruct2)(nil))
+//	if err == nil {
+//		t.Errorf("\nNO Error while gobeans.RegType: %v\n", err)
+//	} else {
+//		fmt.Printf("\nRegistrate types: %v\n", Beans.ShowRegTypes())
+//	}
+//	Beans.ShowRegTypes()
+//}
+//
+//func TestCreateBeansFromJSON(t *testing.T) {
+//	Beans, err := CreateBeanStorage()
+//	if err != nil {
+//		t.Errorf("\nError while gobeans.CreateBeanStorage: %v\n", err)
+//	} else {
+//		fmt.Print("\nStorage successful created!\n")
+//	}
+//	err = Beans.RegTypes((*TestStruct1)(nil), (*TestStruct2)(nil), (*TestStruct3)(nil),
+//		(**TestStruct1)(nil), (**TestStruct2)(nil))
+//	if err != nil {
+//		t.Errorf("\nError while gobeans.RegType: %v\n", err)
+//	} else {
+//		fmt.Printf("\nRegistrate types: %v\n", Beans.ShowRegTypes())
+//	}
+//	if err = Beans.CreateBeansFromJSON("./test_json/beansTest.json"); err != nil {
+//		t.Errorf("Error while create Beans from json file. %v", err)
+//	}
+//}
+//
+//func TestCreateBeansFromJSONNegative(t *testing.T) {
+//	Beans, err := CreateBeanStorage()
+//	if err != nil {
+//		t.Errorf("\nError while gobeans.CreateBeanStorage: %v\n", err)
+//	} else {
+//		fmt.Print("\nStorage created!\n")
+//	}
+//	err = Beans.RegTypes((*TestStruct1)(nil), (*TestStruct2)(nil), (*TestStruct3)(nil),
+//		(**TestStruct1)(nil), (**TestStruct2)(nil))
+//	if err != nil {
+//		t.Errorf("\nError while gobeans.RegType: %v\n", err)
+//	} else {
+//		fmt.Printf("\nRegistrate types: %v\n", Beans.ShowRegTypes())
+//	}
+//	if err = Beans.CreateBeansFromJSON("./test_json/badBeansTest.json"); err == nil {
+//		t.Errorf("No Error while create Beans from BAD BEANS file badBeansTest.json")
+//	}
+//	if err = Beans.CreateBeansFromJSON("./test_json/badBeansTest2.json"); err == nil {
+//		t.Errorf("No Error while create Beans from BAD BEANS2 file badBeansTest2.json")
+//	}
+//	if err = Beans.CreateBeansFromJSON("./test_json/badBeansTest3.json"); err == nil {
+//		t.Errorf("No Error while create Beans from BAD BEANS3 file badBeansTest3.json")
+//	}
+//	if err = Beans.CreateBeansFromJSON("./test_json/badBeansTest4.json"); err == nil {
+//		t.Errorf("No Error while create Beans from BAD BEANS4 file badBeansTest4.json")
+//	}
+//	if err = Beans.CreateBeansFromJSON("./test_json/badJsonBeansTest.json"); err == nil {
+//		t.Errorf("No Error while create Beans from BAD JSON file badJsonBeansTest.json")
+//	}
+//	if err = Beans.CreateBeansFromJSON("./test_json/unknown.json"); err == nil {
+//		t.Errorf("No Error while create Beans from UNKNOWN json file unknown.json")
+//	}
+//}
+//
+////nolint
+//func TestGetBeansAndGetReflectType(t *testing.T) {
+//	Beans, err := CreateBeanStorage()
+//	if err != nil {
+//		t.Errorf("\nError while gobeans.CreateBeanStorage: %v\n", err)
+//	} else {
+//		fmt.Print("\nStorage created!\n")
+//	}
+//	err = Beans.RegTypes((*TestStruct1)(nil), (*TestStruct2)(nil), (*TestStruct3)(nil), (**TestStruct1)(nil),
+//		(**TestStruct2)(nil))
+//	if err != nil {
+//		t.Errorf("\nError while gobeans.RegType: %v\n", err)
+//	} else {
+//		fmt.Printf("\nRegistrate types: %v\n", Beans.ShowRegTypes())
+//	}
+//	if err = Beans.CreateBeansFromJSON("./test_json/beansTest.json"); err != nil {
+//		t.Errorf("Error while create Beans from json file. %v", err)
+//	}
+//
+//	Beans.GetBean("IDTestStruct1")
+//	Beans.GetMapBeans()
+//	Beans.GetIDBeans()
+//	if typ := Beans.GetReflectTypeByName("github.com/imperiuse/golib/gobeans.TestStruct2"); typ != reflect.TypeOf((*TestStruct2)(nil)).Elem() {
+//		t.Errorf("Error! Unexpected value of reflect type: TestStruct2")
+//	}
+//	if typ, found := Beans.FoundReflectTypeByName("github.com/imperiuse/golib/gobeans.TestStruct3"); !found {
+//		t.Errorf("Error while get type of exist registrated struct: TestStruct3 %v", err)
+//	} else if typ != reflect.TypeOf((*TestStruct3)(nil)).Elem() {
+//		t.Errorf("Error! Unexpected value of reflect type: TestStruct3")
+//	}
+//	if _, found := Beans.FoundReflectTypeByName("UnknownType12345"); found {
+//		t.Errorf("No Error! For un registrated type: UnknownTupe12345")
+//	}
+//}
+//
+//func TestClonesFunc(t *testing.T) {
+//	Beans, err := CreateBeanStorage()
+//	if err != nil {
+//		t.Errorf("\nError while gobeans.CreateBeanStorage: %v\n", err)
+//	} else {
+//		fmt.Print("\nStorage created!\n")
+//	}
+//	err = Beans.RegTypes((*TestStruct1)(nil), (*TestStruct2)(nil), (*TestStruct3)(nil),
+//		(**TestStruct1)(nil), (**TestStruct2)(nil))
+//	if err != nil {
+//		t.Errorf("\nError while gobeans.RegType: %v\n", err)
+//	} else {
+//		fmt.Printf("\nRegistrate types: %v\n", Beans.ShowRegTypes())
+//	}
+//	if err = Beans.CreateBeansFromJSON("./test_json/beansTest.json"); err != nil {
+//		t.Errorf("Error while create Beans from json file. %v", err)
+//	}
+//
+//	pcI, _ := Beans.GetCloneBeanPIO("IDTestStruct1")
+//	jcI, _ := Beans.GetCloneBeanJFI("IDTestStruct1")
+//
+//	pc := pcI.(*TestStruct1)
+//	jc := jcI.(*TestStruct1)
+//
+//	pc.FieldInt = 0
+//
+//	p := Beans.GetBeanPIO("IDTestStruct1").(*TestStruct1)
+//	j := Beans.GetBeanJFI("IDTestStruct1").(TestStruct1)
+//
+//	p.FieldInt = 5
+//
+//	if pc == p || p.FieldInt == pc.FieldInt {
+//		t.Errorf("\nBeans not clones!")
+//	}
+//
+//	if j != *jc {
+//		t.Errorf("JFI change!")
+//	}
+//
+//}

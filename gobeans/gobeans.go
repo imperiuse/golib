@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/imperiuse/golib/cast"
 	"github.com/mitchellh/mapstructure"
 
 	"github.com/jinzhu/copier"
 	"github.com/pkg/errors"
 
 	"github.com/imperiuse/golib/concat"
-	"github.com/imperiuse/golib/dyncast"
 	"github.com/imperiuse/golib/jsonnocomment"
 )
 
@@ -281,6 +281,7 @@ func (bs *BeansStorage) unsafeRegType(typeT interface{}) {
 // @other:
 //        Уровень рекурсии ограничен maxCntRecEstimate
 //nolint
+
 func recursiveGetPkgAndTypeName(pkgName, typeName string, typ reflect.Type, maxCntRecEstimate int) (string, string) {
 	maxCntRecEstimate--
 	if maxCntRecEstimate > 0 {
@@ -450,7 +451,7 @@ func (bs *BeansStorage) fillAndLinkBean(beanDescription BeanDescription) error {
 
 			case Natural:
 				var err error
-				x, err = dyncast.ReflectCast(p.Value, f)
+				x, err = cast.DynamicTypeAssertion(p.Value, f)
 				if err != nil {
 					return errors.WithMessagef(err, "Can't get reflect value of p.Name: %s, p.Value: %+v BeanID: %s", p.Name, p.Value, beanDescription.ID)
 				}
