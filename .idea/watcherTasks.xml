@@ -50,7 +50,7 @@
       </envs>
     </TaskOptions>
     <TaskOptions isEnabled="true">
-      <option name="arguments" value="run --disable=typecheck $FileDir$" />
+      <option name="arguments" value="run --enable=gocyclo,depguard,dupl,goconst,gocritic,gosec,maligned,misspell,nakedret --disable=typecheck $FileDir$" />
       <option name="checkSyntaxErrors" value="true" />
       <option name="description" />
       <option name="exitCodeBehavior" value="ERROR" />

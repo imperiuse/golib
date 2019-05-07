@@ -1,11 +1,11 @@
 [
   {
-    "id": "IDTestStruct0",
+    "id": "id_0",
     "enable": false,
-    "struct": "github.com/imperiuse/golib/gobeans.TestStruct0",
-    "description": "Description Test Struct 0. STRUCT DISABLED!",
+    "structName": "TestStruct0",
+    "description": "Description Test Struct 0. STRUCT DISABLED! So this bean doesn't created!",
     "properties": [
-      {
+     {
         "type": "nat",
         "name": "Host",
         "value": "localhost"
@@ -13,9 +13,9 @@
     ]
   },
   {
-    "id": "IDTestStruct1",
+    "id": "id_1",
     "enable": true,
-    "struct": "github.com/imperiuse/golib/gobeans.TestStruct1",
+    "structName": "github.com/imperiuse/golib/gobeans.TestStruct1",
     "description": "Description Test Struct 1",
     "properties": [
       {
@@ -43,7 +43,7 @@
   {
     "id": "anonymous",
     "enable": true,
-    "struct": "",
+    "structName": "",
     "structFields": [
       {
         "name": "T1",
@@ -73,7 +73,7 @@
   {
     "id": "IDTestStruct2",
     "enable": true,
-    "struct": "github.com/imperiuse/golib/gobeans.TestStruct2",
+    "structName": "github.com/imperiuse/golib/gobeans.TestStruct2",
     "description": "Description Test Struct 3",
     "properties": [
       {
@@ -101,7 +101,7 @@
   {
     "id": "IDTestStruct3",
     "enable": true,
-    "struct": "github.com/imperiuse/golib/gobeans.TestStruct3",
+    "structName": "github.com/imperiuse/golib/gobeans.TestStruct3",
     "description": "Description Test Struct 0.",
     "properties": [
       {
