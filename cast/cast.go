@@ -89,8 +89,13 @@ func DynamicTypeAssertion(vI interface{}, origin reflect.Value) (reflect.Value, 
 }
 
 // numCast - вспомогательная функция для приведения числовых значений
-func numCast(vI interface{}, origin reflect.Value) (reflect.Value, error) {
-	var r reflect.Value
+func numCast(vI interface{}, origin reflect.Value) (r reflect.Value, err error) {
+
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("panic while numCast(). %v", r)
+		}
+	}()
 
 	f64, ok := CastToFloat64(vI)
 	if !ok {
@@ -145,7 +150,7 @@ func numCast(vI interface{}, origin reflect.Value) (reflect.Value, error) {
 		}
 
 	case reflect.Uint8:
-		var temp int
+		var temp uint8
 		r = reflect.ValueOf(&temp).Elem()
 		if !r.OverflowUint(u64) {
 			r.SetUint(u64)
@@ -195,9 +200,11 @@ func CastToFloat64(v interface{}) (float64, bool) {
 	switch i := v.(type) {
 	case nil:
 		return float64(0), false
+	case int:
+		return float64(int64(i)), true
 	case int64:
 		return float64(int64(i)), true
-	case int:
+	case int32:
 		return float64(int64(i)), true
 	case int16:
 		return float64(int64(i)), true
