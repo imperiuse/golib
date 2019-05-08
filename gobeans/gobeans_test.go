@@ -86,9 +86,8 @@ func ExampleCreateBeanStorage() {
 	if err = Beans.CreateBeansFromJSON("./test_json/beansTest.json"); err != nil {
 		print("Error while create Beans from json file", err)
 	} else {
-		for id, bean := range Beans.GetMapBeans() {
-			fmt.Printf("Bean name: [%+v] \n\tJFI: %+v \n\tPIO: %v\n", id, bean.jfi,
-				bean.PIO)
+		for id, bean := range Beans.getMapBeans() {
+			fmt.Printf("Bean name: [%+v] \n\n\tPIO: %v\n", id, bean.pio)
 		}
 	}
 }
@@ -238,7 +237,7 @@ func TestGetBeansAndGetReflectType(t *testing.T) {
 	}
 
 	Beans.GetBean("natural")
-	Beans.GetMapBeans()
+	Beans.getMapBeans()
 	Beans.GetIDBeans()
 	if typ := Beans.GetReflectTypeByName("TestNatural"); typ != reflect.TypeOf((*TestNatural)(nil)).Elem() {
 		t.Errorf("Error! Unexpected value of reflect type: TestStruct2")
@@ -272,24 +271,16 @@ func TestClonesFunc(t *testing.T) {
 	}
 
 	pcI, _ := Beans.GetCloneBeanPIO("natural")
-	//jcI, _ := Beans.GetCloneBeanJFI("IDTestStruct1")
 
 	pc := pcI.(*TestNatural)
-	//jc := jcI.(*TestStruct1)
 
 	pc.FInt = -123
 
-	p := Beans.GetBeanPIO("natural").(*TestNatural)
-	//j := Beans.GetBeanJFI("IDTestStruct1").(TestStruct1)
+	p := Beans.GetBean("natural").(*TestNatural)
 
 	p.FInt = 5
 
 	if pc == p || p.FInt == pc.FInt {
 		t.Errorf("\nBeans not clones!")
 	}
-
-	//if j != *jc {
-	//	t.Errorf("jfi change!")
-	//}
-
 }
