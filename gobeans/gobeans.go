@@ -41,7 +41,7 @@ type StructField struct {
 
 // Типы свойств по аналогии с JAVA BEANS
 const (
-	Natural      = "nat"  // Простые типы: int, float, string или []T или map[string]T - где T простой тип
+	Natural      = "nat"  // Простые типы: int, float, string или []T или map[string]T - где T простой тип @see golangInlineTypes down!
 	DeepCopyObj  = "copy" // Глубокая копия сложный объект
 	PointerToObj = "link" // Ссылка на объект
 	BeansObj     = "obj"  // Включение вложенного Bean объекта
@@ -63,34 +63,23 @@ type reflectInstance struct {
 	Type reflect.Type  // содержит рефлексионный тип данных объекта
 }
 
-// BeanInstance - структура описывающая Bean объект
-type BeanInstance struct {
-	jfi interface{}      // содержит изначальный объект после парсинга Json !!! ВНИМАНИЕ СТАТИЧНЫЙ ОБЪЕКТ !!!!
-	PIO interface{}      // содержит указатель на интерфейс объекта Bean ОСНОВНОЙ ОБЪЕКТ BEAN РЕКОМЕНДУЕТСЯ РАБОТАТЬ С НИМ!
+// beanInstance - структура описывающая Bean объект
+type beanInstance struct {
+	pio interface{}      // содержит указатель на интерфейс объекта Bean ОСНОВНОЙ ОБЪЕКТ BEAN РЕКОМЕНДУЕТСЯ РАБОТАТЬ С НИМ!
 	r   *reflectInstance // рефлексионное представление объекта (для служебного использования)
-	d   *BeanDescription // структура описание bean (для служебного использования)
 }
 
-// ClonePIO - метод возращающий clone value of PIO
-func (b *BeanInstance) ClonePIO() (interface{}, error) {
+// ClonePIO - метод возращающий clone value of pio
+func (b *beanInstance) ClonePIO() (interface{}, error) {
 	r := reflect.New(b.r.Type).Interface()
-	if err := copier.Copy(r, b.PIO); err != nil {
-		return nil, errors.WithMessage(err, "Can't clone PIO object by copier.Copy()")
+	if err := copier.Copy(r, b.pio); err != nil {
+		return nil, errors.WithMessage(err, "Can't clone pio object by copier.Copy()")
 	}
 	return r, nil
 }
 
-//// CloneJFI - метод возращающий clone value of jfi
-//func (b *BeanInstance) CloneJFI() (interface{}, error) {
-//	r := reflect.New(b.r.Type).Interface()
-//	if err := copier.Copy(r, b.jfi); err != nil {
-//		return nil, errors.WithMessage(err, "Can't clone jfi object by copier.Copy()")
-//	}
-//	return r, nil
-//}
-
 // MapBeansType - map созданных Bean объектов
-type MapBeansType map[string]*BeanInstance
+type MapBeansType map[string]*beanInstance
 
 // MapRegistryType - map зарегистрированных типов (рефлексионных)
 type MapRegistryType map[string]reflect.Type
@@ -132,8 +121,8 @@ func (bs *BeansStorage) GetAllNamesRegistryTypes() (nameRegistryType []string) {
 	return
 }
 
-// GetMapBeans - метод возращающий map Beans
-func (bs *BeansStorage) GetMapBeans() MapBeansType {
+// getMapBeans - метод возращающий map Beans
+func (bs *BeansStorage) getMapBeans() MapBeansType {
 	return bs.beansMap
 }
 
@@ -146,43 +135,33 @@ func (bs *BeansStorage) GetIDBeans() []string {
 	return beansIDs
 }
 
-// GetBean - метод возращающий объект Bean по ID
-func (bs *BeansStorage) GetBean(id string) *BeanInstance {
-	return bs.beansMap[id]
-}
-
-// getBeanByInterfaceID - метод возращающий объект Bean по ID
-func (bs *BeansStorage) getBeanByInterfaceID(v interface{}) (*BeanInstance, error) {
+// getBeanInstanceByInterfaceID - метод возращающий объект Bean по ID
+func (bs *BeansStorage) getBeanInstanceByInterfaceID(v interface{}) (*beanInstance, error) {
 	id, ok := v.(string)
 	if !ok {
 		return nil, fmt.Errorf("can't convert value to string BeanID %v", v)
 	}
-	bean := bs.GetBean(id)
+	bean := bs.getBeanInstance(id)
 	if bean == nil {
 		return nil, fmt.Errorf("not found Bean by ID: %s", id)
 	}
 	return bean, nil
 }
 
-// GetBeanPIO - метод возращающий объект PIO Bean-а по его ID
-func (bs *BeansStorage) GetBeanPIO(id string) interface{} {
-	return bs.beansMap[id].PIO
+// getBeanInstance - метод возращающий указатель на инстанс объект Bean
+func (bs *BeansStorage) getBeanInstance(id string) *beanInstance {
+	return bs.beansMap[id]
 }
 
-// GetCloneBeanPIO - получить клонированный объект PIO Bean-а по его ID
+// GetBean - метод возращающий интерфейс (указатель) на объект Bean-а по его ID
+func (bs *BeansStorage) GetBean(id string) interface{} {
+	return bs.beansMap[id].pio
+}
+
+// GetCloneBeanPIO - получить клонированный объект pio Bean-а по его ID
 func (bs *BeansStorage) GetCloneBeanPIO(id string) (interface{}, error) {
 	return bs.beansMap[id].ClonePIO()
 }
-
-//// GetBeanJFI - метод возращающий объект jfi Bean-а по его ID
-//func (bs *BeansStorage) GetBeanJFI(id string) interface{} {
-//	return bs.beansMap[id].jfi
-//}
-//
-//// GetCloneBeanJFI - метод возращающий клонированный объект jfi Bean-а по его ID
-//func (bs *BeansStorage) GetCloneBeanJFI(id string) (interface{}, error) {
-//	return bs.beansMap[id].CloneJFI()
-//}
 
 // GetReflectTypeByName - метод возращающий reflect.Type по typeName
 func (bs *BeansStorage) GetReflectTypeByName(typeName string) reflect.Type {
@@ -351,12 +330,6 @@ func (bs *BeansStorage) BuildBeansInstance(beanDescriptions []BeanDescription) e
 		}
 	}
 
-	// Очистка ненужной системной информации
-	for _, bean := range bs.GetMapBeans() {
-		bean.d = nil
-		bean.jfi = nil
-	}
-
 	return nil
 }
 
@@ -375,13 +348,11 @@ func (bs *BeansStorage) addNewBeanInstance(beanDescription *BeanDescription) err
 
 // saveBean  -  метод сохраняющий в мапу Bean-ов новый Bean
 func (bs *BeansStorage) saveBean(d *BeanDescription, s reflect.Value, t reflect.Type) {
-	bs.beansMap[d.ID] = &BeanInstance{
-		jfi: s.Interface(),
-		PIO: s.Addr().Interface(),
+	bs.beansMap[d.ID] = &beanInstance{
+		pio: s.Addr().Interface(),
 		r: &reflectInstance{
 			Obj:  s,
 			Type: t},
-		d: d,
 	}
 }
 
@@ -447,14 +418,14 @@ func (bs *BeansStorage) fillAndLinkBean(beanDescription *BeanDescription) error 
 
 			switch p.Type {
 			case DeepCopyObj:
-				b, err := bs.getBeanByInterfaceID(p.Value)
+				b, err := bs.getBeanInstanceByInterfaceID(p.Value)
 				if err != nil {
 					return errors.WithMessagef(err, "p.Name: %s p.Value: %v beanDescription.ID: %s", p.Name, p.Value, beanDescription.ID)
 				}
 				x = b.r.Obj
 
 			case PointerToObj:
-				b, err := bs.getBeanByInterfaceID(p.Value)
+				b, err := bs.getBeanInstanceByInterfaceID(p.Value)
 				if err != nil {
 					return errors.WithMessagef(err, "p.Name: %s p.Value: %v beanDescription.ID: %s", p.Name, p.Value, beanDescription.ID)
 				}
