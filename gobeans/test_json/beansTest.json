@@ -13,168 +13,343 @@
     ]
   },
   {
-    "id": "id_1",
+    "id": "natural",
     "enable": true,
-    "structName": "github.com/imperiuse/golib/gobeans.TestStruct1",
-    "description": "Description Test Struct 1",
+    "structName": "TestNatural",
+    "description": "Test set Natural value from json to struct's fields",
     "properties": [
+      // simple types
       {
         "type": "nat",
-        "name": "FieldBool",
+        "name": "FBool",
         "value": true
       },
       {
         "type": "nat",
-        "name": "FieldStr",
-        "value": "I'm string"
+        "name": "FStr",
+        "value": "test string"
       },
       {
         "type": "nat",
-        "name": "FieldInt",
-        "value": 1
+        "name": "FInt",
+        "value": -123
       },
       {
         "type": "nat",
-        "name": "FieldFloat64",
-        "value": 3.14
+        "name": "FInt8",
+        "value": 8
+      },
+      {
+        "type": "nat",
+        "name": "FInt16",
+        "value": 16
+      },
+      {
+        "type": "nat",
+        "name": "FInt32",
+        "value": 32
+      },
+      {
+        "type": "nat",
+        "name": "FInt64",
+        "value": 64
+      },
+      {
+        "type": "nat",
+        "name": "FUint",
+        "value": 123
+      },
+      {
+        "type": "nat",
+        "name": "FUint8",
+        "value": 8
+      },
+      {
+        "type": "nat",
+        "name": "FUint16",
+        "value": 16
+      },
+      {
+        "type": "nat",
+        "name": "FUint32",
+        "value": 32
+      },
+      {
+        "type": "nat",
+        "name": "FUint64",
+        "value": 64
+      },
+      {
+        "type": "nat",
+        "name": "FFloat32",
+        "value": 1.2345
+      },
+      {
+        "type": "nat",
+        "name": "FFloat64",
+        "value": 1.23243534654364536435765437543
+      },
+      // slices
+      {
+        "type": "nat",
+        "name": "SBool",
+        "value": [true, false]
+      },
+      {
+        "type": "nat",
+        "name": "SString",
+        "value": ["test","string"]
+      },
+      {
+        "type": "nat",
+        "name": "SInt",
+        "value": []
+      },
+      {
+        "type": "nat",
+        "name": "SInt",
+        "value": [-123, 0]
+      },
+      {
+        "type": "nat",
+        "name": "SInt8",
+        "value": [8, 0]
+      },
+      {
+        "type": "nat",
+        "name": "SInt16",
+        "value": [16, 0]
+      },
+      {
+        "type": "nat",
+        "name": "SInt32",
+        "value": [32, 0]
+      },
+      {
+        "type": "nat",
+        "name": "SInt64",
+        "value": [64, 0]
+      },
+      {
+        "type": "nat",
+        "name": "SUint",
+        "value": [123, 0]
+      },
+      {
+        "type": "nat",
+        "name": "SUint8",
+        "value": [8, 0]
+      },
+      {
+        "type": "nat",
+        "name": "SUint16",
+        "value": [16, 0]
+      },
+      {
+        "type": "nat",
+        "name": "SUint32",
+        "value": [32, 0]
+      },
+      {
+        "type": "nat",
+        "name": "SUint64",
+        "value": [64, 0]
+      },
+      {
+        "type": "nat",
+        "name": "SFloat32",
+        "value": [1.2345]
+      },
+      {
+        "type": "nat",
+        "name": "SFloat64",
+        "value": [1.23243534654364536435765437543]
+      },
+      // maps
+      {
+        "type": "nat",
+        "name": "MstringBool",
+        "value": {"1":  true, "2":  false}
+      },
+      {
+        "type": "nat",
+        "name": "MstringString",
+        "value": {"1":  "test", "2":  "string"}
+      },
+      {
+        "type": "nat",
+        "name": "MstringInt",
+        "value": {}
+      },
+      {
+        "type": "nat",
+        "name": "MstringInt",
+        "value": {"1":  "123", "2":  "0"}
+      },
+      {
+        "type": "nat",
+        "name": "MstringInt8",
+        "value": {"1":  "8", "2":  "0"}
+      },
+      {
+        "type": "nat",
+        "name": "MstringInt16",
+        "value": {"1":  "16", "2":  "0"}
+      },
+      {
+        "type": "nat",
+        "name": "MstringInt32",
+        "value": {"1":  "32", "2":  "0"}
+      },
+      {
+        "type": "nat",
+        "name": "MstringInt64",
+        "value":{"1":  "64", "2":  "0"}
+      },
+      {
+        "type": "nat",
+        "name": "MstringUint",
+        "value": {"1":  "123", "2":  "0"}
+      },
+      {
+        "type": "nat",
+        "name": "MstringUint8",
+        "value": {"1":  "8", "2":  "0"}
+      },
+      {
+        "type": "nat",
+        "name": "MstringUint16",
+        "value": {"1":  "16", "2":  "0"}
+      },
+      {
+        "type": "nat",
+        "name": "MstringUint32",
+        "value": {"1":  "32", "2":  "0"}
+      },
+      {
+        "type": "nat",
+        "name": "MstringUint64",
+        "value": {"1":  "64", "2":  "0"}
+      },
+      {
+        "type": "nat",
+        "name": "MstringFloat32",
+        "value": {"1":  "1.32423151", "2":  "1.321412"}
+      },
+      {
+        "type": "nat",
+        "name": "MstringFloat64",
+        "value": {"1":  "1.213", "2":  "1.212342351531352315235213"}
       }
     ]
   },
   {
     "id": "anonymous",
     "enable": true,
-    "structName": "",
+    "anonymous": true,
+    "structName": "MyAnonType",
     "structFields": [
       {
         "name": "T1",
-        "type": "github.com/imperiuse/golib/gobeans.TestStruct1"
+        "type": "TestNatural"
         //        "tag": "`json:'af1'`"
       },
       {
         "name": "P_T1",
-        "type": "github.com/imperiuse/golib/gobeans.*TestStruct1"
+        "type": "*TestNatural"
         //        "tag": "`json:'af2'`"
       }
     ],
-    "description": "Description Anonumous obj",
+    "description": "Test creations of anonymous obj",
     "properties": [
       {
         "type": "copy",
         "name": "T1",
-        "value": "IDTestStruct1"
+        "value": "natural"
       },
       {
         "type": "link",
         "name": "P_T1",
-        "value": "IDTestStruct1"
+        "value": "natural"
       }
     ]
   },
   {
-    "id": "IDTestStruct2",
+    "id": "anonymous",
     "enable": true,
-    "structName": "github.com/imperiuse/golib/gobeans.TestStruct2",
-    "description": "Description Test Struct 3",
-    "properties": [
+    "anonymous": true,
+    "structName": "MyAnonType",
+    "structFields": [
       {
-        "type": "nat",
-        "name": "FieldStr",
-        "value": "I'm string"
+        "name": "T1",
+        "type": "TestNatural"
+        //        "tag": "`json:'af1'`"
       },
       {
-        "type": "nat",
-        "name": "FieldInt",
-        "value": 1
-      },
-      {
-        "type": "nat",
-        "name": "FieldFloat64",
-        "value": 3.14
-      },
-      {
-        "type": "nat",
-        "name": "FieldStrOut",
-        "value": "I'm string Out"
+        "name": "P_T1",
+        "type": "*TestNatural"
+        //        "tag": "`json:'af2'`"
       }
-    ]
-  },
-  {
-    "id": "IDTestStruct3",
-    "enable": true,
-    "structName": "github.com/imperiuse/golib/gobeans.TestStruct3",
-    "description": "Description Test Struct 0.",
+    ],
+    "description": "Test creations of anonymous obj",
     "properties": [
-      {
-        "type": "nat",
-        "name": "FieldSliceStr",
-        "value": [
-          "This",
-          "is",
-          "string",
-          "slice!"
-        ]
-      },
-//      {  TODO ОШИБКА  s. Err: reflect.Set: value of type float64 is not assignable to type int
-//        "type": "nat",
-//        "name": "FieldSliceInt",
-//        "value": [
-//         1,2,3,4
-//        ]
-//      },
-      {
-        "type": "nat",
-        "name": "FieldSliceFloat64",
-        "value": [
-         1.11,2.22,3.33
-        ]
-      },
-      {
-        "type": "nat",
-        "name": "FieldMapStringString",
-        "value": {
-          "a": "aaa",
-          "b": "bbb",
-          "c": "ccc"
-        }
-      },
-//      { TODO ОШИБКА  s. Err: reflect.Set: value of type float64 is not assignable to type int
-//        "type": "nat",
-//        "name": "FieldMapStringInt",
-//        "value": {
-//          "a": 1,
-//          "b": 2,
-//          "c": 3
-//        }
-//      },
-      {
-        "type": "nat",
-        "name": "FieldMapStringFloat64",
-        "value": {
-          "a": 1.11,
-          "b": 2.22,
-          "c": 3.33
-        }
-      },
       {
         "type": "copy",
         "name": "T1",
-        "value": "IDTestStruct1"
+        "value": "natural"
       },
       {
         "type": "link",
-        "name": "PT1",
-        "value": "IDTestStruct1"
+        "name": "P_T1",
+        "value": "natural"
+      }
+    ]
+  },
+  {
+    "id": "agr_struct",
+    "enable": true,
+    "structName": "TestAgrStruct",
+    "description": "Test agregations of beans",
+    "properties": [
+      {
+        "type": "copy",
+        "name": "TestNatural",
+        "value": "natural"
       },
       {
         "type": "copy",
-        "name": "T2",
-        "value": "IDTestStruct2"
+        "name": "FS",
+        "value": "natural"
       },
       {
         "type": "link",
-        "name": "PT2",
-        "value": "IDTestStruct2"
+        "name": "PFS",
+        "value": "natural"
+      },
+      {
+        "type": "link",
+        "name": "Self",
+        "value": "agr_struct"
+      },
+      {
+        "type": "obj",
+        "name": "InnerBean",
+        "value":
+          {
+            "id": "inner_bean",
+            "enable": true,
+            "structName": "TestNatural",
+            "description": "InnerBean",
+            "properties": [
+              {
+                "type": "nat",
+                "name": "FBool",
+                "value": false
+              }
+            ]
+          }
       }
     ]
+
   }
 ]

@@ -2,7 +2,8 @@
   {
     "id": "bad_anonymous 2",
     "enable": true,
-    "struct": "",
+    "anonymous": true,
+    "structName": "",
     "structFields": [
       {
         "name": "T1",
