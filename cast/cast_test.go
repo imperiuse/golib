@@ -39,6 +39,22 @@ func ExampleDynamicTypeAssertion() {
 	fmt.Printf("Input: %+v %T\nType: %T\nResult: %+v %T\n", t, t, temp1, r, r)
 }
 
+func ExampleCastToFloat64() {
+	// If possible cat interface{} to float64
+
+	// Here possible type to cast
+	var sliceI = []interface{}{"1.23", "-1.23", 123, -123, uint(123), int8(1), uint8(1), float32(1.2)} // also int16, int32, int64, uint16, uin32, uin64
+
+	for _, v := range sliceI {
+		if r, ok := CastToFloat64(v); !ok {
+			fmt.Println(r) // r - float64
+		} else {
+			fmt.Println("cant't cast")
+		}
+	}
+
+}
+
 // 1. CastToFloat64()
 
 // 1.1. POSITIVE TEST CASE
@@ -120,4 +136,34 @@ func TestNumCastFail(t *testing.T) {
 
 // 3.1. POSITIVE TEST CASE
 
+func TestDynamicTypeAssertion(t *testing.T) {
+
+	testVI := []interface{}{new(interface{}), true, "string", 1, 1.23, []interface{}{}, []interface{}{1, 2, 3}, map[string]interface{}{}, map[string]interface{}{"1": "a", "2": "b"}}
+	testOrigin := []interface{}{new(interface{}), true, string(""), int(0), float64(0), []int{}, []int{}, map[string]string{}, map[string]string{}}
+
+	for i, v := range testVI {
+		_, err := DynamicTypeAssertion(v, reflect.ValueOf(testOrigin[i]))
+		if err != nil {
+			t.Errorf("Failed positive status test #%d cast: %v to float", i, v)
+			continue
+		}
+
+	}
+}
+
 // 3.2. NEGATIVE TEST CASE
+
+func TestDynamicTypeAssertionFail(t *testing.T) {
+
+	testVI := []interface{}{nil, "1", new(interface{}), "afwefwer", ".wefefe", []interface{}{"1", "1weqdfwqe"}, map[string]interface{}{"1": new(interface{})}}
+	testOrigin := []interface{}{new(interface{}), true, string(""), int(0), float64(0), []int{}, map[string]string{}}
+
+	for i, v := range testVI {
+		_, err := DynamicTypeAssertion(v, reflect.ValueOf(testOrigin[i]))
+		if err == nil {
+			t.Errorf("Failed negative status test #%d cast: %v to float", i, v)
+			continue
+		}
+
+	}
+}
