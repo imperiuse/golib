@@ -2,11 +2,12 @@
   {
     "id": "bad_anonymous",
     "enable": true,
-    "struct": "",
+    "anonymous": true,
+    "structName": "",
     "structFields": [
       {
         "name": "bad_filed_name",
-        "type": "github.com/imperiuse/golib/gobeans.TestStruct1"
+        "type": "TestNatural"
       }
     ],
     "description": "Bad Anonumous obj",

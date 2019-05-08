@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-//go test -coverprofile=coverage.out && go tool cover -html=coverage.out
+//go test -covermode=count -coverprofile=coverage.cov && go tool cover -html=coverage.cov
 
 func ExampleDynamicTypeAssertion() {
 	// Назначение: typedVar, err := interfaceVar.(T)
@@ -138,8 +138,8 @@ func TestNumCastFail(t *testing.T) {
 
 func TestDynamicTypeAssertion(t *testing.T) {
 
-	testVI := []interface{}{new(interface{}), true, "string", 1, 1.23, []interface{}{}, []interface{}{1, 2, 3}, map[string]interface{}{}, map[string]interface{}{"1": "a", "2": "b"}}
-	testOrigin := []interface{}{new(interface{}), true, string(""), int(0), float64(0), []int{}, []int{}, map[string]string{}, map[string]string{}}
+	testVI := []interface{}{new(interface{}), true, false, "string", int8(8), 1, 1.23, []interface{}{}, []interface{}{1, 2, 3}, map[string]interface{}{}, map[string]interface{}{"1": "a", "2": "b"}}
+	testOrigin := []interface{}{new(interface{}), true, false, string(""), int(0), int(0), float64(0), []int{}, []int{}, map[string]string{}, map[string]string{}}
 
 	for i, v := range testVI {
 		_, err := DynamicTypeAssertion(v, reflect.ValueOf(testOrigin[i]))

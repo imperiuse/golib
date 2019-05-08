@@ -16,6 +16,7 @@ import (
 )
 
 // BeanDescription - структура описывающая Bean
+//nolint
 type BeanDescription struct {
 	// IMPORTANT FIELDS
 	ID         string       `json:"id"`         // Bean ID - MUST BE UNIQUE!
@@ -64,10 +65,10 @@ type reflectInstance struct {
 
 // BeanInstance - структура описывающая Bean объект
 type BeanInstance struct {
-	JFI interface{}     // содержит изначальный объект после парсинга Json !!! ВНИМАНИЕ СТАТИЧНЫЙ ОБЪЕКТ !!!!
-	PIO interface{}     // содержит указатель на интерфейс объекта Bean ОСНОВНОЙ ОБЪЕКТ BEAN РЕКОМЕНДУЕТСЯ РАБОТАТЬ С НИМ!
-	r   reflectInstance // рефлексионное представление объекта (для служебного использования)
-	d   BeanDescription // структура описание bean (для служебного использования)
+	jfi interface{}      // содержит изначальный объект после парсинга Json !!! ВНИМАНИЕ СТАТИЧНЫЙ ОБЪЕКТ !!!!
+	PIO interface{}      // содержит указатель на интерфейс объекта Bean ОСНОВНОЙ ОБЪЕКТ BEAN РЕКОМЕНДУЕТСЯ РАБОТАТЬ С НИМ!
+	r   *reflectInstance // рефлексионное представление объекта (для служебного использования)
+	d   *BeanDescription // структура описание bean (для служебного использования)
 }
 
 // ClonePIO - метод возращающий clone value of PIO
@@ -79,14 +80,14 @@ func (b *BeanInstance) ClonePIO() (interface{}, error) {
 	return r, nil
 }
 
-// CloneJFI - метод возращающий clone value of JFI
-func (b *BeanInstance) CloneJFI() (interface{}, error) {
-	r := reflect.New(b.r.Type).Interface()
-	if err := copier.Copy(r, b.JFI); err != nil {
-		return nil, errors.WithMessage(err, "Can't clone JFI object by copier.Copy()")
-	}
-	return r, nil
-}
+//// CloneJFI - метод возращающий clone value of jfi
+//func (b *BeanInstance) CloneJFI() (interface{}, error) {
+//	r := reflect.New(b.r.Type).Interface()
+//	if err := copier.Copy(r, b.jfi); err != nil {
+//		return nil, errors.WithMessage(err, "Can't clone jfi object by copier.Copy()")
+//	}
+//	return r, nil
+//}
 
 // MapBeansType - map созданных Bean объектов
 type MapBeansType map[string]*BeanInstance
@@ -131,6 +132,11 @@ func (bs *BeansStorage) GetAllNamesRegistryTypes() (nameRegistryType []string) {
 	return
 }
 
+// GetMapBeans - метод возращающий map Beans
+func (bs *BeansStorage) GetMapBeans() MapBeansType {
+	return bs.beansMap
+}
+
 // GetIDBeans - метод возращающий slice BeanID (имён бинов) хранимых bean типов
 func (bs *BeansStorage) GetIDBeans() []string {
 	beansIDs := make([]string, len(bs.beansMap))
@@ -168,20 +174,15 @@ func (bs *BeansStorage) GetCloneBeanPIO(id string) (interface{}, error) {
 	return bs.beansMap[id].ClonePIO()
 }
 
-// GetBeanJFI - метод возращающий объект JFI Bean-а по его ID
-func (bs *BeansStorage) GetBeanJFI(id string) interface{} {
-	return bs.beansMap[id].JFI
-}
-
-// GetCloneBeanJFI - метод возращающий клонированный объект JFI Bean-а по его ID
-func (bs *BeansStorage) GetCloneBeanJFI(id string) (interface{}, error) {
-	return bs.beansMap[id].CloneJFI()
-}
-
-// GetMapBeans - метод возращающий map Beans
-func (bs *BeansStorage) GetMapBeans() MapBeansType {
-	return bs.beansMap
-}
+//// GetBeanJFI - метод возращающий объект jfi Bean-а по его ID
+//func (bs *BeansStorage) GetBeanJFI(id string) interface{} {
+//	return bs.beansMap[id].jfi
+//}
+//
+//// GetCloneBeanJFI - метод возращающий клонированный объект jfi Bean-а по его ID
+//func (bs *BeansStorage) GetCloneBeanJFI(id string) (interface{}, error) {
+//	return bs.beansMap[id].CloneJFI()
+//}
 
 // GetReflectTypeByName - метод возращающий reflect.Type по typeName
 func (bs *BeansStorage) GetReflectTypeByName(typeName string) reflect.Type {
@@ -330,7 +331,9 @@ func (bs *BeansStorage) CreateBeansFromJSON(pathFile string) (err error) {
 // BuildBeansInstance - метод создающий, заполняющий и связывающий экземпляры Bean по их описанию - BeanDescription
 func (bs *BeansStorage) BuildBeansInstance(beanDescriptions []BeanDescription) error {
 
-	for _, beanDesc := range beanDescriptions {
+	// Построение каркасов Bean
+	for i := range beanDescriptions {
+		beanDesc := &beanDescriptions[i]
 		if beanDesc.Enable {
 			if err := bs.addNewBeanInstance(beanDesc); err != nil {
 				return err
@@ -338,7 +341,9 @@ func (bs *BeansStorage) BuildBeansInstance(beanDescriptions []BeanDescription) e
 		}
 	}
 
-	for _, beanDesc := range beanDescriptions {
+	// Заполнение каркасов значениями согласно JSON описанию и связывание Bean между собой
+	for i := range beanDescriptions {
+		beanDesc := &beanDescriptions[i]
 		if beanDesc.Enable {
 			if err := bs.fillAndLinkBean(beanDesc); err != nil {
 				return err
@@ -346,11 +351,17 @@ func (bs *BeansStorage) BuildBeansInstance(beanDescriptions []BeanDescription) e
 		}
 	}
 
+	// Очистка ненужной системной информации
+	for _, bean := range bs.GetMapBeans() {
+		bean.d = nil
+		bean.jfi = nil
+	}
+
 	return nil
 }
 
 // addNewBeanInstance  -  метод создающий и добавляющий в мапу beanStorage новый Bean согласно его описанию - BeanDescription
-func (bs *BeansStorage) addNewBeanInstance(beanDescription BeanDescription) error {
+func (bs *BeansStorage) addNewBeanInstance(beanDescription *BeanDescription) error {
 
 	s, typ, err := bs.createEmptyBean(beanDescription)
 	if err != nil {
@@ -363,11 +374,11 @@ func (bs *BeansStorage) addNewBeanInstance(beanDescription BeanDescription) erro
 }
 
 // saveBean  -  метод сохраняющий в мапу Bean-ов новый Bean
-func (bs *BeansStorage) saveBean(d BeanDescription, s reflect.Value, t reflect.Type) {
+func (bs *BeansStorage) saveBean(d *BeanDescription, s reflect.Value, t reflect.Type) {
 	bs.beansMap[d.ID] = &BeanInstance{
-		JFI: s.Interface(),
+		jfi: s.Interface(),
 		PIO: s.Addr().Interface(),
-		r: reflectInstance{
+		r: &reflectInstance{
 			Obj:  s,
 			Type: t},
 		d: d,
@@ -375,7 +386,7 @@ func (bs *BeansStorage) saveBean(d BeanDescription, s reflect.Value, t reflect.T
 }
 
 // createEmptyBean - метод создающий пустой Bean объект по его описанию - BeanDescription
-func (bs *BeansStorage) createEmptyBean(beanDescription BeanDescription) (reflect.Value, reflect.Type, error) {
+func (bs *BeansStorage) createEmptyBean(beanDescription *BeanDescription) (reflect.Value, reflect.Type, error) {
 	var typ reflect.Type
 	var val reflect.Value
 
@@ -413,7 +424,7 @@ func (bs *BeansStorage) createEmptyBean(beanDescription BeanDescription) (reflec
 }
 
 // fillAndLinkBean  - метод заполняющий Bean на основе данных и связывающий объект Bean с другими
-func (bs *BeansStorage) fillAndLinkBean(beanDescription BeanDescription) error {
+func (bs *BeansStorage) fillAndLinkBean(beanDescription *BeanDescription) error {
 
 	bean, found := bs.beansMap[beanDescription.ID]
 	if !found {
@@ -464,14 +475,14 @@ func (bs *BeansStorage) fillAndLinkBean(beanDescription BeanDescription) error {
 					return errors.WithMessagef(err, "err while convert property[%d] to BeanDescription struct: %+v. p.Name: %s, p.Value: %+v BeanID: %s", i, beanDescription, p.Name, p.Value, beanDescription.ID)
 				}
 
-				x, typ, err = bs.createEmptyBean(bDesc) // создаем внутренний Bean
+				x, typ, err = bs.createEmptyBean(&bDesc) // создаем внутренний Bean
 				if err != nil {
 					return errors.WithMessagef(err, "can't create inner Bean [fillAndLinkBean] p.Name: %s, p.Value: %+v BeanID: %s", p.Name, p.Value, beanDescription.ID)
 				}
 
-				bs.saveBean(bDesc, x, typ) // сохраняем внутренний Bean
+				bs.saveBean(&bDesc, x, typ) // сохраняем внутренний Bean
 
-				err = bs.fillAndLinkBean(bDesc) // рекурсивно связываем внутренний Bean
+				err = bs.fillAndLinkBean(&bDesc) // рекурсивно связываем внутренний Bean
 				if err != nil {
 					return errors.WithMessagef(err, "can't recursive link inner bean [fillAndLinkBean] BeanID: %s", bDesc.ID)
 				}
