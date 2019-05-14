@@ -5,25 +5,26 @@ import (
 	"time"
 )
 
-func TestProfiler_1(T *testing.T) {
+func TestProfiler_1(t *testing.T) {
 	p := GetProfiler("")
-	t := p.Start()
+	tt := p.Start()
 	time.Sleep(time.Second)
-	p.End(t)
-	T.Log(p.Info())
+	p.End(tt)
+
+	t.Log(p.Info())
 }
 
-func TestProfiler_2(T *testing.T) {
+func TestProfiler_2(t *testing.T) {
 	p1 := GetProfiler("1")
-	t := p1.Start()
+	tt := p1.Start()
 	time.Sleep(time.Second)
-	p1.End(t)
-	T.Log(p1.Info())
+	p1.End(tt)
+	t.Log(p1.Info())
 
 	p2 := GetProfiler("1")
-	T.Log(p2.Info())
+	t.Log(p2.Info())
 
-	if p2 != p2 {
-		T.Error("Pointers obj profiler different!  p1 != p2")
+	if p1 != p2 {
+		t.Error("Pointers obj profiler different!  p1 != p2")
 	}
 }
