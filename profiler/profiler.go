@@ -6,81 +6,117 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/k0kubun/pp"
 )
 
 // MaxTryCntSwap - max try const swap
 const MaxTryCntSwap = 3
 
-var m sync.Mutex
-var mapProfiler map[string]*profiler
+var (
+	mProfiler   sync.Mutex
+	mapProfiler map[string]*profiler
+	mTimer      sync.Mutex
+	mapTimer    map[string]*timer
+)
 
-// Profiler interface
+// Profiler - Atomic Profiler interface (no mutex) SAVE FOR GOROUTINE!
 type Profiler interface {
 	Start() time.Time
 	End(time.Time) time.Duration
 	Info() string
 }
 
+// Timer - time save profiler (no mutex) NOT SAFE FOR GOROUTINE!
+type Timer interface {
+	Start()
+	End()
+	Duration() time.Duration
+	Info() string
+}
+
+// profiler -
 type profiler struct {
-	Name string
+	name string
 	// By priority atomics operations  from max >> to min
-	CntStart uint64
-	CntEnd   uint64
-	SumTime  uint64
-	MinTime  uint64
-	MaxTime  uint64
+	cntStart uint64
+	cntEnd   uint64
+	sumTime  uint64
+	minTime  uint64
+	maxTime  uint64
+}
+
+// timer -
+type timer struct {
+	startTime time.Time
+	endTime   time.Time
+	duration  time.Duration
 }
 
 func init() {
 	mapProfiler = map[string]*profiler{}
+	mapTimer = map[string]*timer{}
 }
 
 // GetProfiler - get profiler instance
 func GetProfiler(name string) Profiler {
-	emptyProfiler := &profiler{}
-	emptyProfiler.MinTime = math.MaxUint64
+	emptyProfiler := profiler{
+		name:    name,
+		minTime: math.MaxUint64}
 
-	if name == "" {
-		return emptyProfiler
+	mProfiler.Lock()
+	defer mProfiler.Unlock()
+
+	profiler, ok := mapProfiler[name]
+	if !ok {
+		mapProfiler[name] = &emptyProfiler
+		profiler = &emptyProfiler
 	}
-
-	emptyProfiler.Name = name
-
-	m.Lock()
-	defer m.Unlock()
-
-	if profiler, ok := mapProfiler[name]; ok {
-		return profiler
-	}
-	mapProfiler[name] = emptyProfiler
-	return emptyProfiler
+	return profiler
 }
 
-// Start -
+// GetTimer - get timer instance
+func GetTimer(name string) Timer {
+	emptyTimer := timer{}
+
+	mTimer.Lock()
+	defer mTimer.Unlock()
+
+	timer, ok := mapTimer[name]
+	if !ok {
+		mapTimer[name] = &emptyTimer
+		timer = &emptyTimer
+	}
+	return timer
+}
+
+// Start - return Time.Now() and increment count use
 func (p *profiler) Start() time.Time {
-	atomic.AddUint64(&p.CntStart, 1)
+	atomic.AddUint64(&p.cntStart, 1)
 	return time.Now()
 }
 
 // End -
 func (p *profiler) End(startTime time.Time) time.Duration {
-	atomic.AddUint64(&p.CntEnd, 1)
-	delta := time.Now().Sub(startTime)
+	atomic.AddUint64(&p.cntEnd, 1)
+	delta := time.Since(startTime)
 	deltaUint64 := uint64(delta)
 
-	atomic.AddUint64(&p.SumTime, uint64(delta))
+	atomic.AddUint64(&p.sumTime, uint64(delta))
 
 	for i := 0; i < MaxTryCntSwap; i++ {
-		if minTime := p.MinTime; deltaUint64 < minTime {
-			if atomic.CompareAndSwapUint64(&p.MinTime, minTime, deltaUint64) {
+		minTime := p.minTime
+		if deltaUint64 < minTime {
+			if atomic.CompareAndSwapUint64(&p.minTime, minTime, deltaUint64) {
 				break
 			}
 		}
 	}
 
 	for i := 0; i < MaxTryCntSwap; i++ {
-		if maxTime := p.MaxTime; deltaUint64 > maxTime {
-			if atomic.CompareAndSwapUint64(&p.MaxTime, maxTime, deltaUint64) {
+		maxTime := p.maxTime
+		if deltaUint64 > maxTime {
+			if atomic.CompareAndSwapUint64(&p.maxTime, maxTime, deltaUint64) {
 				break
 			}
 		}
@@ -89,6 +125,7 @@ func (p *profiler) End(startTime time.Time) time.Duration {
 	return delta
 }
 
+// String -
 func (p *profiler) String() string {
 	return fmt.Sprintf(
 		"\nName: %v"+
@@ -98,11 +135,32 @@ func (p *profiler) String() string {
 			"\nMinTime: %v"+
 			"\nMaxTime: %v\n"+
 			"=========\nAvgTime: %v\n",
-		p.Name, p.CntStart, p.CntEnd,
-		time.Duration(p.SumTime), time.Duration(p.MinTime), time.Duration(p.MaxTime),
-		time.Duration(p.SumTime/p.CntEnd))
+		p.name, p.cntStart, p.cntEnd,
+		time.Duration(p.sumTime), time.Duration(p.minTime), time.Duration(p.maxTime),
+		time.Duration(p.sumTime/p.cntEnd))
 }
 
+// Info -
 func (p *profiler) Info() string {
-	return fmt.Sprintf("%+v", p)
+	return p.String()
+}
+
+func (t *timer) Start() {
+	mTimer.Lock()
+	defer mTimer.Unlock()
+
+	t.startTime = time.Now()
+}
+
+func (t *timer) End() {
+	t.endTime = time.Now()
+	t.duration = t.endTime.Sub(t.startTime)
+}
+
+func (t *timer) Duration() time.Duration {
+	return t.duration
+}
+
+func (t *timer) Info() string {
+	return pp.Sprintln(t)
 }
