@@ -6,8 +6,6 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
-
-	"github.com/k0kubun/pp"
 )
 
 // MaxTryCntSwap - max try const swap
@@ -48,6 +46,8 @@ type profiler struct {
 
 // timer -
 type timer struct {
+	name string
+
 	startTime time.Time
 	endTime   time.Time
 	duration  time.Duration
@@ -77,7 +77,7 @@ func GetProfiler(name string) Profiler {
 
 // GetTimer - get timer instance
 func GetTimer(name string) Timer {
-	emptyTimer := timer{}
+	emptyTimer := timer{name: name}
 
 	mTimer.Lock()
 	defer mTimer.Unlock()
@@ -162,5 +162,5 @@ func (t *timer) Duration() time.Duration {
 }
 
 func (t *timer) Info() string {
-	return pp.Sprintln(t)
+	return fmt.Sprintf("\nName:%s\nStartTime:%v\nEndTime:%v\nDuration:%v\n", t.name, t.startTime, t.endTime, t.duration)
 }
