@@ -160,8 +160,18 @@ func (t *timer) End() {
 }
 
 // Duration - getter duration
-func (t *timer) Duration() time.Duration {
+func (t *timer) GetDuration() time.Duration {
 	return t.duration
+}
+
+// GetStartTime - getter startTime
+func (t *timer) GetStartTime() time.Time {
+	return t.startTime
+}
+
+// GetEndTime - getter endTime
+func (t *timer) GetEndTime() time.Time {
+	return t.endTime
 }
 
 // String - pretty print
