@@ -19,46 +19,46 @@ var (
 )
 
 // Profiler - Atomic Profiler interface (no mutex) SAVE FOR GOROUTINE!
-type Profiler interface {
-	Start() time.Time
-	End(time.Time) time.Duration
-	Info() string
-}
+type (
+	Profiler interface {
+		Start() time.Time
+		End(time.Time) time.Duration
+		Info() string
+	}
 
-// Timer - time save profiler (no mutex) NOT SAFE FOR GOROUTINE!
-type Timer interface {
-	Start()
-	End()
-	Duration() time.Duration
-	Info() string
-}
+	// Timer - time save profiler (no mutex) NOT SAFE FOR GOROUTINE!
+	Timer interface {
+		Start()
+		End()
+		Duration() time.Duration
+		Info() string
+	}
 
-// profiler -
-type profiler struct {
-	name string
-	// By priority atomics operations  from max >> to min
-	cntStart uint64
-	cntEnd   uint64
-	sumTime  uint64
-	minTime  uint64
-	maxTime  uint64
-}
+	profiler struct {
+		name string
+		// By priority atomics operations  from max >> to min
+		cntStart uint64
+		cntEnd   uint64
+		sumTime  uint64
+		minTime  uint64
+		maxTime  uint64
+	}
 
-// timer -
-type timer struct {
-	name string
+	timer struct {
+		name string
 
-	startTime time.Time
-	endTime   time.Time
-	duration  time.Duration
-}
+		startTime time.Time
+		endTime   time.Time
+		duration  time.Duration
+	}
+)
 
 func init() {
 	mapProfiler = map[string]*profiler{}
 	mapTimer = map[string]*timer{}
 }
 
-// GetProfiler - get profiler instance
+// GetProfiler - get profiler instance by name or create new
 func GetProfiler(name string) Profiler {
 	emptyProfiler := profiler{
 		name:    name,
@@ -75,7 +75,7 @@ func GetProfiler(name string) Profiler {
 	return profiler
 }
 
-// GetTimer - get timer instance
+// GetTimer - get timer instance by name or create new
 func GetTimer(name string) Timer {
 	emptyTimer := timer{name: name}
 
@@ -96,7 +96,7 @@ func (p *profiler) Start() time.Time {
 	return time.Now()
 }
 
-// End -
+// End - return time.Duration use `time.Since(startTime)`
 func (p *profiler) End(startTime time.Time) time.Duration {
 	atomic.AddUint64(&p.cntEnd, 1)
 	delta := time.Since(startTime)
@@ -125,7 +125,7 @@ func (p *profiler) End(startTime time.Time) time.Duration {
 	return delta
 }
 
-// String -
+// String - pretty print
 func (p *profiler) String() string {
 	return fmt.Sprintf(
 		"\nName: %v"+
@@ -140,11 +140,12 @@ func (p *profiler) String() string {
 		time.Duration(p.sumTime/p.cntEnd))
 }
 
-// Info -
+// Info - profiler stats
 func (p *profiler) Info() string {
 	return p.String()
 }
 
+// Start - start timer
 func (t *timer) Start() {
 	mTimer.Lock()
 	defer mTimer.Unlock()
@@ -152,15 +153,23 @@ func (t *timer) Start() {
 	t.startTime = time.Now()
 }
 
+// End - stop timer
 func (t *timer) End() {
 	t.endTime = time.Now()
 	t.duration = t.endTime.Sub(t.startTime)
 }
 
+// Duration - getter duration
 func (t *timer) Duration() time.Duration {
 	return t.duration
 }
 
-func (t *timer) Info() string {
+// String - pretty print
+func (t *timer) String() string {
 	return fmt.Sprintf("\nName:%s\nStartTime:%v\nEndTime:%v\nDuration:%v\n", t.name, t.startTime, t.endTime, t.duration)
+}
+
+// Info - timer stats
+func (t *timer) Info() string {
+	return t.String()
 }
