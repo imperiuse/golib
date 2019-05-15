@@ -30,7 +30,9 @@ type (
 	Timer interface {
 		Start()
 		End()
-		Duration() time.Duration
+		GetDuration() time.Duration
+		GetStartTime() time.Time
+		GetEndTime() time.Time
 		Info() string
 	}
 
