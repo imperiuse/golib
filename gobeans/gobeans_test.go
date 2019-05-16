@@ -66,11 +66,11 @@ type TestAgrStruct struct {
 	Self      *TestAgrStruct
 }
 
-func ExampleCreateBeanStorage() {
+func ExampleCreateStorage() {
 
-	Beans, err := CreateBeanStorage()
+	Beans, err := CreateStorage()
 	if err != nil {
-		print("\nError while gobeans.CreateBeanStorage: %v\n", err)
+		print("\nError while gobeans.CreateStorage: %v\n", err)
 	} else {
 		fmt.Print("\nStorage successful created!\n")
 	}
@@ -86,16 +86,16 @@ func ExampleCreateBeanStorage() {
 	if err = Beans.CreateBeansFromJSON("./test_json/beansTest.json"); err != nil {
 		print("Error while create Beans from json file", err)
 	} else {
-		for id, bean := range Beans.getMapBeans() {
+		for id, bean := range Beans.GetMapBeans() {
 			fmt.Printf("Bean name: [%+v] \n\n\tPIO: %v\n", id, bean.pio)
 		}
 	}
 }
 
 func TestCreateBeanStorage(t *testing.T) {
-	Beans, err := CreateBeanStorage()
+	Beans, err := CreateStorage()
 	if err != nil {
-		t.Errorf("\nError while gobeans.CreateBeanStorage: %v\n", err)
+		t.Errorf("\nError while gobeans.CreateStorage: %v\n", err)
 	} else {
 		fmt.Print("\nStorage successful created!\n")
 	}
@@ -105,9 +105,9 @@ func TestCreateBeanStorage(t *testing.T) {
 }
 
 func TestRegType(t *testing.T) {
-	Beans, err := CreateBeanStorage()
+	Beans, err := CreateStorage()
 	if err != nil {
-		t.Errorf("\nError while gobeans.CreateBeanStorage: %v\n", err)
+		t.Errorf("\nError while gobeans.CreateStorage: %v\n", err)
 	} else {
 		fmt.Print("\nStorage successful created!\n")
 	}
@@ -127,9 +127,9 @@ func TestRegType(t *testing.T) {
 }
 
 func TestGetAllNamesRegistryTypes(t *testing.T) {
-	Beans, err := CreateBeanStorage()
+	Beans, err := CreateStorage()
 	if err != nil {
-		t.Errorf("\nError while gobeans.CreateBeanStorage: %v\n", err)
+		t.Errorf("\nError while gobeans.CreateStorage: %v\n", err)
 	} else {
 		fmt.Print("\nStorage successful created!\n")
 	}
@@ -143,9 +143,9 @@ func TestGetAllNamesRegistryTypes(t *testing.T) {
 }
 
 func TestGetAllNamesRegistryTypesNegative(t *testing.T) {
-	Beans, err := CreateBeanStorage()
+	Beans, err := CreateStorage()
 	if err != nil {
-		t.Errorf("\nError while gobeans.CreateBeanStorage: %v\n", err)
+		t.Errorf("\nError while gobeans.CreateStorage: %v\n", err)
 	} else {
 		fmt.Print("\nStorage successful created!\n")
 	}
@@ -165,9 +165,9 @@ func TestGetAllNamesRegistryTypesNegative(t *testing.T) {
 }
 
 func TestCreateBeansFromJSON(t *testing.T) {
-	Beans, err := CreateBeanStorage()
+	Beans, err := CreateStorage()
 	if err != nil {
-		t.Errorf("\nError while gobeans.CreateBeanStorage: %v\n", err)
+		t.Errorf("\nError while gobeans.CreateStorage: %v\n", err)
 	} else {
 		fmt.Print("\nStorage successful created!\n")
 	}
@@ -184,9 +184,9 @@ func TestCreateBeansFromJSON(t *testing.T) {
 }
 
 func TestCreateBeansFromJSONNegative(t *testing.T) {
-	Beans, err := CreateBeanStorage()
+	Beans, err := CreateStorage()
 	if err != nil {
-		t.Errorf("\nError while gobeans.CreateBeanStorage: %v\n", err)
+		t.Errorf("\nError while gobeans.CreateStorage: %v\n", err)
 	} else {
 		fmt.Print("\nStorage created!\n")
 	}
@@ -219,9 +219,9 @@ func TestCreateBeansFromJSONNegative(t *testing.T) {
 
 //nolint
 func TestGetBeansAndGetReflectType(t *testing.T) {
-	Beans, err := CreateBeanStorage()
+	Beans, err := CreateStorage()
 	if err != nil {
-		t.Errorf("\nError while gobeans.CreateBeanStorage: %v\n", err)
+		t.Errorf("\nError while gobeans.CreateStorage: %v\n", err)
 	} else {
 		fmt.Print("\nStorage created!\n")
 	}
@@ -237,8 +237,8 @@ func TestGetBeansAndGetReflectType(t *testing.T) {
 	}
 
 	Beans.GetBean("natural")
-	Beans.getMapBeans()
-	Beans.GetIDBeans()
+	Beans.GetMapBeans()
+	Beans.GetAllBeansID()
 	if typ := Beans.GetReflectTypeByName("TestNatural"); typ != reflect.TypeOf((*TestNatural)(nil)).Elem() {
 		t.Errorf("Error! Unexpected value of reflect type: TestStruct2")
 	}
@@ -253,9 +253,9 @@ func TestGetBeansAndGetReflectType(t *testing.T) {
 }
 
 func TestClonesFunc(t *testing.T) {
-	Beans, err := CreateBeanStorage()
+	Beans, err := CreateStorage()
 	if err != nil {
-		t.Errorf("\nError while gobeans.CreateBeanStorage: %v\n", err)
+		t.Errorf("\nError while gobeans.CreateStorage: %v\n", err)
 	} else {
 		fmt.Print("\nStorage created!\n")
 	}
@@ -270,7 +270,7 @@ func TestClonesFunc(t *testing.T) {
 		t.Errorf("Error while create Beans from json file. %v", err)
 	}
 
-	pcI, _ := Beans.GetCloneBeanPIO("natural")
+	pcI, _ := Beans.CloneBean("natural")
 
 	pc := pcI.(*TestNatural)
 
