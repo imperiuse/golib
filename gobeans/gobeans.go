@@ -15,83 +15,74 @@ import (
 	"github.com/imperiuse/golib/jsonnocomment"
 )
 
-// BeanDescription - структура описывающая Bean
-//nolint
-type BeanDescription struct {
-	// IMPORTANT FIELDS
-	ID         string       `json:"id"`         // Bean ID - MUST BE UNIQUE!
-	Enable     bool         `json:"enable"`     // Enable for create (build) this Bean obj ?
-	StructName string       `json:"structName"` // Registered structure name (@see func RegTypes and RegNamedTypes)
-	Properties []Properties `json:"properties"` // bean properties
-
-	// OTHERS FIELDS
-	Description string `json:"description"` // Simple text description of Bean (doesn't matter)
-
-	// Anonymous structs
-	Anonymous    bool          `json:"anonymous"`    // Bean base on Anonymous struct ? (Default = false)
-	StructFields []StructField `json:"structFields"` // anonymous struct fields descriptions (if Struct == "")
-}
-
-// StructField - структура описывающая одно поле анонимной структуры @see:reflect.StructField
-type StructField struct {
-	Name string `json:"name"` // name field
-	Type string `json:"type"` // golang type name
-	Tag  string `json:"tag"`  // golang tag
-}
-
 // Типы свойств по аналогии с JAVA BEANS
 const (
 	Natural      = "nat"  // Простые типы: int, float, string или []T или map[string]T - где T простой тип @see golangInlineTypes down!
 	DeepCopyObj  = "copy" // Глубокая копия сложный объект
 	PointerToObj = "link" // Ссылка на объект
 	BeansObj     = "obj"  // Включение вложенного Bean объекта
+
+	AnonStructPrefixTypeName = "github.com/imperiuse/gobeans_anon_struct_" // AnonStructPrefixTypeName - Префикс обозначения типа анонимных структур
 )
 
-// AnonStructPrefixTypeName - Префикс обозначения типа анонимных структур
-const AnonStructPrefixTypeName = "github.com/imperiuse/gobeans_anon_struct_"
+//nolint
+type (
+	// BeanDescription - структура описывающая Bean
+	BeanDescription struct {
+		// IMPORTANT FIELDS
+		ID         string       `json:"id"`         // Bean ID - MUST BE UNIQUE!
+		Enable     bool         `json:"enable"`     // Enable for create (build) this Bean obj ?
+		StructName string       `json:"structName"` // Registered structure name (@see func RegTypes and RegNamedTypes)
+		Properties []Properties `json:"properties"` // bean properties
 
-// Properties - структура описывающая поля Bean
-type Properties struct {
-	Type  string      `json:"type"`  // тип инициализации см. выше const Natural, DeepCopyObj, PointerToObj, BeansObj
-	Name  string      `json:"name"`  // имя поля
-	Value interface{} `json:"value"` // значение поля, либо ссылка , либо объект
-}
+		// OTHERS FIELDS
+		Description string `json:"description"` // Simple text description of Bean (doesn't matter)
 
-// reflectInstance - структура описывающая объект Bean в "рефлексионном" представлении
-type reflectInstance struct {
-	Obj  reflect.Value // содержит сам объект
-	Type reflect.Type  // содержит рефлексионный тип данных объекта
-}
-
-// beanInstance - структура описывающая Bean объект
-type beanInstance struct {
-	pio interface{}      // содержит указатель на интерфейс объекта Bean ОСНОВНОЙ ОБЪЕКТ BEAN РЕКОМЕНДУЕТСЯ РАБОТАТЬ С НИМ!
-	r   *reflectInstance // рефлексионное представление объекта (для служебного использования)
-}
-
-// ClonePIO - метод возращающий clone value of pio
-func (b *beanInstance) ClonePIO() (interface{}, error) {
-	r := reflect.New(b.r.Type).Interface()
-	if err := copier.Copy(r, b.pio); err != nil {
-		return nil, errors.WithMessage(err, "Can't clone pio object by copier.Copy()")
+		// Anonymous structs
+		Anonymous    bool                   `json:"anonymous"`    // Bean base on Anonymous struct ? (Default = false)
+		StructFields []AnonymousStructField `json:"structFields"` // anonymous struct fields descriptions (if Struct == "")
 	}
-	return r, nil
-}
 
-// MapBeansType - map созданных Bean объектов
-type MapBeansType map[string]*beanInstance
+	// AnonymousStructField - структура описывающая одно поле анонимной структуры @see:reflect.AnonymousStructField
+	AnonymousStructField struct {
+		Name string `json:"name"` // name field
+		Type string `json:"type"` // golang type name
+		Tag  string `json:"tag"`  // golang tag
+	}
 
-// MapRegistryType - map зарегистрированных типов (рефлексионных)
-type MapRegistryType map[string]reflect.Type
+	// Properties - структура описывающая поля Bean
+	Properties struct {
+		Type  string      `json:"type"`  // тип инициализации см. выше const Natural, DeepCopyObj, PointerToObj, BeansObj
+		Name  string      `json:"name"`  // имя поля
+		Value interface{} `json:"value"` // значение поля, либо ссылка , либо объект
+	}
 
-// BeansStorage - Главный объект библиотеки - Beans (Хранилище Beans)
-type BeansStorage struct {
-	typeMap  MapRegistryType
-	beansMap MapBeansType
-}
+	// BeansStorage - Главный объект библиотеки - Beans (Хранилище Beans)
+	BeansStorage struct {
+		typeMap  MapOfRegType
+		beansMap MapOfBeans
+	}
 
-// CreateBeanStorage - главный конструктор, главной структуры - хранилища Bean
-func CreateBeanStorage() (BeansStorage, error) {
+	// MapOfBeans - map созданных Bean объектов
+	MapOfBeans map[string]*beanInstance
+	// MapOfRegType - map зарегистрированных типов (рефлексионных)
+	MapOfRegType map[string]reflect.Type
+
+	// beanInstance - структура описывающая Bean объект
+	beanInstance struct {
+		pio interface{}      // содержит указатель на интерфейс объекта Bean ОСНОВНОЙ ОБЪЕКТ BEAN РЕКОМЕНДУЕТСЯ РАБОТАТЬ С НИМ!
+		r   *reflectInstance // рефлексионное представление объекта (для служебного использования)
+	}
+
+	// reflectInstance - структура описывающая объект Bean в "рефлексионном" представлении
+	reflectInstance struct {
+		Obj  reflect.Value // содержит сам объект
+		Type reflect.Type  // содержит рефлексионный тип данных объекта
+	}
+)
+
+// CreateStorage - главный конструктор, главной структуры - хранилища Bean
+func CreateStorage() (BeansStorage, error) {
 
 	// Регистрация базовых стандартных типов
 	golangInlineTypes := []interface{}{
@@ -100,7 +91,7 @@ func CreateBeanStorage() (BeansStorage, error) {
 		(*float32)(nil), (*float64)(nil), (*complex64)(nil), (*complex128)(nil),
 		(*byte)(nil), (*rune)(nil), (*string)(nil), (*bool)(nil)}
 
-	beanStorage := BeansStorage{make(MapRegistryType, len(golangInlineTypes)), make(MapBeansType)}
+	beanStorage := BeansStorage{make(MapOfRegType, len(golangInlineTypes)), make(MapOfBeans)}
 
 	// Пример. Регистрация стандартных необходимых типов (напрямую)
 	//beanStorage.typeMap["string"] = reflect.TypeOf("123")
@@ -113,21 +104,13 @@ func CreateBeanStorage() (BeansStorage, error) {
 	return beanStorage, err
 }
 
-// GetAllNamesRegistryTypes - метод возращающий slice имен зарегистрированных типов
-func (bs *BeansStorage) GetAllNamesRegistryTypes() (nameRegistryType []string) {
-	for nameType := range bs.typeMap {
-		nameRegistryType = append(nameRegistryType, nameType)
-	}
-	return
-}
-
-// getMapBeans - метод возращающий map Beans
-func (bs *BeansStorage) getMapBeans() MapBeansType {
+// GetMapBeans - метод возращающий map Beans
+func (bs *BeansStorage) GetMapBeans() MapOfBeans {
 	return bs.beansMap
 }
 
-// GetIDBeans - метод возращающий slice BeanID (имён бинов) хранимых bean типов
-func (bs *BeansStorage) GetIDBeans() []string {
+// GetAllBeansID - метод возращающий slice BeanID cd (имён бинов) хранимых bean типов
+func (bs *BeansStorage) GetAllBeansID() []string {
 	beansIDs := make([]string, len(bs.beansMap))
 	for beanID := range bs.beansMap {
 		beansIDs = append(beansIDs, beanID)
@@ -135,32 +118,50 @@ func (bs *BeansStorage) GetIDBeans() []string {
 	return beansIDs
 }
 
-// getBeanInstanceByInterfaceID - метод возращающий объект Bean по ID
-func (bs *BeansStorage) getBeanInstanceByInterfaceID(v interface{}) (*beanInstance, error) {
+// GetBean - метод возращающий интерфейс (указатель) на объект Bean-а по его ID
+func (bs *BeansStorage) GetBean(id string) interface{} {
+	return bs.beansMap[id].getPIO()
+}
+
+// CloneBean - получить клонированный объект pio Bean-а по его ID
+func (bs *BeansStorage) CloneBean(id string) (interface{}, error) {
+	return bs.beansMap[id].clonePIO()
+}
+
+// getPIO - метод возращающий pio value Bean
+func (b *beanInstance) getPIO() interface{} {
+	return b.pio
+}
+
+// clonePIO - метод возращающий clone value of pio
+func (b *beanInstance) clonePIO() (interface{}, error) {
+	r := reflect.New(b.r.Type).Interface()
+	if err := copier.Copy(r, b.pio); err != nil {
+		return nil, errors.WithMessage(err, "Can't clone pio object by copier.Copy()")
+	}
+	return r, nil
+}
+
+// getBeanByInterfaceID - метод возращающий объект Bean по ID
+func (bs *BeansStorage) getBeanByInterfaceID(v interface{}) (*beanInstance, error) {
 	id, ok := v.(string)
 	if !ok {
 		return nil, fmt.Errorf("can't convert value to string BeanID %v", v)
 	}
-	bean := bs.getBeanInstance(id)
+	bean := bs.beansMap[id]
 	if bean == nil {
 		return nil, fmt.Errorf("not found Bean by ID: %s", id)
 	}
 	return bean, nil
 }
 
-// getBeanInstance - метод возращающий указатель на инстанс объект Bean
-func (bs *BeansStorage) getBeanInstance(id string) *beanInstance {
-	return bs.beansMap[id]
-}
-
-// GetBean - метод возращающий интерфейс (указатель) на объект Bean-а по его ID
-func (bs *BeansStorage) GetBean(id string) interface{} {
-	return bs.beansMap[id].pio
-}
-
-// GetCloneBeanPIO - получить клонированный объект pio Bean-а по его ID
-func (bs *BeansStorage) GetCloneBeanPIO(id string) (interface{}, error) {
-	return bs.beansMap[id].ClonePIO()
+// ShowRegTypes - метод возращающий список зарегистрированных названий типов
+func (bs *BeansStorage) ShowRegTypes() []string {
+	types := make([]string, len(bs.typeMap))
+	for nameType := range bs.typeMap {
+		types = append(types, nameType)
+	}
+	return types
 }
 
 // GetReflectTypeByName - метод возращающий reflect.Type по typeName
@@ -174,7 +175,7 @@ func (bs *BeansStorage) FoundReflectTypeByName(typeName string) (reflect.Type, b
 	return typ, found
 }
 
-// RegTypes - метод  регистрирующий типы в MapRegistryType, именует согласно пути пакета
+// RegTypes - метод  регистрирующий типы в MapOfRegType, именует согласно пути пакета
 func (bs *BeansStorage) RegTypes(typesNil ...interface{}) error {
 	for _, typeT := range typesNil {
 		if err := bs.regType(typeT, ""); err != nil {
@@ -184,7 +185,7 @@ func (bs *BeansStorage) RegTypes(typesNil ...interface{}) error {
 	return nil
 }
 
-// RegNamedTypes -  метод регистрирующий типы в MapRegistryType, и именует согласно переданному имени, нечетные типы, четные имя типа
+// RegNamedTypes -  метод регистрирующий типы в MapOfRegType, и именует согласно переданному имени, нечетные типы, четные имя типа
 func (bs *BeansStorage) RegNamedTypes(typesAndNames ...interface{}) error {
 	lenTaN := len(typesAndNames)
 	if lenTaN%2 != 0 {
@@ -205,11 +206,6 @@ func (bs *BeansStorage) RegNamedTypes(typesAndNames ...interface{}) error {
 		}
 	}
 	return nil
-}
-
-// ShowRegTypes - метод возращающий список зарегистрированных названий типов
-func (bs *BeansStorage) ShowRegTypes() []string {
-	return bs.GetAllNamesRegistryTypes()
 }
 
 // regType - промежуточная оберточная функция для перехвата возможной panic
@@ -299,7 +295,7 @@ func (bs *BeansStorage) CreateBeansFromJSON(pathFile string) (err error) {
 		return errors.WithMessagef(err, "can't parse (Unmarshal) file: %v.  Data: %v ", pathFile, BeansSettingsFile)
 	}
 
-	err = bs.BuildBeansInstance(BeanDescriptions)
+	err = bs.buildBeansInstance(BeanDescriptions)
 	if err != nil {
 		return errors.WithMessagef(err, "can't build some Bean's instance")
 	}
@@ -307,8 +303,8 @@ func (bs *BeansStorage) CreateBeansFromJSON(pathFile string) (err error) {
 	return nil
 }
 
-// BuildBeansInstance - метод создающий, заполняющий и связывающий экземпляры Bean по их описанию - BeanDescription
-func (bs *BeansStorage) BuildBeansInstance(beanDescriptions []BeanDescription) error {
+// buildBeansInstance - метод создающий, заполняющий и связывающий экземпляры Bean по их описанию - BeanDescription
+func (bs *BeansStorage) buildBeansInstance(beanDescriptions []BeanDescription) error {
 
 	// Построение каркасов Bean
 	for i := range beanDescriptions {
@@ -418,14 +414,14 @@ func (bs *BeansStorage) fillAndLinkBean(beanDescription *BeanDescription) error 
 
 			switch p.Type {
 			case DeepCopyObj:
-				b, err := bs.getBeanInstanceByInterfaceID(p.Value)
+				b, err := bs.getBeanByInterfaceID(p.Value)
 				if err != nil {
 					return errors.WithMessagef(err, "p.Name: %s p.Value: %v beanDescription.ID: %s", p.Name, p.Value, beanDescription.ID)
 				}
 				x = b.r.Obj
 
 			case PointerToObj:
-				b, err := bs.getBeanInstanceByInterfaceID(p.Value)
+				b, err := bs.getBeanByInterfaceID(p.Value)
 				if err != nil {
 					return errors.WithMessagef(err, "p.Name: %s p.Value: %v beanDescription.ID: %s", p.Name, p.Value, beanDescription.ID)
 				}
