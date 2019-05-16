@@ -157,7 +157,7 @@ func (bs *BeansStorage) getBeanByInterfaceID(v interface{}) (*beanInstance, erro
 
 // ShowRegTypes - метод возращающий список зарегистрированных названий типов
 func (bs *BeansStorage) ShowRegTypes() []string {
-	types := make([]string, len(bs.typeMap))
+	types := make([]string, 0)
 	for nameType := range bs.typeMap {
 		types = append(types, nameType)
 	}
