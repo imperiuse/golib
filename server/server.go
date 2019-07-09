@@ -15,20 +15,22 @@ var (
 )
 
 type Server struct {
-	connType string
-	host     string
-	port     string
-	l        net.Listener
-	handler  func(conn net.Conn) error
+	maxCntConnect int
+	connType      string
+	host          string
+	port          string
+	l             net.Listener
+	handler       func(conn net.Conn) error
 }
 
-func New(connType ConnType, host, port string) *Server {
+func New(connType ConnType, host, port string, maxCntConnect int) *Server {
 	return &Server{
-		connType: string(connType),
-		host:     host,
-		port:     port,
-		l:        nil,
-		handler:  nil,
+		maxCntConnect: maxCntConnect,
+		connType:      string(connType),
+		host:          host,
+		port:          port,
+		l:             nil,
+		handler:       nil,
 	}
 }
 
@@ -65,23 +67,35 @@ func (s *Server) Start(chErr chan<- error) {
 		}
 	}()
 
+	// Handle connections in a new goroutine.
+	if s.handler == nil {
+		chErr <- errors.New("not redistricted handler func! handler func is nil")
+		return
+	}
+
+	// create connect worker pool and connect chan
+	chConn := make(chan net.Conn, s.maxCntConnect)
+	for i := 0; i < s.maxCntConnect; i++ {
+		go s.connectWorker(chConn, chErr)
+	}
+
 	for {
 		// Listen for an incoming connection.
 		conn, err := s.l.Accept()
 		if err != nil {
 			chErr <- errors.WithMessage(err, "problem accept new connection. net.Listener Accept()")
+			continue
 		}
+		chConn <- conn // send conn to connect worker for process
+	}
+}
 
-		// Handle connections in a new goroutine.
-		if s.handler != nil {
-			go func() {
-				err := s.handler(conn)
-				if err != nil {
-					chErr <- errors.WithMessagef(err, "err in handler func!")
-				}
-			}()
-		} else {
-			chErr <- errors.New("not redistricted handler func! handler func is nil")
+func (s *Server) connectWorker(chConn <-chan net.Conn, chErr chan<- error) {
+	for {
+		conn := <-chConn
+		err := s.handler(conn)
+		if err != nil {
+			chErr <- err
 		}
 	}
 }
