@@ -5,6 +5,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/imperiuse/golib/server"
 	"github.com/pkg/errors"
 )
@@ -12,9 +14,10 @@ import (
 type (
 	ServerTelnet struct {
 		server   *server.Server // base tcp server
-		timewait int            // timeout r/w
-		timeout  int            // timeout close conn
-		handlers CommandMap     // telnet command handlers
+		logger   *logrus.Logger
+		timewait int        // timeout r/w
+		timeout  int        // timeout close conn
+		handlers CommandMap // telnet command handlers
 	}
 	Command        = string
 	CommandMap     = map[Command]CommandHandler
@@ -40,8 +43,7 @@ func (s *ServerTelnet) Start() error {
 	go func() {
 		for {
 			err := <-chErr
-			_ = err
-			//w.logger.Error(err)
+			s.logger.Error(err)
 		}
 	}()
 
@@ -50,7 +52,7 @@ func (s *ServerTelnet) Start() error {
 		return errors.WithMessagef(err, "can't ListenAndServe for telnet server")
 	}
 
-	//s.logger.Infof("Telnet Server starts at %s", s.server.Addr())
+	s.logger.Infof("Telnet Server starts at %s", s.server.Addr())
 
 	return nil
 }
@@ -94,8 +96,6 @@ func (s *ServerTelnet) TelnetMultiplexorHandler(conn net.Conn) (err error) {
 			return err
 		}
 	}
-
-	return err
 }
 
 //// CommandAnalyze - Функция обработки одного подключения
