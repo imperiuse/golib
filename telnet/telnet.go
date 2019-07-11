@@ -17,8 +17,8 @@ type (
 		handlers CommandLists   // telnet command handlers
 	}
 	Command        = string
-	CommandLists   map[Command]CommandHandler
-	CommandHandler func(connection net.Conn, msg string, args ...string) string
+	CommandLists   = map[Command]CommandHandler
+	CommandHandler = func(connection net.Conn, msg string, args ...string) string
 )
 
 func NewTelnetServer(host, port string, maxConn, timeout, timewait int, handlers CommandLists) (*ServerTelnet, error) {
