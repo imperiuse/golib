@@ -18,7 +18,7 @@ type (
 		server   *server.Server // base tcp server
 		logger   *logrus.Logger
 		timewait int        // timeout r/w
-		timeout  int        // timeout close conn
+		timeout  int        // timeout close conn  //todo
 		handlers CommandMap // telnet command handlers
 	}
 	Command        = string
