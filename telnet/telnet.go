@@ -11,17 +11,17 @@ import (
 
 type (
 	ServerTelnet struct {
-		server   *server.Server // base tcp server
-		timewait int            // timeout r/w
-		timeout  int            // timeout close conn
-		handlers CommandLists   // telnet command handlers
+		server   *server.Server       // base tcp server
+		timewait int                  // timeout r/w
+		timeout  int                  // timeout close conn
+		handlers CommandMapCommandMap // telnet command handlers
 	}
 	Command        = string
-	CommandLists   = map[Command]CommandHandler
+	CommandMap     = map[Command]CommandHandler
 	CommandHandler = func(connection net.Conn, msg string, args ...string) string
 )
 
-func NewTelnetServer(host, port string, maxConn, timeout, timewait int, handlers CommandLists) (*ServerTelnet, error) {
+func NewTelnetServer(host, port string, maxConn, timeout, timewait int, handlers CommandMap) (*ServerTelnet, error) {
 	tcpServer, err := server.New("tcp", host, port, maxConn)
 	if err != nil {
 		return nil, errors.WithMessagef(err, "can't create new tcp server")
@@ -69,26 +69,31 @@ func (s *ServerTelnet) TelnetMultiplexorHandler(conn net.Conn) (err error) {
 		}
 	}()
 
-	request, err = server.ReadFromConnection(conn, time.Duration(s.timewait)*time.Second)
-	if err != nil {
-		return err
-	}
-
-	sRequest := strings.Split(request, " ")
-	l := len(sRequest)
-	if l > 0 {
-		command := sRequest[0]
-		args := make([]string, 0)
-		if l > 1 {
-			args = strings.Split(request, " ")[1:]
+	for {
+		request, err = server.ReadFromConnection(conn, time.Duration(s.timewait)*time.Second)
+		if err != nil {
+			return err
 		}
 
-		if handler, found := s.handlers[command]; found {
-			response = handler(conn, command, args...)
+		sRequest := strings.Split(request, " ")
+		l := len(sRequest)
+		if l > 0 {
+			command := sRequest[0]
+			args := make([]string, 0)
+			if l > 1 {
+				args = strings.Split(request, " ")[1:]
+			}
+
+			if handler, found := s.handlers[command]; found {
+				response = handler(conn, command, args...)
+			}
+		}
+
+		err = server.WriteToConnection(conn, time.Duration(s.timewait)*time.Second, response)
+		if err != nil {
+			return err
 		}
 	}
-
-	err = server.WriteToConnection(conn, time.Duration(s.timewait)*time.Second, response)
 
 	return err
 }
