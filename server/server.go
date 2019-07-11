@@ -7,7 +7,10 @@ import (
 	"github.com/pkg/errors"
 )
 
-type ConnType string
+type (
+	ConnType    string
+	HandlerFunc = func(conn net.Conn) error
+)
 
 var (
 	UDP ConnType = "udp"
@@ -20,10 +23,15 @@ type Server struct {
 	host          string
 	port          string
 	l             net.Listener
-	handler       func(conn net.Conn) error
+	handler       HandlerFunc
 }
 
-func New(connType ConnType, host, port string, maxCntConnect int) *Server {
+func New(connType ConnType, host, port string, maxCntConnect int) (*Server, error) {
+	if host == "" || port == "" || connType == "" || (connType != TCP && connType != UDP) || maxCntConnect < 1 {
+		return &Server{}, fmt.Errorf("bad input params! check params: connType:%s host:%s port:%s maxConn: %d",
+			connType, host, port, maxCntConnect)
+	}
+
 	return &Server{
 		maxCntConnect: maxCntConnect,
 		connType:      string(connType),
@@ -31,29 +39,29 @@ func New(connType ConnType, host, port string, maxCntConnect int) *Server {
 		port:          port,
 		l:             nil,
 		handler:       nil,
-	}
+	}, nil
 }
 
 func (s *Server) Addr() string {
 	return fmt.Sprintf("%s:%s", s.host, s.port)
 }
 
-func (s *Server) RegHandleFunc(handler func(conn net.Conn) error) {
+func (s *Server) ListenAndServe(handler HandlerFunc, chErr chan<- error) error {
+	if handler == nil {
+		return errors.New("handler func is nil")
+	}
 	s.handler = handler
-}
 
-func (s *Server) ListenAndServe(chErr chan<- error) error {
 	err := s.Listen()
 	if err == nil {
 		go s.Start(chErr)
 	}
 	return err
-
 }
 
 func (s *Server) Listen() (err error) {
 	s.l, err = net.Listen(s.connType, fmt.Sprintf("%s:%s", s.host, s.port))
-	return
+	return err
 }
 
 func (s *Server) Start(chErr chan<- error) {
@@ -66,12 +74,6 @@ func (s *Server) Start(chErr chan<- error) {
 			}
 		}
 	}()
-
-	// Handle connections in a new goroutine.
-	if s.handler == nil {
-		chErr <- errors.New("not redistricted handler func! handler func is nil")
-		return
-	}
 
 	// create connect worker pool and connect chan
 	chConn := make(chan net.Conn, s.maxCntConnect)
@@ -86,6 +88,11 @@ func (s *Server) Start(chErr chan<- error) {
 			chErr <- errors.WithMessage(err, "problem accept new connection. net.Listener Accept()")
 			continue
 		}
+		if conn == nil {
+			chErr <- errors.WithMessage(err, "problem create new connection. net.Listener Accept()")
+			continue
+		}
+
 		chConn <- conn // send conn to connect worker for process
 	}
 }
