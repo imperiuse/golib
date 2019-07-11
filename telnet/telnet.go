@@ -1,6 +1,7 @@
 package telnet
 
 import (
+	"bufio"
 	"net"
 	"strings"
 	"time"
@@ -72,29 +73,32 @@ func (s *ServerTelnet) TelnetMultiplexorHandler(conn net.Conn) (err error) {
 		}
 	}()
 
+	reader := bufio.NewReader(conn)
 	for {
-		request, err = server.ReadFromConnection(conn, time.Duration(s.timewait)*time.Second)
+		request, err = reader.ReadString(10)
 		if err != nil {
 			return err
 		}
+		s.logger.Debug(request)
+		if len(request) > 1 {
+			sRequest := strings.Split(request, " ")
+			l := len(sRequest)
+			if l > 0 {
+				command := sRequest[0]
+				args := make([]string, 0)
+				if l > 1 {
+					args = strings.Split(request, " ")[1:]
+				}
 
-		sRequest := strings.Split(request, " ")
-		l := len(sRequest)
-		if l > 0 {
-			command := sRequest[0]
-			args := make([]string, 0)
-			if l > 1 {
-				args = strings.Split(request, " ")[1:]
+				if handler, found := s.handlers[command]; found {
+					response = handler(conn, command, args...)
+				}
 			}
 
-			if handler, found := s.handlers[command]; found {
-				response = handler(conn, command, args...)
+			err = server.WriteToConnection(conn, time.Duration(s.timewait)*time.Second, response)
+			if err != nil {
+				return err
 			}
-		}
-
-		err = server.WriteToConnection(conn, time.Duration(s.timewait)*time.Second, response)
-		if err != nil {
-			return err
 		}
 	}
 }
