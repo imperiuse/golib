@@ -24,7 +24,7 @@ type (
 	CommandHandler = func(connection net.Conn, msg string, args ...string) string
 )
 
-func NewTelnetServer(host, port string, maxConn, timeout, timewait int, handlers CommandMap) (*ServerTelnet, error) {
+func NewTelnetServer(host, port string, maxConn, timeout, timewait int, handlers CommandMap, logger *logrus.Logger) (*ServerTelnet, error) {
 	tcpServer, err := server.New("tcp", host, port, maxConn)
 	if err != nil {
 		return nil, errors.WithMessagef(err, "can't create new tcp server")
@@ -32,6 +32,7 @@ func NewTelnetServer(host, port string, maxConn, timeout, timewait int, handlers
 
 	return &ServerTelnet{
 		server:   tcpServer,
+		logger:   logger,
 		timewait: timewait,
 		timeout:  timeout,
 		handlers: handlers,
