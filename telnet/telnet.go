@@ -11,10 +11,10 @@ import (
 
 type (
 	ServerTelnet struct {
-		server   *server.Server       // base tcp server
-		timewait int                  // timeout r/w
-		timeout  int                  // timeout close conn
-		handlers CommandMapCommandMap // telnet command handlers
+		server   *server.Server // base tcp server
+		timewait int            // timeout r/w
+		timeout  int            // timeout close conn
+		handlers CommandMap     // telnet command handlers
 	}
 	Command        = string
 	CommandMap     = map[Command]CommandHandler
