@@ -10,15 +10,23 @@ import (
 
 // go test -covermode=count -coverprofile=coverage.cov && go tool cover -html=coverage.cov
 
-func TestNew(t *testing.T) {
-	storage := New(time.Second * 10)
-	if storage.m == nil || storage.TTL == 0 {
+func TestWhoisDataStorage_New(t *testing.T) {
+	storage := New(time.Second*10, time.Hour*24)
+	if storage == nil || storage.m == nil || storage.TTL == 0 {
 		t.Errorf("return non initialize storage")
 	}
 
 }
 
-func TestSetAndGet(t *testing.T) {
+func TestWhoisDataStorage_New_Stupid(t *testing.T) {
+	storage := New(0, 0)
+	if storage == nil || storage.m == nil || storage.TTL == 0 {
+		t.Errorf("return non initialize storage")
+	}
+
+}
+
+func TestWhoisDataStorage_SetAndGet(t *testing.T) {
 
 	testCases := [][]string{
 		{"test.domain.ru", strings.Repeat("very big string", 1000)},
@@ -27,7 +35,7 @@ func TestSetAndGet(t *testing.T) {
 		{"test2.domain.ru", strings.Repeat("very big string", 20000)},
 	}
 
-	storage := New(time.Second * 10)
+	storage := New(time.Second*10, time.Hour*24)
 
 	for _, v := range testCases {
 		storage.Set(v[0], v[1])
@@ -51,9 +59,34 @@ func TestSetAndGet(t *testing.T) {
 	}
 }
 
-func TestTTLnegative(t *testing.T) {
+func TestWhoisDataStorage_RemoveAll(t *testing.T) {
+
+	testCases := [][]string{
+		{"test.domain.ru", strings.Repeat("very big string", 1000)},
+		{"test.domain.ru", strings.Repeat("small string", 100)},
+		{"test1.domain.ru", strings.Repeat("very big string", 10000)},
+		{"test2.domain.ru", strings.Repeat("very big string", 20000)},
+	}
+
+	storage := New(time.Second*10, time.Hour*24)
+
+	for _, v := range testCases {
+		storage.Set(v[0], v[1])
+	}
+
+	storage.RemoveAll()
+
+	for i, v := range testCases {
+		if _, found := storage.Get(v[0]); found {
+			t.Fatalf("found whois text for domain %s test case #%d", v[0], i)
+		}
+	}
+
+}
+
+func TestWhoisDataStorage_CacheTTL_negative(t *testing.T) {
 	const TTL = time.Second * 1
-	storage := New(TTL)
+	storage := New(TTL, time.Hour*24)
 
 	testCases := [][]string{
 		{"test.domain.ru", strings.Repeat("small string", 100)},
@@ -76,14 +109,39 @@ func TestTTLnegative(t *testing.T) {
 
 }
 
-func TestGoRoutinSafe(t *testing.T) {
+func TestWhoisDataStorage_ResetCache(t *testing.T) {
+	const TTL = time.Second * 100
+	storage := New(TTL, time.Second*2)
+
+	testCases := [][]string{
+		{"test.domain.ru", strings.Repeat("small string", 100)},
+		{"test1.domain.ru", strings.Repeat("big string", 1000)},
+		{"test2.domain.ru", strings.Repeat("very big string", 10000)},
+	}
+
+	for _, v := range testCases {
+		storage.Set(v[0], v[1])
+	}
+
+	time.Sleep(time.Second * 2)
+
+	storage.RemoveAll()
+
+	for i, v := range testCases {
+		if _, found := storage.Get(v[0]); found {
+			t.Errorf("not remove (ResetCache) whois text for domain %s test case #%d", v[0], i)
+		}
+	}
+}
+
+func TestWhoisDataStorage_GoRoutinSafe(t *testing.T) {
 	const (
 		NumberGoroutine = 50
 		domain          = "test.test"
 		TTL             = time.Millisecond * 250
 	)
 
-	storage := New(TTL)
+	storage := New(TTL, time.Hour*24)
 	storage.Set(domain, "init whois info")
 
 	stop := make(chan interface{}, 1)

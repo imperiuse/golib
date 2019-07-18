@@ -43,7 +43,7 @@ func New(connType ConnType, host, port string, maxCntConnect int) (*Server, erro
 }
 
 func (s *Server) Addr() string {
-	return fmt.Sprintf("%s:%s", s.host, s.port)
+	return net.JoinHostPort(s.host, s.port)
 }
 
 func (s *Server) ListenAndServe(handler HandlerFunc, chErr chan<- error) error {
