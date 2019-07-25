@@ -76,7 +76,7 @@ func (s *Server) Start(chErr chan<- error) {
 	}()
 
 	// create connect worker pool and connect chan
-	chConn := make(chan net.Conn, s.maxCntConnect)
+	chConn := make(chan net.Conn)
 	for i := 0; i < s.maxCntConnect; i++ {
 		go s.connectWorker(chConn, chErr)
 	}
@@ -88,12 +88,19 @@ func (s *Server) Start(chErr chan<- error) {
 			chErr <- errors.WithMessage(err, "problem accept new connection. net.Listener Accept()")
 			continue
 		}
+
 		if conn == nil {
 			chErr <- errors.WithMessage(err, "problem create new connection. net.Listener Accept()")
 			continue
 		}
 
-		chConn <- conn // send conn to connect worker for process
+		select {
+		case chConn <- conn: // send conn to connect worker for process
+
+		default: // all workers busy, reject connect
+			chErr <- errors.New("All pool workers are busy")
+			_ = conn.Close()
+		}
 	}
 }
 
