@@ -13,10 +13,9 @@ import (
 // To ensure `TxFn` funcs cannot commit or rollback a transaction (which is
 // handled by `WithTransaction`), those methods are not included here.
 type Transaction interface {
-	Exec(query string, args ...interface{}) (sql.Result, error)
-	Prepare(query string) (*sql.Stmt, error)
-	Query(query string, args ...interface{}) (*sql.Rows, error)
-	QueryRow(query string, args ...interface{}) *sql.Row
+	sqlx.QueryerContext
+	sqlx.PreparerContext
+	sqlx.ExecerContext
 }
 
 // A Txfn is a function that will be called with an initialized `Transaction` object
