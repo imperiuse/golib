@@ -16,6 +16,9 @@ type Transaction interface {
 	sqlx.QueryerContext
 	sqlx.PreparerContext
 	sqlx.ExecerContext
+	sqlx.Execer
+	sqlx.Queryer
+	sqlx.Preparer
 }
 
 // A Txfn is a function that will be called with an initialized `Transaction` object
