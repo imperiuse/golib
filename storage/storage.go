@@ -30,7 +30,7 @@ type (
 	}
 )
 
-func New(ttl time.Duration, autoCleanTimeout time.Duration) StoreI {
+func New(ttl time.Duration, autoCleanTimeout time.Duration) *Store {
 
 	// "защита от дурака"
 	if autoCleanTimeout == 0 {
