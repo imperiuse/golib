@@ -85,3 +85,10 @@ func (c *Store) Set(k Key, v interface{}) {
 
 	c.m[k] = Value{time.Now(), v}
 }
+
+func (c *Store) Delete(k Key) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	delete(c.m, k)
+}

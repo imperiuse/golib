@@ -10,7 +10,7 @@ import (
 
 // go test -covermode=count -coverprofile=coverage.cov && go tool cover -html=coverage.cov
 
-func TestWhoisDataStorage_New(t *testing.T) {
+func TestStorage_New(t *testing.T) {
 	storage := New(time.Second*10, time.Hour*24)
 	if storage == nil || storage.m == nil || storage.TTL == 0 {
 		t.Errorf("return non initialize storage")
@@ -18,7 +18,7 @@ func TestWhoisDataStorage_New(t *testing.T) {
 
 }
 
-func TestWhoisDataStorage_New_Stupid(t *testing.T) {
+func TestStorage_New_Stupid(t *testing.T) {
 	storage := New(0, 0)
 	if storage == nil || storage.m == nil || storage.TTL == 0 {
 		t.Errorf("return non initialize storage")
@@ -26,46 +26,77 @@ func TestWhoisDataStorage_New_Stupid(t *testing.T) {
 
 }
 
-func TestWhoisDataStorage_SetAndGet(t *testing.T) {
+func TestStorage_SetAndGet(t *testing.T) {
 
-	testCases := [][]string{
-		{"test.domain.ru", strings.Repeat("very big string", 1000)},
-		{"test.domain.ru", strings.Repeat("small string", 100)},
-		{"test1.domain.ru", strings.Repeat("very big string", 10000)},
-		{"test2.domain.ru", strings.Repeat("very big string", 20000)},
+	testCases := []struct {
+		key   string
+		value interface{}
+	}{
+		{"key1", strings.Repeat("very big string", 100)},
+		{"key1", strings.Repeat("small string", 100)},
+		{"key3", strings.Repeat("very big string", 100)},
+		{"key4", strings.Repeat("very big string", 100)},
 	}
 
 	storage := New(time.Second*10, time.Hour*24)
 
 	for _, v := range testCases {
-		storage.Set(v[0], v[1])
+		storage.Set(v.key, v.value)
 	}
 
 	for i, v := range testCases {
-		if s, found := storage.Get(v[0]); !found {
-			t.Errorf("not found whois text for domain %s test case #%d", v[0], i)
+		if s, found := storage.Get(v.key); !found {
+			t.Errorf("not found data for key %s test case #%d", v.key, i)
 
 		} else {
 			if i != 0 {
-				if s != v[1] {
-					t.Errorf("get text non equals set text for domain %s test case #%d", v[0], i)
+				if s != v.value {
+					t.Errorf("get text non equals set data for key %s test case #%d", v.key, i)
 				}
 			} else { // проверка что мы перезаписали старый Set
-				if s == v[0] {
-					t.Errorf("get text non equals set text for domain %s test case #%d", v[0], i)
+				if s == v.value {
+					t.Error(s, v.value)
+					t.Errorf("get text non equals set data for key %s test case #%d", v.key, i)
 				}
 			}
 		}
 	}
 }
 
-func TestWhoisDataStorage_RemoveAll(t *testing.T) {
+func TestStorage_Delete(t *testing.T) {
+
+	testCases := []struct {
+		key   string
+		value interface{}
+	}{
+		{"key1", 1234},
+		{"key2", "1234"},
+		{"key3", struct{}{}},
+		{"key4", nil},
+	}
+
+	storage := New(time.Second*10, time.Hour*24)
+
+	for _, v := range testCases {
+		storage.Set(v.key, v.value)
+		storage.Delete(v.key)
+	}
+
+	for i, v := range testCases {
+		if _, found := storage.Get(v.key); found {
+			t.Errorf("found deleted key: %s test case #%d", v.key, i)
+
+		}
+	}
+}
+
+func TestStorage_RemoveAll(t *testing.T) {
 
 	testCases := [][]string{
-		{"test.domain.ru", strings.Repeat("very big string", 1000)},
-		{"test.domain.ru", strings.Repeat("small string", 100)},
-		{"test1.domain.ru", strings.Repeat("very big string", 10000)},
-		{"test2.domain.ru", strings.Repeat("very big string", 20000)},
+		{"key1", strings.Repeat("very big string", 1000)},
+		{"key2", strings.Repeat("small string", 100)},
+		{"key3", strings.Repeat("very big string", 10000)},
+		{"key4", strings.Repeat("very big string", 20000)},
 	}
 
 	storage := New(time.Second*10, time.Hour*24)
@@ -84,14 +115,14 @@ func TestWhoisDataStorage_RemoveAll(t *testing.T) {
 
 }
 
-func TestWhoisDataStorage_CacheTTL_negative(t *testing.T) {
+func TestStorage_CacheTTL_negative(t *testing.T) {
 	const TTL = time.Second * 1
 	storage := New(TTL, time.Hour*24)
 
 	testCases := [][]string{
-		{"test.domain.ru", strings.Repeat("small string", 100)},
-		{"test1.domain.ru", strings.Repeat("big string", 1000)},
-		{"test2.domain.ru", strings.Repeat("very big string", 10000)},
+		{"key1", strings.Repeat("small string", 100)},
+		{"key2", strings.Repeat("big string", 1000)},
+		{"key3", strings.Repeat("very big string", 10000)},
 	}
 
 	for _, v := range testCases {
@@ -109,14 +140,14 @@ func TestWhoisDataStorage_CacheTTL_negative(t *testing.T) {
 
 }
 
-func TestWhoisDataStorage_ResetCache(t *testing.T) {
+func TestStorage_ResetCache(t *testing.T) {
 	const TTL = time.Second * 100
 	storage := New(TTL, time.Second*2)
 
 	testCases := [][]string{
-		{"test.domain.ru", strings.Repeat("small string", 100)},
-		{"test1.domain.ru", strings.Repeat("big string", 1000)},
-		{"test2.domain.ru", strings.Repeat("very big string", 10000)},
+		{"key1", strings.Repeat("small string", 100)},
+		{"key2", strings.Repeat("big string", 1000)},
+		{"key3", strings.Repeat("very big string", 10000)},
 	}
 
 	for _, v := range testCases {
@@ -129,20 +160,20 @@ func TestWhoisDataStorage_ResetCache(t *testing.T) {
 
 	for i, v := range testCases {
 		if _, found := storage.Get(v[0]); found {
-			t.Errorf("not remove (ResetCache) whois text for domain %s test case #%d", v[0], i)
+			t.Errorf("not remove (ResetCache) data for key %s test case #%d", v[0], i)
 		}
 	}
 }
 
-func TestWhoisDataStorage_GoRoutinSafe(t *testing.T) {
+func TestStorage_GoRoutinSafe(t *testing.T) {
 	const (
 		NumberGoroutine = 50
-		domain          = "test.test"
+		key             = "key"
 		TTL             = time.Millisecond * 250
 	)
 
 	storage := New(TTL, time.Hour*24)
-	storage.Set(domain, "init whois info")
+	storage.Set(key, "init info")
 
 	stop := make(chan interface{}, 1)
 
@@ -150,20 +181,19 @@ func TestWhoisDataStorage_GoRoutinSafe(t *testing.T) {
 		go func(i int) {
 			sr := rand.NewSource(time.Now().UnixNano())
 			r := rand.New(sr)
-			whoisText := fmt.Sprintf("%d: whois info", i)
+			data := fmt.Sprintf("%d: info", i)
 			for {
 				select {
 				case <-stop:
 					return
 				default:
-					rw := r.Intn(2)
+					rw := r.Intn(3)
 					if rw == 0 {
-						_, found := storage.Get(domain)
-						if !found {
-							t.Errorf("!found")
-						}
+						_, _ = storage.Get(key)
+					} else if rw == 1 {
+						storage.Set(key, data)
 					} else {
-						storage.Set(domain, whoisText)
+						storage.Delete(key)
 					}
 					time.Sleep(time.Microsecond * 10 * time.Duration(r.Intn(5)))
 				}
