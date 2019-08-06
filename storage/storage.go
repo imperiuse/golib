@@ -11,21 +11,21 @@ const (
 )
 
 type (
-	WhoisDataStorage struct {
+	Key   = string
+	Value = struct {
+		time time.Time
+		data interface{}
+	}
+	StoreMap = map[Key]Value
+
+	Store struct {
 		TTL time.Duration
 		mu  sync.Mutex
-		m   map[FQDN]whoisData
-	}
-
-	FQDN = string
-
-	whoisData struct {
-		raw  string
-		time time.Time
+		m   StoreMap
 	}
 )
 
-func New(ttl time.Duration, autoCleanTimeout time.Duration) *WhoisDataStorage {
+func New(ttl time.Duration, autoCleanTimeout time.Duration) *Store {
 
 	// "защита от дурака"
 	if autoCleanTimeout == 0 {
@@ -36,10 +36,10 @@ func New(ttl time.Duration, autoCleanTimeout time.Duration) *WhoisDataStorage {
 		ttl = TTLCacheDefault
 	}
 
-	storage := &WhoisDataStorage{
+	storage := &Store{
 		TTL: ttl,
 		mu:  sync.Mutex{},
-		m:   map[FQDN]whoisData{},
+		m:   StoreMap{},
 	}
 
 	// запуск горутины которая раз в autoCleanTimeout полностью сбрасывае кэш
@@ -53,30 +53,30 @@ func New(ttl time.Duration, autoCleanTimeout time.Duration) *WhoisDataStorage {
 	return storage
 }
 
-func (c *WhoisDataStorage) RemoveAll() {
+func (c *Store) RemoveAll() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	c.m = map[FQDN]whoisData{}
+	c.m = StoreMap{}
 }
 
-func (c *WhoisDataStorage) Get(fqdn FQDN) (string, bool) {
+func (c *Store) Get(k Key) (interface{}, bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	data, ok := c.m[fqdn]
-	if ok && time.Since(data.time) > c.TTL { // auto remove too old data from cache
-		delete(c.m, fqdn)
+	v, ok := c.m[k]
+	if ok && time.Since(v.time) > c.TTL { // auto remove too old data from cache
+		delete(c.m, k)
 		ok = false
-		data.raw = ""
+		v.data = ""
 	}
 
-	return data.raw, ok
+	return v.data, ok
 }
 
-func (c *WhoisDataStorage) Set(fqdn FQDN, whois string) {
+func (c *Store) Set(k Key, v interface{}) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	c.m[fqdn] = whoisData{whois, time.Now()}
+	c.m[k] = Value{time.Now(), v}
 }
