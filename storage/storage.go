@@ -23,9 +23,14 @@ type (
 		mu  sync.Mutex
 		m   StoreMap
 	}
+
+	StoreI interface {
+		Get(Key) (interface{}, bool)
+		Set(Key, interface{})
+	}
 )
 
-func New(ttl time.Duration, autoCleanTimeout time.Duration) *Store {
+func New(ttl time.Duration, autoCleanTimeout time.Duration) StoreI {
 
 	// "защита от дурака"
 	if autoCleanTimeout == 0 {
