@@ -44,6 +44,17 @@ func WithTransaction(db *sqlx.DB, fn TxFn) (err error) {
 	return
 }
 
+// WithTransaction creates a new transaction and handles rollback/commit based on the
+// error object returned by the `TxFn`
+func WithTransactionMany(db *sqlx.DB, fn ...TxFn) error {
+	for _, f := range fn {
+		if err := WithTransaction(db, f); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // WithCtxTransaction creates a new transaction with ctx and handles rollback/commit based on the
 // error object returned by the `TxFn`
 func WithCtxTransaction(ctx context.Context, opt *sql.TxOptions, db *sqlx.DB, fn TxFn) (err error) {

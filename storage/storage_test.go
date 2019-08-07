@@ -109,7 +109,7 @@ func TestStorage_RemoveAll(t *testing.T) {
 
 	for i, v := range testCases {
 		if _, found := storage.Get(v[0]); found {
-			t.Fatalf("found whois text for domain %s test case #%d", v[0], i)
+			t.Fatalf("found data for key %s test case #%d", v[0], i)
 		}
 	}
 
@@ -133,7 +133,7 @@ func TestStorage_CacheTTL_negative(t *testing.T) {
 
 	for i, v := range testCases {
 		if _, found := storage.Get(v[0]); found {
-			t.Errorf("not remove (TTL) whois text for domain %s test case #%d", v[0], i)
+			t.Errorf("not remove (TTL) data for key %s test case #%d", v[0], i)
 
 		}
 	}

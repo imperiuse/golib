@@ -1,5 +1,6 @@
 package aes
 
+//nolint
 import (
 	"bytes"
 	"crypto/aes"
@@ -17,20 +18,18 @@ type AES struct {
 	key []byte
 }
 
+//nolint
 func New(key string) *AES {
 	md5secret := md5.Sum([]byte(key))
 	return &AES{md5secret[:]}
 }
 
 func (a *AES) EncodeUrl(s string) (string, error) {
-	encoded := base64.URLEncoding.EncodeToString([]byte(s))
-
-	data, err := EncryptCBC([]byte(encoded), a.key)
+	data, err := EncryptCBC([]byte(s), a.key)
 	if err != nil {
 		return "", errors.WithMessage(err, "DecryptCBC error")
 	}
-	return string(data), err
-
+	return base64.URLEncoding.EncodeToString(data), nil
 }
 
 func (a *AES) DecodeUrl(s string) (string, error) {
