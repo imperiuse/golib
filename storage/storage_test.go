@@ -47,7 +47,6 @@ func TestStorage_SetAndGet(t *testing.T) {
 	for i, v := range testCases {
 		if s, found := storage.Get(v.key); !found {
 			t.Errorf("not found data for key %s test case #%d", v.key, i)
-
 		} else {
 			if i != 0 {
 				if s != v.value {
@@ -187,10 +186,12 @@ func TestStorage_GoRoutinSafe(t *testing.T) {
 				case <-stop:
 					return
 				default:
-					rw := r.Intn(3)
+					rw := r.Intn(4)
 					if rw == 0 {
 						_, _ = storage.Get(key)
 					} else if rw == 1 {
+						_, _ = storage.GetTTL(key, time.Millisecond*10*time.Duration(r.Intn(10)))
+					} else if rw == 2 {
 						storage.Set(key, data)
 					} else {
 						storage.Delete(key)

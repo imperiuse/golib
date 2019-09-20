@@ -69,6 +69,18 @@ func (c *Store) Get(k Key) (interface{}, bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
+	return c.get(k, c.TTL)
+
+}
+
+func (c *Store) GetTTL(k Key, ttl time.Duration) (interface{}, bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	return c.get(k, ttl)
+}
+
+func (c *Store) get(k Key, ttl time.Duration) (interface{}, bool) {
 	v, ok := c.m[k]
 	if ok && time.Since(v.time) > c.TTL { // auto remove too old data from cache
 		delete(c.m, k)
