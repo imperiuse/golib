@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/garyburd/redigo/redis"
+	"github.com/gomodule/redigo/redis"
 	"github.com/imperiuse/golib/concat"
 	"github.com/imperiuse/golib/email"
 	l "github.com/imperiuse/golib/logger"
