@@ -50,7 +50,7 @@ type PgDB struct {
 	MaxOpenConns       int  // max open connections
 
 	Email  *email.MailBean // Email Bean for send error info
-	Logger *l.LoggerI      // Pointer to Logger interface
+	Logger l.LoggerI       // Pointer to Logger interface
 	db     *sqlx.DB        // Pool connection to DB (return by sql.Open("postgres", ".....db_settings))
 }
 
@@ -100,7 +100,7 @@ func (pg *PgDB) ConfigString() (config string) {
 func (pg *PgDB) Connect() (err error) {
 	// Use connect for "true" connect check to DB
 	if pg.db, err = sqlx.Connect("postgres", pg.ConfigString()); err != nil {
-		(*pg.Logger).Error("PgDB.Connect()", pg.Name, "Can't connect to DB server!",
+		pg.Logger.Error("PgDB.Connect()", pg.Name, "Can't connect to DB server!",
 			pg.ConfigString(), err)
 	}
 	if pg.ConnMaxLifetime > 0 {
@@ -118,18 +118,18 @@ func (pg *PgDB) Connect() (err error) {
 // Close - Закрытие соединения
 func (pg *PgDB) Close() {
 	if err := pg.db.Close(); err != nil {
-		(*pg.Logger).Error("PgDB.close()", pg.Name, "Can't close DB connection!", err)
+		pg.Logger.Error("PgDB.close()", pg.Name, "Can't close DB connection!", err)
 	}
-	(*pg.Logger).Info("PgDB.close()", pg.Name,
+	pg.Logger.Info("PgDB.close()", pg.Name,
 		concat.Strings("Connection to database", pg.Host, ":", pg.DbName, "successful close()"))
 }
 
 func (pg *PgDB) executeDefer(callBy string, query string, err error, args ...interface{}) {
 	if r := recover(); r != nil {
-		(*pg.Logger).Error(callBy, pg.Name, "PANIC!", r)
+		pg.Logger.Error(callBy, pg.Name, "PANIC!", r)
 		if err = pg.Email.SendEmails(
 			fmt.Sprintf("PANIC!\n%v\nErr:\n%+v\nSQL:\n%v\nWith args:\n%+v", callBy, r, query, args)); err == nil {
-			(*pg.Logger).Error(callBy, pg.Name, "Can't send email!", err)
+			pg.Logger.Error(callBy, pg.Name, "Can't send email!", err)
 		}
 	}
 }
@@ -140,15 +140,15 @@ func (pg *PgDB) ExecuteQuery(callBy string, query string, args ...interface{}) (
 	defer pg.executeDefer(concat.Strings(callBy, " [DEFER]"), query, err, args...)
 
 	for cnt := 0; cnt < pg.CntAttemptRequest; cnt++ {
-		(*pg.Logger).Debug(callBy, pg.Name, concat.Strings("Attemp execute query: ", strconv.Itoa(cnt)))
+		pg.Logger.Debug(callBy, pg.Name, concat.Strings("Attemp execute query: ", strconv.Itoa(cnt)))
 		rows, err = pg.db.Query(query, args...)
 		if err != nil {
-			(*pg.Logger).Log(l.DbFail, callBy, pg.Name, "SQL FAILED",
+			pg.Logger.Log(l.DbFail, callBy, pg.Name, "SQL FAILED",
 				err,
 				query,
 				"ARGS:", args)
 		} else {
-			(*pg.Logger).Log(l.DbOk, callBy, pg.Name, "SQL SUCCESS",
+			pg.Logger.Log(l.DbOk, callBy, pg.Name, "SQL SUCCESS",
 				query,
 				"ARGS:", args)
 			return rows, nil
@@ -168,16 +168,16 @@ func (pg *PgDB) ExecuteRowAffected(callBy string, query string, args ...interfac
 		var results sql.Result
 		results, err = pg.db.Exec(query, args...)
 		if err != nil {
-			(*pg.Logger).Log(l.DbFail, callBy, pg.Name, "SQL FAILED",
+			pg.Logger.Log(l.DbFail, callBy, pg.Name, "SQL FAILED",
 				err,
 				query,
 				"ARGS:", args)
 		} else {
-			(*pg.Logger).Log(l.DbOk, callBy, pg.Name, "SQL SUCCESS",
+			pg.Logger.Log(l.DbOk, callBy, pg.Name, "SQL SUCCESS",
 				query,
 				"ARGS:", args)
 			if rowAffected, err = results.RowsAffected(); err != nil {
-				(*pg.Logger).Error("Err while rows affected:", err)
+				pg.Logger.Error("Err while rows affected:", err)
 			}
 			return rowAffected, err
 		}
@@ -197,15 +197,15 @@ func (pg *PgDB) ExecuteQueryX(callBy string, query string, args ...interface{}) 
 	defer pg.executeDefer(concat.Strings(callBy, " [DEFER]"), query, err, args...)
 
 	for cnt := 0; cnt < pg.CntAttemptRequest; cnt++ {
-		(*pg.Logger).Debug(callBy, pg.Name, concat.Strings("Attemp execute query: ", strconv.Itoa(cnt)))
+		pg.Logger.Debug(callBy, pg.Name, concat.Strings("Attemp execute query: ", strconv.Itoa(cnt)))
 		rows, err = pg.db.Queryx(query, args...)
 		if err != nil {
-			(*pg.Logger).Log(l.DbFail, query, pg.Name, "SQL FAILED",
+			pg.Logger.Log(l.DbFail, query, pg.Name, "SQL FAILED",
 				err,
 				query,
 				"ARGS:", args)
 		} else {
-			(*pg.Logger).Log(l.DbOk, callBy, pg.Name, "SQL SUCCESS",
+			pg.Logger.Log(l.DbOk, callBy, pg.Name, "SQL SUCCESS",
 				query,
 				"ARGS:", args)
 			return rows, nil
@@ -230,11 +230,11 @@ func (pg *PgDB) Select(callBy string, dest interface{}, query string, args ...in
 
 	// NOTE  // if you have null fields and use SELECT *, you must use sql.Null* in your struct
 	if err = pg.db.Select(dest, query, args...); err != nil {
-		(*pg.Logger).Log(l.DbFail, callBy, pg.Name, "SQL FAILED", err,
+		pg.Logger.Log(l.DbFail, callBy, pg.Name, "SQL FAILED", err,
 			query,
 			"ARGS:", args)
 	} else {
-		(*pg.Logger).Log(l.DbOk, callBy, pg.Name, "SQL SUCCESS",
+		pg.Logger.Log(l.DbOk, callBy, pg.Name, "SQL SUCCESS",
 			query,
 			"ARGS:", args)
 	}
@@ -254,11 +254,11 @@ func (pg *PgDB) Get(callBy string, dest interface{}, query string, args ...inter
 	defer pg.executeDefer(concat.Strings(callBy, " [DEFER]"), query, err, args...)
 
 	if err = pg.db.Get(dest, query, args...); err != nil {
-		(*pg.Logger).Log(l.DbFail, callBy, pg.Name, "SQL FAILED", err,
+		pg.Logger.Log(l.DbFail, callBy, pg.Name, "SQL FAILED", err,
 			query,
 			"ARGS:", args)
 	} else {
-		(*pg.Logger).Log(l.DbOk, callBy, pg.Name, "SQL SUCCESS",
+		pg.Logger.Log(l.DbOk, callBy, pg.Name, "SQL SUCCESS",
 			query,
 			"ARGS:", args)
 	}
@@ -282,11 +282,11 @@ func (pg *PgDB) NamedExec(callBy string, query string, nameArgs map[string]inter
 	defer pg.executeDefer(concat.Strings(callBy, " [DEFER]"), query, err, nameArgs)
 
 	if result, err = pg.db.NamedExec(query, nameArgs); err != nil {
-		(*pg.Logger).Log(l.DbFail, callBy, pg.Name, "SQL FAILED", err,
+		pg.Logger.Log(l.DbFail, callBy, pg.Name, "SQL FAILED", err,
 			query,
 			"ARGS:", nameArgs)
 	} else {
-		(*pg.Logger).Log(l.DbOk, callBy, pg.Name, "SQL SUCCESS",
+		pg.Logger.Log(l.DbOk, callBy, pg.Name, "SQL SUCCESS",
 			query,
 			"ARGS:", nameArgs)
 	}
@@ -306,11 +306,11 @@ func (pg *PgDB) NamedQuery(callBy string, query string, data interface{}) (rows 
 	defer pg.executeDefer(concat.Strings(callBy, " [DEFER]"), query, err, data)
 
 	if rows, err = pg.db.NamedQuery(query, data); err != nil {
-		(*pg.Logger).Log(l.DbFail, callBy, pg.Name, "SQL FAILED", err,
+		pg.Logger.Log(l.DbFail, callBy, pg.Name, "SQL FAILED", err,
 			query,
 			"ARGS:", data)
 	} else {
-		(*pg.Logger).Log(l.DbOk, callBy, pg.Name, "SQL SUCCESS",
+		pg.Logger.Log(l.DbOk, callBy, pg.Name, "SQL SUCCESS",
 			query,
 			"ARGS:", data)
 	}
