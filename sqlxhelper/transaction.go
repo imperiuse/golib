@@ -1,4 +1,4 @@
-package transactionhelper
+package sqlxhelper
 
 import (
 	"context"
@@ -10,7 +10,17 @@ import (
 
 // A Txfn is a function that will be called with an initialized `Transaction` object
 // that can be used for executing statements and queries against a database.
-type TxFn func(*sqlx.Tx) error
+type TxFn = func(*sqlx.Tx) error
+
+// WithTransactionMany implements range over many transactions, if one error, other not execute
+func WithManyTransaction(db *sqlx.DB, fn ...TxFn) error {
+	for _, f := range fn {
+		if err := WithTransaction(db, f); err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
 // WithTransaction creates a new transaction and handles rollback/commit based on the
 // error object returned by the `TxFn`
@@ -44,20 +54,29 @@ func WithTransaction(db *sqlx.DB, fn TxFn) (err error) {
 	return
 }
 
-// WithTransaction creates a new transaction and handles rollback/commit based on the
-// error object returned by the `TxFn`
-func WithTransactionMany(db *sqlx.DB, fn ...TxFn) error {
+func WithManyCtxTransaction(ctx context.Context, db *sqlx.DB, fn ...TxFn) error {
 	for _, f := range fn {
-		if err := WithTransaction(db, f); err != nil {
+		if err := WithCtxTransaction(ctx, db, f); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-// WithCtxTransaction creates a new transaction with ctx and handles rollback/commit based on the
-// error object returned by the `TxFn`
-func WithCtxTransaction(ctx context.Context, opt *sql.TxOptions, db *sqlx.DB, fn TxFn) (err error) {
+func WithManyCtxOptTransaction(ctx context.Context, opt *sql.TxOptions, db *sqlx.DB, fn ...TxFn) error {
+	for _, f := range fn {
+		if err := WithCtxOptTransaction(ctx, opt, db, f); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func WithCtxTransaction(ctx context.Context, db *sqlx.DB, fn TxFn) error {
+	return WithCtxOptTransaction(ctx, nil, db, fn)
+}
+
+func WithCtxOptTransaction(ctx context.Context, opt *sql.TxOptions, db *sqlx.DB, fn TxFn) (err error) {
 	var tx *sqlx.Tx
 	defer func() {
 		if p := recover(); p != nil {
