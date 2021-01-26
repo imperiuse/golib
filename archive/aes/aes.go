@@ -1,6 +1,5 @@
 package aes
 
-//nolint
 import (
 	"bytes"
 	"crypto/aes"

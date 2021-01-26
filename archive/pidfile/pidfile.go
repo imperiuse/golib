@@ -70,6 +70,7 @@ func pidIsRunning(pid int) bool {
 
 	err = process.Signal(syscall.Signal(0))
 
+	// can't use errors.Is - unexported errors in library process =(
 	if err != nil && err.Error() == "no such process" {
 		return false
 	}

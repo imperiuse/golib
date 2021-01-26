@@ -154,7 +154,7 @@ func CSMthemePicker(ThemeName string) (cs CSM) {
 	cs = make(CSM)
 	copyDefaultCSM(&cs)
 	switch ThemeName {
-	case "arseny":
+	case "github":
 		cs[CsDatetime] = ColorSheme{CreateCS(ClrFgDefault)}
 		cs[CsInfo] = ColorSheme{CreateCS(ClrFgGreen, ClrBold)}
 		cs[CsDebug] = ColorSheme{CreateCS(ClrFgYellow)}

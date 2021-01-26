@@ -39,14 +39,14 @@ func ExampleDynamicTypeAssertion() {
 	fmt.Printf("Input: %+v %T\nType: %T\nResult: %+v %T\n", t, t, temp1, r, r)
 }
 
-func ExampleCastToFloat64() {
+func ExampleToFloat64() {
 	// If possible cat interface{} to float64
 
 	// Here possible type to cast
 	var sliceI = []interface{}{"1.23", "-1.23", 123, -123, uint(123), int8(1), uint8(1), float32(1.2)} // also int16, int32, int64, uint16, uin32, uin64
 
 	for _, v := range sliceI {
-		if r, ok := CastToFloat64(v); !ok {
+		if r, ok := ToFloat64(v); !ok {
 			fmt.Println(r) // r - float64
 		} else {
 			fmt.Println("cant't cast")
@@ -55,7 +55,7 @@ func ExampleCastToFloat64() {
 
 }
 
-// 1. CastToFloat64()
+// 1. ToFloat64()
 
 // 1.1. POSITIVE TEST CASE
 func TestCastToFloat64Must(t *testing.T) {
@@ -64,7 +64,7 @@ func TestCastToFloat64Must(t *testing.T) {
 	var r float64
 	var ok bool
 	for i, v := range testCasesMustCast {
-		if r, ok = CastToFloat64(v); !ok {
+		if r, ok = ToFloat64(v); !ok {
 			t.Errorf("Failed status test #%d cast: %v to float", i, v)
 		}
 		if r != testCasesMustCastAns[i] {
@@ -78,7 +78,7 @@ func TestCastToFloat64Fail(t *testing.T) {
 	testCasesNotMustCast := []interface{}{"", nil, new(interface{}), struct{}{}}
 	var ok bool
 	for i, v := range testCasesNotMustCast {
-		if _, ok = CastToFloat64(v); ok {
+		if _, ok = ToFloat64(v); ok {
 			t.Errorf("Failed status negative test #%d cast: %v to float", i, v)
 		}
 	}

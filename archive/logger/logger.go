@@ -7,7 +7,7 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/imperiuse/golib/colormap"
+	"github.com/imperiuse/golib/archive/colormap"
 	"github.com/imperiuse/golib/concat"
 )
 
