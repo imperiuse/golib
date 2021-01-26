@@ -28,14 +28,14 @@ func Be64toh(i uint64) uint64 {
 	return binary.BigEndian.Uint64((*(*[8]byte)(unsafe.Pointer(&i)))[:])
 }
 
-func InetAddr(s string) uint32 {
+func Addr(s string) uint32 {
 	return binary.BigEndian.Uint32(net.ParseIP(s).To4())
 }
 
-func InetNtoa(p unsafe.Pointer) string {
+func Ntoa4(p unsafe.Pointer) string {
 	return net.IP((*(*[net.IPv4len]byte)(p))[:]).String()
 }
 
-func Inet6Ntoa(p unsafe.Pointer) string {
+func Ntoa6(p unsafe.Pointer) string {
 	return net.IP((*(*[net.IPv6len]byte)(p))[:]).String()
 }

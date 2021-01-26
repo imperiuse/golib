@@ -9,7 +9,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/imperiuse/golib/concat"
+	"github.com/imperiuse/golib/archive/concat"
 )
 
 // MailBean - all settings for email package in Bean-like struct
@@ -65,13 +65,11 @@ func (m *MailBean) SendEmails(body string) error {
 
 // sendEmail - send one email
 func (m *MailBean) sendEmail(to mail.Address, subj, body string) (err error) {
-	// Setup headers
 	headers := make(map[string]string)
 	headers["from"] = m.from.String()
 	headers["to"] = to.String()
 	headers["Subject"] = subj
 
-	// Setup message
 	message := ""
 	for k, v := range headers {
 		message = concat.Strings(message, fmt.Sprintf("%s: %s\r\n", k, v))
@@ -117,7 +115,6 @@ func (m *MailBean) sendEmail(to mail.Address, subj, body string) (err error) {
 		m.log.WithError(err).Error("client.Rcpt(to.Address)")
 	}
 
-	// Data
 	w, err := client.Data()
 	if err != nil {
 		m.log.WithError(err).Error("client.Data")

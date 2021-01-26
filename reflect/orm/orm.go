@@ -1,19 +1,22 @@
-package reflect
+package orm
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 	"strings"
+	"sync"
 )
 
 // !DISCLAIMER!
 // I know, that use reflect in most cases bad and slow.
-// I know, that another ORM it is not go-way.
-// But for me, using this small library for create micro ORM good choise in many case
-// if you do not think about serious optimization
+// Also I realize that yet-another ORM, it is not go-way.
+// But for me, using this small library for create micro ORM good choice in many cases
+// Of course, if you do not think about serious optimization
 //
 // This micro library use the same approach like sqlx with `db` tag parsing
+//
+// Before start work with this package
+// You should call function InitOrmMetaInfoCache() for warm and init cache (cacheMetaDTO)
 
 type (
 	Column   = string
@@ -21,22 +24,19 @@ type (
 	Alias    = string
 	Argument = interface{}
 
-	structName = string
-	ormUseType = string
+	structName       = string
+	ormUseInTagValue = string
 
 	metaDTO = struct {
-		colsMap map[ormUseType][]Column
+		colsMap map[ormUseInTagValue][]Column
 		aliases []Alias
 		join    Join
 	}
 )
 
 var (
+	m            sync.RWMutex
 	cacheMetaDTO = map[structName]*metaDTO{}
-)
-
-var (
-	ErrNotFoundInCache = errors.New("not found in cacheMetaDTO, check InitCacheForOrmMetaInfo, if all DTO register? ")
 )
 
 // custom tag for "sugar" columns values prepare for Update squirrel library staff
@@ -51,22 +51,54 @@ const (
 	ormUseInUpdate = "update"
 )
 
-const emptyRootAlias = ""
+const (
+	emptyTypeParam = ""
+	emptyRootAlias = ""
+)
 
-func InitCacheForOrmMetaInfo(objs ...interface{}) error {
+func InitOrmMetaInfoCache(objs ...interface{}) {
+	m.Lock()
+	defer m.Unlock()
+
 	for _, obj := range objs {
-		meta := &metaDTO{
-			colsMap: map[ormUseType][]Column{},
-		}
-		meta.join = getMetaInfoForOrmJoinTag(obj)
-		meta.aliases = getMetaInfoForOrmAliasTag(obj)
-		for _, v := range []string{ormUseInSelect, ormUseInCreate, ormUseInUpdate} {
-			meta.colsMap[v], _ = getMetaInfoUseInTag(obj, v, emptyRootAlias)
-		}
-		cacheMetaDTO[getObjTypeNameByReflect(obj)] = meta
+		cacheMetaDTO[getObjTypeNameByReflect(obj)] = getMetaInfoForObj(obj)
+	}
+}
+
+func GetOrmDataForSelect(obj interface{}) ([]Column, []Alias, Join) {
+	meta := getMetaDTOInfo(emptyTypeParam, obj)
+	return meta.colsMap[ormUseInSelect], meta.aliases, meta.join
+}
+
+func GetOrmDataForCreate(obj interface{}) ([]Column, []Argument, error) {
+	cols, args := getMetaInfoUseInTag(obj, ormUseInCreate, emptyRootAlias)
+	return cols, args, nil
+}
+
+func GetOrmDataForUpdate(obj interface{}) (map[Column]Argument, error) {
+	cols, args := getMetaInfoUseInTag(obj, ormUseInUpdate, emptyRootAlias)
+
+	cv := make(map[Column]Argument, len(cols))
+	for i, v := range cols {
+		cv[v] = args[i]
+	}
+	return cv, nil
+}
+
+func getMetaInfoForObj(obj interface{}) *metaDTO {
+	meta := &metaDTO{
+		colsMap: map[ormUseInTagValue][]Column{},
 	}
 
-	return nil
+	meta.join = getMetaInfoForOrmJoinTag(obj)
+
+	meta.aliases = getMetaInfoForOrmAliasTag(obj)
+
+	for _, v := range []string{ormUseInSelect, ormUseInCreate, ormUseInUpdate} {
+		meta.colsMap[v], _ = getMetaInfoUseInTag(obj, v, emptyRootAlias)
+	}
+
+	return meta
 }
 
 func getObjTypeNameByReflect(obj interface{}) string {
@@ -75,6 +107,7 @@ func getObjTypeNameByReflect(obj interface{}) string {
 
 func getMetaInfoForOrmJoinTag(obj interface{}) Join {
 	join := ""
+
 	v := reflect.Indirect(reflect.ValueOf(obj))
 	t := v.Type()
 
@@ -113,7 +146,7 @@ func getMetaInfoForOrmAliasTag(obj interface{}) []Alias {
 	return aliases
 }
 
-func getMetaInfoUseInTag(obj interface{}, useInTag ormUseType, alias Alias) ([]Column, []Argument) {
+func getMetaInfoUseInTag(obj interface{}, useInTag ormUseInTagValue, alias Alias) ([]Column, []Argument) {
 	cols, args := []Column{}, []Argument{}
 
 	v := reflect.Indirect(reflect.ValueOf(obj))
@@ -159,36 +192,21 @@ func getMetaInfoUseInTag(obj interface{}, useInTag ormUseType, alias Alias) ([]C
 	return cols, args
 }
 
-func GetOrmDataForSelect(obj interface{}) ([]Column, []Alias, Join, error) {
-	meta, err := getMetaDTOInfo("", obj)
-	if err != nil {
-		return nil, nil, "", err
-	}
-	return meta.colsMap[ormUseInSelect], meta.aliases, meta.join, nil
-}
-
-func getMetaDTOInfo(typ string, obj interface{}) (*metaDTO, error) {
+func getMetaDTOInfo(typ string, obj interface{}) *metaDTO {
 	// todo think about typ param
-	if typ == "" {
+	if typ == emptyTypeParam {
 		typ = getObjTypeNameByReflect(obj)
 	}
-	if m, found := cacheMetaDTO[typ]; found {
-		return m, nil
+
+	m.RLock()
+	if _, found := cacheMetaDTO[typ]; !found {
+		m.RUnlock()
+		m.Lock()
+		defer m.Unlock()
+		cacheMetaDTO[typ] = getMetaInfoForObj(obj)
+	} else {
+		m.RUnlock()
 	}
-	return nil, ErrNotFoundInCache
-}
 
-func GetOrmDataForCreate(obj interface{}) ([]Column, []Argument, error) {
-	cols, args := getMetaInfoUseInTag(obj, ormUseInCreate, emptyRootAlias)
-	return cols, args, nil
-}
-
-func GetOrmDataForUpdate(obj interface{}) (map[Column]Argument, error) {
-	cols, args := getMetaInfoUseInTag(obj, ormUseInUpdate, emptyRootAlias)
-
-	cv := make(map[Column]Argument, len(cols))
-	for i, v := range cols {
-		cv[v] = args[i]
-	}
-	return cv, nil
+	return cacheMetaDTO[typ]
 }

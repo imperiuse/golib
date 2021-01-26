@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/imperiuse/golib/archive/colormap"
-	"github.com/imperiuse/golib/concat"
+	"github.com/imperiuse/golib/archive/concat"
 )
 
 // LoggerBean - Bean описывающий настройки логера

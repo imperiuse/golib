@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/imperiuse/golib/concat"
+	"github.com/imperiuse/golib/archive/concat"
 )
 
 // CSN - ColorSchemeNumber

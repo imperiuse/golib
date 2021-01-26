@@ -8,6 +8,11 @@ import (
 	"github.com/pkg/errors"
 )
 
+type TxxI interface {
+	// BeginTxx begins a transaction and returns an *sqlx.Tx instead of an *sql.Tx.
+	BeginTxx(ctx context.Context, opts *sql.TxOptions) (*sqlx.Tx, error)
+}
+
 // A Txfn is a function that will be called with an initialized `Transaction` object
 // that can be used for executing statements and queries against a database.
 type TxFn = func(*sqlx.Tx) error
@@ -17,7 +22,7 @@ type TxFn = func(*sqlx.Tx) error
 // If the context is canceled, the sql package will roll back the transaction.
 // Tx.Commit will return an error if the context is canceled.
 // TxOptions holds the transaction options to be used in DB.BeginTx.
-func WithTransaction(ctx context.Context, opt *sql.TxOptions, db *sqlx.DB, fn ...TxFn) error {
+func WithTransaction(ctx context.Context, opt *sql.TxOptions, db TxxI, fn ...TxFn) error {
 	tx, err := db.BeginTxx(ctx, opt)
 	if err != nil {
 		return err

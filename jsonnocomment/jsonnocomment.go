@@ -4,19 +4,21 @@ import (
 	"io/ioutil"
 )
 
-// ReadFileAndCleanComment - Функция чтения JSON файла и удаления из него закоментированных строк и блок (комментарии согласно правилам С/С++)
+// ReadFileAndCleanComment - Функция чтения JSON файла и удаления из него закомментированных строк и блок
+// (comments style like С/С++)
 func ReadFileAndCleanComment(pathFile string) (cleanFile []byte, err error) {
-	// Чтение из file по pathFile
 	file, err := ioutil.ReadFile(pathFile)
 	if err != nil {
 		return nil, err
 	}
+
 	l := len(file)
-	// Создаем байтовый массив размера прочитанного чтобы избежать перевыделения памяти
-	cleanFile = make([]byte, l)
-	var commentLine bool  // признак комментариев (закоментирована вся линия  // ТУТ КОМЕНТ ДО КОНЦА СТРОЧКИ\n)
-	var commentBlock bool // признак комментариев (закоментирован только блок  /* КОММЕНТ ТОЛЬКО ТУТ*/)
-	var j int             // текущий индекс для заполнения среза cleanFile
+	cleanFile = make([]byte, l) // Создаем байтовый массив размера прочитанного чтобы избежать перевыделения памяти
+	var (
+		commentLine  bool // признак комментариев (закомментирована вся линия  // ТУТ КОМЕНТ ДО КОНЦА СТРОЧКИ\n)
+		commentBlock bool // признак комментариев (закомментирован только блок  /* КОММЕНТ ТОЛЬКО ТУТ*/)
+		j            int  // текущий индекс для заполнения среза cleanFile
+	)
 	for i := 0; i < l; i++ {
 		c := file[i]
 		switch c {

@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -16,9 +17,7 @@ func TestHashAndSalt(t *testing.T) {
 	for i, plainPassword := range plainPasswords {
 		for j, cost := range costs {
 			_, err := HashAndSalt([]byte(plainPassword), cost)
-			if err != nil {
-				t.Errorf("HashAndSalt problem in test case %d:%d: Error: %v", i, j, err)
-			}
+			assert.Nil(t, err, "HashAndSalt problem in test case", i, j)
 		}
 	}
 }
@@ -26,12 +25,10 @@ func TestHashAndSalt(t *testing.T) {
 func TestComparePasswords(t *testing.T) {
 	plainPasswords := []string{"", "12345678", strings.Repeat("x", 100500)}
 	costs := []int{0, bcrypt.MinCost, bcrypt.DefaultCost} //, bcrypt.MaxCost}
-	for i, plainPassword := range plainPasswords {
-		for j, cost := range costs {
+	for _, plainPassword := range plainPasswords {
+		for _, cost := range costs {
 			r, _ := HashAndSalt([]byte(plainPassword), cost)
-			if r, err := ComparePasswords(r, []byte(plainPassword)); err != nil || !r {
-				t.Errorf("ComparePasswords wrong result in test case %d:%d: Error: %v", i, j, err)
-			}
+			assert.True(t, ComparePasswords(r, []byte(plainPassword)))
 		}
 	}
 }
