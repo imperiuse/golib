@@ -6,7 +6,6 @@ import (
 	"github.com/imperiuse/golib/colormap"
 )
 
-// colors
 var (
 	RED     string
 	GREEN   string

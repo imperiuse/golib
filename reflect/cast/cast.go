@@ -8,7 +8,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// DynamicTypeAssertion - функция для динамического сопостовления типа делает примерно следующее
+// DynamicTypeAssertion - функция для динамического сопоставления типа делает примерно следующее
 //                       r := vI.(origin.Type()) - это решило бы все проблемы!!!!
 func DynamicTypeAssertion(vI interface{}, origin reflect.Value) (reflect.Value, error) {
 	var r reflect.Value
@@ -97,7 +97,7 @@ func numCast(vI interface{}, origin reflect.Value) (r reflect.Value, err error) 
 		}
 	}()
 
-	f64, ok := CastToFloat64(vI)
+	f64, ok := ToFloat64(vI)
 	if !ok {
 		return r, errors.New("can't type assertion vI (interface{}) to float64")
 	}
@@ -195,21 +195,21 @@ func numCast(vI interface{}, origin reflect.Value) (r reflect.Value, err error) 
 	return r, nil
 }
 
-// CastToFloat64 - по возможности приводит интерфейс к типу float64
-func CastToFloat64(v interface{}) (float64, bool) {
+// ToFloat64 - по возможности приводит интерфейс к типу float64
+func ToFloat64(v interface{}) (float64, bool) {
 	switch i := v.(type) {
 	case nil:
 		return float64(0), false
 	case int:
 		return float64(int64(i)), true
 	case int64:
-		return float64(int64(i)), true
+		return float64(i), true
 	case int32:
-		return float64(int64(i)), true
+		return float64(i), true
 	case int16:
-		return float64(int64(i)), true
+		return float64(i), true
 	case int8:
-		return float64(int64(i)), true
+		return float64(i), true
 	case float64:
 		return float64(i), true
 	case float32:

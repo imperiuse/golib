@@ -42,7 +42,7 @@ func NewTelnetServer(host, port string, maxConn, timeout, timewait int, handlers
 }
 
 func (s *ServerTelnet) Start() error {
-	chErr := make(chan error, 0)
+	chErr := make(chan error)
 	go func() {
 		for {
 			err := <-chErr
@@ -89,7 +89,7 @@ func (s *ServerTelnet) TelnetMultiplexorHandler(conn net.Conn) (err error) {
 			command := sRequest[0]
 			args := make([]string, 0)
 
-			// Повтор последней команды в стиле команжной строки bash   //^[[A
+			// Повтор последней команды в стиле командной строки bash   //^[[A
 			if len(command) == 3 &&
 				[]byte(command)[0] == 27 &&
 				[]byte(command)[1] == 91 &&

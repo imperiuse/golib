@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/imperiuse/golib/colormap"
+	"github.com/imperiuse/golib/archive/colormap"
 )
 
 func TestPrint(t *testing.T) {

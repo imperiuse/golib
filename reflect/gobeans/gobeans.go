@@ -5,13 +5,12 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/imperiuse/golib/cast"
-	"github.com/mitchellh/mapstructure"
-
 	"github.com/jinzhu/copier"
+	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
 
-	"github.com/imperiuse/golib/concat"
+	"github.com/imperiuse/golib/archive/concat"
+	"github.com/imperiuse/golib/cast"
 	"github.com/imperiuse/golib/jsonnocomment"
 )
 

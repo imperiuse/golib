@@ -8,8 +8,8 @@ import (
 
 	"github.com/imperiuse/golib/concat"
 
+	l "github.com/imperiuse/golib/archive/logger"
 	"github.com/imperiuse/golib/email"
-	l "github.com/imperiuse/golib/logger"
 
 	"github.com/jmoiron/sqlx"
 	//nolint
@@ -127,9 +127,9 @@ func (pg *PgDB) Close() {
 func (pg *PgDB) executeDefer(callBy string, query string, err error, args ...interface{}) {
 	if r := recover(); r != nil {
 		pg.Logger.Error(callBy, pg.Name, "PANIC!", r)
-		if err = pg.Email.SendEmails(
+		if errIn := pg.Email.SendEmails(
 			fmt.Sprintf("PANIC!\n%v\nErr:\n%+v\nSQL:\n%v\nWith args:\n%+v", callBy, r, query, args)); err == nil {
-			pg.Logger.Error(callBy, pg.Name, "Can't send email!", err)
+			pg.Logger.Error(callBy, pg.Name, "Can't send email!", errIn)
 		}
 	}
 }

@@ -8,6 +8,8 @@ import (
 	"testing"
 )
 
+// TODO REFACTOR -> USE TESTIFY
+
 // TestNatural - первая тестовая структура
 //nolint
 type TestNatural struct {

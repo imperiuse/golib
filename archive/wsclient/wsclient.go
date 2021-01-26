@@ -201,6 +201,7 @@ func (c *Client) listen() {
 			<-time.After(time.Second)
 			return
 		}
+
 	}
 }
 
@@ -237,7 +238,7 @@ func (c *Client) startKeepAliveResponder() {
 			}
 
 			<-ticker.C
-			if time.Now().Sub(lastResponse) > maxCntLossPongResponse*c.keepAliveTimeout {
+			if time.Since(lastResponse) > maxCntLossPongResponse*c.keepAliveTimeout {
 				c.log.Error("keepAliveTimeout exist")
 				c.Stop()
 				return
