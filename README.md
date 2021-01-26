@@ -1,7 +1,7 @@
 # golang_lib
-Helpfully goland lib
+Helpfully golang lib
 
-Example for various stuff
+Examples for various stuff
 
 ### Install
 
