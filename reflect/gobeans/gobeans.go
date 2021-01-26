@@ -10,8 +10,8 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/imperiuse/golib/archive/concat"
-	"github.com/imperiuse/golib/cast"
 	"github.com/imperiuse/golib/jsonnocomment"
+	"github.com/imperiuse/golib/reflect/cast"
 )
 
 // Типы свойств по аналогии с JAVA BEANS

@@ -1,7 +1,6 @@
 package filters
 
 import (
-	"fmt"
 	"net/http"
 )
 
@@ -21,6 +20,10 @@ type OrderFilterer interface {
 type OrderFilters struct {
 	Order   []string
 	filters []Filterer
+}
+
+var emptyFilterHandler = func(w http.ResponseWriter, r *http.Request) {
+	return
 }
 
 // GetOrderFilters -  Get order of filters
@@ -65,8 +68,6 @@ func (filterOrder *OrderFilters) GetFilterN(n int) Filterer {
 }
 
 // GenerateFilteredHandleFunc - Generate func - handle fun - filtered handle func of action
-// ATTENTION CAN PANIC!
-//nolint
 //	@param
 //				handleFunc 	func(http.ResponseWriter, *http.Request)      -  handle of action
 //	@return
@@ -77,5 +78,5 @@ func (filterOrder *OrderFilters) GenerateFilteredHandleFunc(handleFunc func(http
 			StartFilter.Run(w, r, handleFunc)
 		}
 	}
-	panic(fmt.Errorf("`GenerateFilteredHandleFunc()` --> fo.GetFilterN(0) return nil"))
+	return emptyFilterHandler
 }

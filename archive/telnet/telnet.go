@@ -9,7 +9,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/imperiuse/golib/server"
+	"github.com/imperiuse/golib/archive/server"
 	"github.com/pkg/errors"
 )
 

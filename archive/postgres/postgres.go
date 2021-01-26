@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/imperiuse/golib/concat"
+	"github.com/imperiuse/golib/archive/concat"
 
 	l "github.com/imperiuse/golib/archive/logger"
 	"github.com/imperiuse/golib/email"

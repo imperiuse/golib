@@ -1,14 +1,11 @@
 package saltyhashpswd
 
 import (
-	"errors"
-
 	"golang.org/x/crypto/bcrypt"
 )
 
 func HashAndSalt(pwd []byte, cost int) (string, error) {
-
-	if cost != bcrypt.MinCost && cost != bcrypt.MaxCost {
+	if cost < bcrypt.MinCost && cost > bcrypt.MaxCost {
 		cost = bcrypt.DefaultCost
 	}
 
@@ -17,17 +14,13 @@ func HashAndSalt(pwd []byte, cost int) (string, error) {
 	if err != nil {
 		return "", nil
 	}
+
 	return string(hash), nil
 }
 
-func ComparePasswords(hashedPwd string, plainPwd []byte) (bool, error) {
-	byteHash := []byte(hashedPwd)
-	err := bcrypt.CompareHashAndPassword(byteHash, plainPwd)
-	if err != nil {
-		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
-			return false, nil
-		}
-		return false, err
+func ComparePasswords(hashedPwd string, plainPwd []byte) bool {
+	if bcrypt.CompareHashAndPassword([]byte(hashedPwd), plainPwd) != nil {
+		return false
 	}
-	return true, nil
+	return true
 }

@@ -1,4 +1,4 @@
-package reflect
+package orm
 
 import (
 	"testing"
@@ -53,7 +53,7 @@ type ReflectTestSuit struct {
 }
 
 func (suite *ReflectTestSuit) SetupSuite() {
-	assert.Nil(suite.T(), InitCacheForOrmMetaInfo([]interface{}{&A{}, &B{}, &C{}}...))
+	InitOrmMetaInfoCache([]interface{}{&A{}, &B{}, &C{}}...)
 }
 
 // The TearDownSuite method will be run by testify once, at the very
@@ -93,8 +93,7 @@ func (suite *ReflectTestSuit) Test_GetOrmDataForCreate() {
 
 func (suite *ReflectTestSuit) Test_GetOrmDataForSelect() {
 	t := suite.T()
-	cols, aliases, join, err := GetOrmDataForSelect(&C{})
-	assert.Nil(t, err)
+	cols, aliases, join := GetOrmDataForSelect(&C{})
 	assert.NotNil(t, aliases)
 	assert.Equal(t, []string{"a", "b"}, aliases)
 	assert.Equal(t, "ON a.id = b.id", join)
@@ -124,10 +123,8 @@ func (suite *ReflectTestSuit) Test_BadGetOrmDataForCreate() {
 
 func (suite *ReflectTestSuit) Test_BadGetOrmDataForSelect() {
 	t := suite.T()
-	col, args, join, err := GetOrmDataForSelect(&BadStruct{})
-	assert.NotNil(t, err)
-	assert.Nil(t, col)
-	assert.Nil(t, args)
+	col, args, join := GetOrmDataForSelect(&BadStruct{})
+	assert.Equal(t, []string{}, col)
+	assert.Equal(t, []string{}, args)
 	assert.Equal(t, "", join)
-	assert.Equal(t, ErrNotFoundInCache, err)
 }

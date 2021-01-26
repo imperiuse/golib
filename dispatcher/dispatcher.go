@@ -56,7 +56,7 @@ func Create(timeout int, onlyNew []string, renew []string) (*Dispatcher, error) 
 	return &d, nil
 }
 
-// NextNewAccountID - возращает следующий аккаунт id доступный для выпуска новых сертов, и флаг - успех/нет
+// NextNewAccountID - возвращает следующий аккаунт id доступный для выпуска новых сертов, и флаг - успех/нет
 func (d *Dispatcher) NextNewAccountID(ctx context.Context) (string, bool) {
 
 	ctxWithTimeout, cancelFunction := context.WithTimeout(ctx, time.Duration(d.timeoutWaitID)*time.Second)
@@ -70,7 +70,7 @@ func (d *Dispatcher) NextNewAccountID(ctx context.Context) (string, bool) {
 	}
 }
 
-// NextRenewAccountID -  возращает следующий аккаунт id доступный для перевыпуска сертов, и флаг - успех/нет
+// NextRenewAccountID -  возвращает следующий аккаунт id доступный для перевыпуска сертов, и флаг - успех/нет
 func (d *Dispatcher) NextRenewAccountID(ctx context.Context) (string, bool) {
 
 	ctxWithTimeout, cancelFunction := context.WithTimeout(ctx, time.Duration(d.timeoutWaitID)*time.Second)
@@ -98,7 +98,7 @@ func (d *Dispatcher) FreeNewAccountID(ctx context.Context, id string) error {
 	}
 }
 
-// FreeRenewAccountID - возращает использованный id в канал renew accounts id
+// FreeRenewAccountID - возвращает использованный id в канал renew accounts id
 func (d *Dispatcher) FreeRenewAccountID(ctx context.Context, id string) error {
 
 	ctxWithTimeout, cancelFunction := context.WithTimeout(ctx, time.Duration(deferDuration)*time.Second)

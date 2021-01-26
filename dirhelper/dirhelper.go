@@ -82,8 +82,8 @@ func CopyDir(src string, dst string) error {
 	return nil
 }
 
-// CreateDir - создает новую директорию (есть проверка на существование директории, если нет - создает)
-func CreateDir(dir string) error {
+// MakeDir - создает новую директорию (есть проверка на существование директории, если нет - создает)
+func MakeDir(dir string) error {
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
 		if err = os.MkdirAll(dir, os.ModePerm); err != nil {
 			return err
@@ -120,8 +120,8 @@ func CleanDir(dir string) (err error) {
 	return
 }
 
-// ListSubdirs - получает список поддиректорий в текущей директории
-func ListSubdirs(src string) ([]string, error) {
+// ListSubeditors - получает список поддиректорий в текущей директории
+func ListSubeditors(src string) ([]string, error) {
 	fds, err := ioutil.ReadDir(src)
 	if err != nil {
 		return nil, errors.WithMessage(err, fmt.Sprintf("can't ioutil.ReadDir for dir:%s", src))

@@ -2,7 +2,7 @@
 
 ## Intro
 
-The idea of ​​the package is to enable the quick implementation of various custom filters for an HTTP request.
+The idea of the package is to enable the quick implementation of various custom filters for an HTTP request.
 
 The package already implements all the default methods of the interface filter `Filterer` in the base filter` BaseFilter`.
 

@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-func logn(n, b float64) float64 {
+func logN(n, b float64) float64 {
 	return math.Log(n) / math.Log(b)
 }
 
@@ -15,7 +15,7 @@ func HumValue(s uint64, base float64, sizes []string) string {
 	if s < 10 {
 		return fmt.Sprintf("%d B", s)
 	}
-	e := math.Floor(logn(float64(s), base))
+	e := math.Floor(logN(float64(s), base))
 	suffix := sizes[int(e)]
 	val := math.Floor(float64(s)/math.Pow(base, e)*10+0.5) / 10
 	f := "%.0f %s"
@@ -26,16 +26,19 @@ func HumValue(s uint64, base float64, sizes []string) string {
 	return fmt.Sprintf(f, val, suffix)
 }
 
+var (
+	sufShortSI = []string{"B", "KB", "MB", "GB", "TB", "PB", "EB"}
+	sufLongSI  = []string{"byte", "Kbyte", "Mbyte", "Gbyte", "Tbyte", "Pbyte", "Ebyte"}
+)
+
 // produces a human readable representation of an SI size. (82854982) -> 83 MB
 func BytesSi(s uint64) string {
-	sizes := []string{"B", "KB", "MB", "GB", "TB", "PB", "EB"}
-	return HumValue(s, 1000, sizes)
+	return HumValue(s, 1000, sufShortSI)
 }
 
 // produces a human readable representation of an IEC size. (82854982) -> 79 MiB
 func Bytes(s uint64) string {
-	sizes := []string{"byte", "Kbyte", "Mbyte", "Gbyte", "Tbyte", "Pbyte", "Ebyte"}
-	return HumValue(s, 1024, sizes)
+	return HumValue(s, 1024, sufLongSI)
 }
 
 func Comma(v int64) string {
