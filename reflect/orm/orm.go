@@ -22,7 +22,7 @@ type (
 	Column   = string
 	Table    = string
 	Typ      = string
-	Join     = string
+	JoinCond = string
 	Alias    = string
 	Argument = interface{}
 
@@ -31,8 +31,7 @@ type (
 
 	MetaDTO = struct {
 		ColsMap    map[ormUseInTagValue][]Column
-		Aliases    []Alias
-		Join       Join
+		JoinCond   JoinCond
 		TableName  Table
 		TableAlias Alias
 		StructName Typ
@@ -91,9 +90,9 @@ func getMetaDTO(structName string, obj interface{}) *MetaDTO {
 	return cacheMetaDTO[structName]
 }
 
-func GetDataForSelect(obj interface{}) ([]Column, []Alias, Join) {
+func GetDataForSelect(obj interface{}) ([]Column, JoinCond) {
 	meta := GetMetaDTO(obj)
-	return meta.ColsMap[ormUseInSelect], meta.Aliases, meta.Join
+	return meta.ColsMap[ormUseInSelect], meta.JoinCond
 }
 
 func GetDataForCreate(obj interface{}) ([]Column, []Argument) {
@@ -124,7 +123,7 @@ func GetTableAlias(obj interface{}) Alias {
 func GetTableNameWithAlias(obj interface{}) string {
 	meta := GetMetaDTO(obj)
 	if meta.TableName != "" && meta.TableAlias != "" {
-		return meta.TableName + " as " + meta.TableAlias
+		return fmt.Sprintf(" %s as %s ", meta.TableName, meta.TableAlias)
 	}
 	return ""
 }
@@ -132,20 +131,17 @@ func GetTableNameWithAlias(obj interface{}) string {
 func getNoneCacheMetaDTO(obj interface{}) *MetaDTO {
 	meta := &MetaDTO{
 		ColsMap:    map[ormUseInTagValue][]Column{ormUseInSelect: {}, ormUseInCreate: {}, ormUseInUpdate: {}},
-		Aliases:    []Alias{},
 		StructName: getObjTypeNameByReflect(obj),
 	}
 	if obj == nil {
 		return meta
 	}
 
-	meta.Join = getMetaInfoForOrmTagOnlyOne(tagOrmJoin, obj)
+	meta.JoinCond = getMetaInfoForOrmTagOnlyOne(tagOrmJoin, obj)
 
 	meta.TableName = getMetaInfoForOrmTagOnlyOne(tagOrmTableName, obj)
 
 	meta.TableAlias = getMetaInfoForOrmTagOnlyOne(tagOrmAlias, obj)
-
-	meta.Aliases = getMetaInfoForOrmAliasTag(obj)
 
 	for _, v := range []string{ormUseInSelect, ormUseInCreate, ormUseInUpdate} {
 		meta.ColsMap[v], _ = getMetaInfoUseInTag(obj, v, emptyRootAlias)
@@ -182,30 +178,6 @@ func getMetaInfoForOrmTagOnlyOne(value ormUseInTagValue, obj interface{}) string
 
 func isTagEmpty(tag string) bool {
 	return tag == "" || tag == "-"
-}
-
-func getMetaInfoForOrmAliasTag(obj interface{}) []Alias {
-	aliases := []Alias{}
-
-	v := reflect.Indirect(reflect.ValueOf(obj))
-	t := v.Type()
-
-	if t.Kind() != reflect.Struct {
-		return aliases
-	}
-
-	for i := 0; i < t.NumField(); i++ {
-		field := t.Field(i)
-
-		if v.Field(i).Kind() == reflect.Struct {
-			aliasTagValue := field.Tag.Get(tagOrmAlias)
-			if !isTagEmpty(aliasTagValue) {
-				aliases = append(aliases, aliasTagValue)
-			}
-		}
-	}
-
-	return aliases
 }
 
 func getMetaInfoUseInTag(obj interface{}, useInTag ormUseInTagValue, alias Alias) ([]Column, []Argument) {
