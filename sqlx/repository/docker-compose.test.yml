@@ -1,0 +1,17 @@
+version: '3'
+
+volumes:
+  test-postgres-data: {}
+
+services:
+
+  test-postgres:
+    image: postgres:12
+    container_name: test-postgres
+    environment:
+      - POSTGRES_USER=test
+      - POSTGRES_PASSWORD=test
+    volumes:
+      - test-postgres-data:/var/lib/postgresql/data
+    ports: #host_port : docker_port
+      - "5433:5432" #  host_port:docker_port

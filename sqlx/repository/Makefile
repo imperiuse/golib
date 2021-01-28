@@ -1,0 +1,25 @@
+.EXPORT_ALL_VARIABLES:
+
+.PHONY: test_env_up
+test_env_up:
+	@echo "Start test environment"
+	@echo "1. Export test env variables and Run docker-compose test"
+	docker-compose -f docker-compose.test.yml up -d
+	sleep 5  # sleep driven development, pg init
+
+.PHONY: test_env_down
+test_env_down:
+	@echo "Stop test environment"
+	docker-compose -f docker-compose.test.yml down
+
+.PHONY: tests
+tests:
+	@echo "Running integrations tests"
+	@echo "1. Run test env"
+	make test_env_up
+
+	@echo "2. Run tests"
+	go test -timeout 5m -race -short `go list ./... `
+
+	@echo "3. Stop test env"
+	make test_env_down

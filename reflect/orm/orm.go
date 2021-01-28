@@ -16,10 +16,12 @@ import (
 // This micro library use the same approach like sqlx with `db` tag parsing
 //
 // Before start work with this package
-// You should call function InitOrmMetaInfoCache() for warm and init cache (cacheMetaDTO)
+// You should call function InitMetaTagInfoCache() for warm and init cache (cacheMetaDTO)
 
 type (
 	Column   = string
+	Table    = string
+	Typ      = string
 	Join     = string
 	Alias    = string
 	Argument = interface{}
@@ -27,99 +29,139 @@ type (
 	structName       = string
 	ormUseInTagValue = string
 
-	metaDTO = struct {
-		colsMap map[ormUseInTagValue][]Column
-		aliases []Alias
-		join    Join
+	MetaDTO = struct {
+		ColsMap    map[ormUseInTagValue][]Column
+		Aliases    []Alias
+		Join       Join
+		TableName  Table
+		StructName Typ
 	}
 )
 
 var (
 	m            sync.RWMutex
-	cacheMetaDTO = map[structName]*metaDTO{}
+	cacheMetaDTO = map[structName]*MetaDTO{}
 )
 
 // custom tag for "sugar" columns values prepare for Update squirrel library staff
 const (
-	tagDB       = "db" // must be for all DTO structs fields, this tag also used by sqlx
-	tagOrmUseIN = "orm_use_in"
-	tagOrmAlias = "orm_alias"
-	tagOrmJoin  = "orm_join"
+	tagDB           = "db" // must be for all DTO structs fields, this tag also used by sqlx
+	tagOrmUseIN     = "orm_use_in"
+	tagOrmAlias     = "orm_alias"
+	tagOrmJoin      = "orm_join"
+	tagOrmTableName = "orm_table_name"
 
 	ormUseInSelect = "select"
 	ormUseInCreate = "create"
 	ormUseInUpdate = "update"
-)
 
-const (
-	emptyTypeParam = ""
 	emptyRootAlias = ""
 )
 
-func InitOrmMetaInfoCache(objs ...interface{}) {
+func InitMetaTagInfoCache(objs ...interface{}) {
 	m.Lock()
 	defer m.Unlock()
 
 	for _, obj := range objs {
-		cacheMetaDTO[getObjTypeNameByReflect(obj)] = getMetaInfoForObj(obj)
+		if obj == nil {
+			continue
+		}
+		cacheMetaDTO[getObjTypeNameByReflect(obj)] = getNoneCacheMetaDTO(obj)
 	}
 }
 
-func GetOrmDataForSelect(obj interface{}) ([]Column, []Alias, Join) {
-	meta := getMetaDTOInfo(emptyTypeParam, obj)
-	return meta.colsMap[ormUseInSelect], meta.aliases, meta.join
+func GetMetaDTO(obj interface{}) *MetaDTO {
+	return getMetaDTO(getObjTypeNameByReflect(obj), obj)
 }
 
-func GetOrmDataForCreate(obj interface{}) ([]Column, []Argument, error) {
+func getMetaDTO(structName string, obj interface{}) *MetaDTO {
+	m.RLock()
+	if _, found := cacheMetaDTO[structName]; !found {
+		m.RUnlock()
+		m.Lock()
+		defer m.Unlock()
+		cacheMetaDTO[structName] = getNoneCacheMetaDTO(obj)
+	} else {
+		m.RUnlock()
+	}
+
+	return cacheMetaDTO[structName]
+}
+
+func GetDataForSelect(obj interface{}) ([]Column, []Alias, Join) {
+	meta := GetMetaDTO(obj)
+	return meta.ColsMap[ormUseInSelect], meta.Aliases, meta.Join
+}
+
+func GetDataForCreate(obj interface{}) ([]Column, []Argument) {
 	cols, args := getMetaInfoUseInTag(obj, ormUseInCreate, emptyRootAlias)
-	return cols, args, nil
+	return cols, args
 }
 
-func GetOrmDataForUpdate(obj interface{}) (map[Column]Argument, error) {
+func GetDataForUpdate(obj interface{}) map[Column]Argument {
 	cols, args := getMetaInfoUseInTag(obj, ormUseInUpdate, emptyRootAlias)
 
 	cv := make(map[Column]Argument, len(cols))
 	for i, v := range cols {
 		cv[v] = args[i]
 	}
-	return cv, nil
+	return cv
 }
 
-func getMetaInfoForObj(obj interface{}) *metaDTO {
-	meta := &metaDTO{
-		colsMap: map[ormUseInTagValue][]Column{},
+func GetTableName(obj interface{}) string {
+	meta := GetMetaDTO(obj)
+	return meta.TableName
+}
+
+func getNoneCacheMetaDTO(obj interface{}) *MetaDTO {
+	meta := &MetaDTO{
+		ColsMap:    map[ormUseInTagValue][]Column{ormUseInSelect: {}, ormUseInCreate: {}, ormUseInUpdate: {}},
+		Aliases:    []Alias{},
+		Join:       "",
+		TableName:  "",
+		StructName: getObjTypeNameByReflect(obj),
+	}
+	if obj == nil {
+		return meta
 	}
 
-	meta.join = getMetaInfoForOrmJoinTag(obj)
+	meta.Join = getMetaInfoForOrmTagOnlyOne(tagOrmJoin, obj)
 
-	meta.aliases = getMetaInfoForOrmAliasTag(obj)
+	meta.TableName = getMetaInfoForOrmTagOnlyOne(tagOrmTableName, obj)
+
+	meta.Aliases = getMetaInfoForOrmAliasTag(obj)
 
 	for _, v := range []string{ormUseInSelect, ormUseInCreate, ormUseInUpdate} {
-		meta.colsMap[v], _ = getMetaInfoUseInTag(obj, v, emptyRootAlias)
+		meta.ColsMap[v], _ = getMetaInfoUseInTag(obj, v, emptyRootAlias)
 	}
 
 	return meta
 }
 
 func getObjTypeNameByReflect(obj interface{}) string {
+	if obj == nil {
+		return "nil"
+	}
 	return reflect.Indirect(reflect.ValueOf(obj)).Type().Name()
 }
 
-func getMetaInfoForOrmJoinTag(obj interface{}) Join {
-	join := ""
-
+func getMetaInfoForOrmTagOnlyOne(value ormUseInTagValue, obj interface{}) string {
 	v := reflect.Indirect(reflect.ValueOf(obj))
 	t := v.Type()
+
+	if t.Kind() != reflect.Struct {
+		return ""
+	}
 
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
 
-		if tagValue := field.Tag.Get(tagOrmJoin); !isTagEmpty(tagValue) {
-			join = tagValue
-			continue // we search first join tag, for high root component only,
+		if tagValue := field.Tag.Get(value); !isTagEmpty(tagValue) {
+			return tagValue // we search first usage of tag, for high root component only,
 		}
 	}
-	return join
+
+	return ""
 }
 
 func isTagEmpty(tag string) bool {
@@ -131,6 +173,10 @@ func getMetaInfoForOrmAliasTag(obj interface{}) []Alias {
 
 	v := reflect.Indirect(reflect.ValueOf(obj))
 	t := v.Type()
+
+	if t.Kind() != reflect.Struct {
+		return aliases
+	}
 
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
@@ -149,8 +195,16 @@ func getMetaInfoForOrmAliasTag(obj interface{}) []Alias {
 func getMetaInfoUseInTag(obj interface{}, useInTag ormUseInTagValue, alias Alias) ([]Column, []Argument) {
 	cols, args := []Column{}, []Argument{}
 
+	if obj == nil {
+		return cols, args
+	}
+
 	v := reflect.Indirect(reflect.ValueOf(obj))
 	t := v.Type()
+
+	if t.Kind() != reflect.Struct {
+		return cols, args
+	}
 
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
@@ -190,23 +244,4 @@ func getMetaInfoUseInTag(obj interface{}, useInTag ormUseInTagValue, alias Alias
 	}
 
 	return cols, args
-}
-
-func getMetaDTOInfo(typ string, obj interface{}) *metaDTO {
-	// todo think about typ param
-	if typ == emptyTypeParam {
-		typ = getObjTypeNameByReflect(obj)
-	}
-
-	m.RLock()
-	if _, found := cacheMetaDTO[typ]; !found {
-		m.RUnlock()
-		m.Lock()
-		defer m.Unlock()
-		cacheMetaDTO[typ] = getMetaInfoForObj(obj)
-	} else {
-		m.RUnlock()
-	}
-
-	return cacheMetaDTO[typ]
 }
