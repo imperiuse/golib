@@ -54,14 +54,14 @@ type (
 		Email    string  `db:"email"    orm_use_in:"select,create,update"`
 		Password string  `db:"password" orm_use_in:"select,create,update"`
 		RoleID   Integer `db:"role_id" orm_use_in:"select,create,update"`
-		_        bool    `orm_table_name:"Users"`
+		_        bool    `orm_table_name:"Users" orm_alias:"u"`
 	}
 
 	Role struct {
 		BaseDTO
 		Name   string `db:"name"       orm_use_in:"select,create,update"`
 		Rights int    `db:"rights"     orm_use_in:"select,create,update"`
-		_      bool   `orm_table_name:"Roles"`
+		_      bool   `orm_table_name:"Roles" orm_alias:"r"`
 	}
 
 	UsersRole struct {
@@ -261,7 +261,7 @@ func (suite *RepositoryTestSuit) Test_EmptyRepo_NotPanic() {
 	assert.NotNil(t, err)
 	assert.Equal(t, uint64(0), ucnt)
 
-	err = r.FindByWithInnerJoin(suite.ctx, []Column{"*"}, "al", "ON al.id = p.id", squirrel.Eq{"id": 1}, &temp)
+	err = r.FindByWithInnerJoin(suite.ctx, []Column{"*"}, "al as al", "ON al.id = p.id", squirrel.Eq{"id": 1}, &temp)
 	assert.NotNil(t, err)
 
 	rows1, err := r.GetRowsByQuery(suite.ctx, squirrel.Select("*").From("unknown"))
@@ -398,10 +398,11 @@ func (suite *RepositoryTestSuit) Test_Advance_RepoFunc() {
 	assert.Nil(t, err)
 	assert.NotNil(t, userID)
 
-	cols, aliases, join := orm.GetDataForSelect(&UsersRole{})
-	join = orm.GetTableName(&Role{}) + " as " + aliases[1] + " " + join
+	cols, joinCond := orm.GetDataForSelect(&UsersRole{})
+	nameWithAlias := orm.GetTableNameWithAlias(&user)
+	joinCond = orm.GetTableNameWithAlias(&Role{}) + " " + joinCond
 	var ur UsersRole
-	err = suite.repos.AutoRepo(&user).FindByWithInnerJoin(ctx, cols, aliases[0], join, squirrel.Eq{"u.id": userID}, &ur)
+	err = suite.repos.AutoRepo(&user).FindByWithInnerJoin(ctx, cols, nameWithAlias, joinCond, squirrel.Eq{"u.id": userID}, &ur)
 	assert.Nil(t, err)
 	assert.NotNil(t, ur)
 	assert.Equal(t, userID, ur.User.ID)

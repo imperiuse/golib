@@ -99,9 +99,7 @@ func (suite *OrmTestSuit) Test_GetOrmDataForCreate() {
 
 func (suite *OrmTestSuit) Test_GetOrmDataForSelect() {
 	t := suite.T()
-	cols, aliases, join := GetDataForSelect(&C{})
-	assert.NotNil(t, aliases)
-	assert.Equal(t, []string{"a", "b"}, aliases)
+	cols, join := GetDataForSelect(&C{})
 	assert.Equal(t, "ON a.id = b.id", join)
 	assert.Equal(t, []string{"a.id as \"a.id\"", "a.created_at as \"a.created_at\"", "a.updated_at as \"a.updated_at\"", "a.select_field as \"a.select_field\"", "b.id as \"b.id\"", "b.created_at as \"b.created_at\"", "b.updated_at as \"b.updated_at\"", "b.cus_field as \"b.cus_field\"", "b.cus2_field as \"b.cus2_field\""}, cols)
 }
@@ -144,29 +142,24 @@ func (suite *OrmTestSuit) Test_BadGetOrmDataForCreate() {
 
 func (suite *OrmTestSuit) Test_BadGetOrmDataForSelect() {
 	t := suite.T()
-	col, args, join := GetDataForSelect(&BadStruct{})
+	col, join := GetDataForSelect(&BadStruct{})
 	assert.Equal(t, []string{}, col)
-	assert.Equal(t, []string{}, args)
 	assert.Equal(t, "", join)
 
-	col, args, join = GetDataForSelect(nil)
+	col, join = GetDataForSelect(nil)
 	assert.Equal(t, []string{}, col)
-	assert.Equal(t, []string{}, args)
 	assert.Equal(t, "", join)
 
-	col, args, join = GetDataForSelect(new(interface{}))
+	col, join = GetDataForSelect(new(interface{}))
 	assert.Equal(t, []string{}, col)
-	assert.Equal(t, []string{}, args)
 	assert.Equal(t, "", join)
 
-	col, args, join = GetDataForSelect(1234)
+	col, join = GetDataForSelect(1234)
 	assert.Equal(t, []string{}, col)
-	assert.Equal(t, []string{}, args)
 	assert.Equal(t, "", join)
 
-	col, args, join = GetDataForSelect("")
+	col, join = GetDataForSelect("")
 	assert.Equal(t, []string{}, col)
-	assert.Equal(t, []string{}, args)
 	assert.Equal(t, "", join)
 
 }
@@ -196,8 +189,8 @@ func (suite *OrmTestSuit) Test_GetTableNameWithAlias() {
 
 	_ = BadStruct{}.bad_name_field
 
-	assert.Equal(t, "A as a", GetTableNameWithAlias(&A{}))
-	assert.Equal(t, "B as b", GetTableNameWithAlias(&B{}))
+	assert.Equal(t, " A as a ", GetTableNameWithAlias(&A{}))
+	assert.Equal(t, " B as b ", GetTableNameWithAlias(&B{}))
 	assert.Equal(t, "", GetTableNameWithAlias(&C{}))
 	assert.Equal(t, "", GetTableNameWithAlias(nil))
 	assert.Equal(t, "", GetTableNameWithAlias(&BadStruct{}))
