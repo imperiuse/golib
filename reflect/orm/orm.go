@@ -34,6 +34,7 @@ type (
 		Aliases    []Alias
 		Join       Join
 		TableName  Table
+		TableAlias Alias
 		StructName Typ
 	}
 )
@@ -45,8 +46,10 @@ var (
 
 // custom tag for "sugar" columns values prepare for Update squirrel library staff
 const (
-	tagDB           = "db" // must be for all DTO structs fields, this tag also used by sqlx
-	tagOrmUseIN     = "orm_use_in"
+	tagDB       = "db" // must be for all DTO structs fields, this tag also used by sqlx
+	tagOrmUseIN = "orm_use_in"
+
+	underscored     = "_" // special name fo field contains tag orn_tab_name, orm_alias, orm_join
 	tagOrmAlias     = "orm_alias"
 	tagOrmJoin      = "orm_join"
 	tagOrmTableName = "orm_table_name"
@@ -108,17 +111,28 @@ func GetDataForUpdate(obj interface{}) map[Column]Argument {
 	return cv
 }
 
-func GetTableName(obj interface{}) string {
+func GetTableName(obj interface{}) Table {
 	meta := GetMetaDTO(obj)
 	return meta.TableName
+}
+
+func GetTableAlias(obj interface{}) Alias {
+	meta := GetMetaDTO(obj)
+	return meta.TableAlias
+}
+
+func GetTableNameWithAlias(obj interface{}) string {
+	meta := GetMetaDTO(obj)
+	if meta.TableName != "" && meta.TableAlias != "" {
+		return meta.TableName + " as " + meta.TableAlias
+	}
+	return ""
 }
 
 func getNoneCacheMetaDTO(obj interface{}) *MetaDTO {
 	meta := &MetaDTO{
 		ColsMap:    map[ormUseInTagValue][]Column{ormUseInSelect: {}, ormUseInCreate: {}, ormUseInUpdate: {}},
 		Aliases:    []Alias{},
-		Join:       "",
-		TableName:  "",
 		StructName: getObjTypeNameByReflect(obj),
 	}
 	if obj == nil {
@@ -128,6 +142,8 @@ func getNoneCacheMetaDTO(obj interface{}) *MetaDTO {
 	meta.Join = getMetaInfoForOrmTagOnlyOne(tagOrmJoin, obj)
 
 	meta.TableName = getMetaInfoForOrmTagOnlyOne(tagOrmTableName, obj)
+
+	meta.TableAlias = getMetaInfoForOrmTagOnlyOne(tagOrmAlias, obj)
 
 	meta.Aliases = getMetaInfoForOrmAliasTag(obj)
 
@@ -156,7 +172,7 @@ func getMetaInfoForOrmTagOnlyOne(value ormUseInTagValue, obj interface{}) string
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
 
-		if tagValue := field.Tag.Get(value); !isTagEmpty(tagValue) {
+		if tagValue := field.Tag.Get(value); !isTagEmpty(tagValue) && field.Name == underscored {
 			return tagValue // we search first usage of tag, for high root component only,
 		}
 	}
