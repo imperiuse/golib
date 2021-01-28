@@ -1,4 +1,4 @@
-package sqlxhelper
+package helper
 
 import (
 	"context"
