@@ -10,10 +10,10 @@ import (
 
 type (
 	BaseDTO struct {
-		ID        int64     `db:"id"          orm_use_in:"select"`
-		CreatedAt time.Time `db:"created_at"  orm_use_in:"select"`
-		UpdatedAt time.Time `db:"updated_at"  orm_use_in:"select,update"`
-		_         bool      `orm_use_in:"select,create,update"`
+		ID        int64       `db:"id"          orm_use_in:"select"`
+		CreatedAt time.Time   `db:"created_at"  orm_use_in:"select"`
+		UpdatedAt time.Time   `db:"updated_at"  orm_use_in:"select,update"`
+		_         interface{} `orm_use_in:"select,create,update"`
 	}
 
 	A struct {
@@ -23,14 +23,14 @@ type (
 		UpdateOnly   int    `db:"update_field"   orm_use_in:"update"`
 		NoDbTagField string `orm_use_for:"update"`
 		NoTagField   string
-		_            bool `orm_table_name:"A"`
+		_            interface{} `orm_table_name:"A" orm_alias:"a"`
 	}
 
 	B struct {
 		BaseDTO
-		CUS  float64 `db:"cus_field"   orm_use_in:"create,update,select"`
-		CUS2 int     `db:"cus2_field"  orm_use_in:"create,update,select"`
-		_    bool    `orm_table_name:"B"`
+		CUS  float64     `db:"cus_field"   orm_use_in:"create,update,select"`
+		CUS2 int         `db:"cus2_field"  orm_use_in:"create,update,select"`
+		_    interface{} `orm_table_name:"B" orm_alias:"b"`
 	}
 
 	C struct {
@@ -41,7 +41,8 @@ type (
 
 	BadStruct struct {
 		*A
-		_ struct{ a int }
+		_              struct{ a int }
+		bad_name_field interface{} `orm_table_name:"B" orm_alias:"b"`
 	}
 )
 
@@ -177,4 +178,27 @@ func (suite *OrmTestSuit) Test_GetTableName() {
 	assert.Equal(t, "B", GetTableName(&B{}))
 	assert.Equal(t, "", GetTableName(&C{}))
 	assert.Equal(t, "", GetTableName(nil))
+	assert.Equal(t, "", GetTableName(&BadStruct{}))
+}
+
+func (suite *OrmTestSuit) Test_GetTableAlias() {
+	t := suite.T()
+
+	assert.Equal(t, "a", GetTableAlias(&A{}))
+	assert.Equal(t, "b", GetTableAlias(&B{}))
+	assert.Equal(t, "", GetTableAlias(&C{}))
+	assert.Equal(t, "", GetTableAlias(nil))
+	assert.Equal(t, "", GetTableAlias(&BadStruct{}))
+}
+
+func (suite *OrmTestSuit) Test_GetTableNameWithAlias() {
+	t := suite.T()
+
+	_ = BadStruct{}.bad_name_field
+
+	assert.Equal(t, "A as a", GetTableNameWithAlias(&A{}))
+	assert.Equal(t, "B as b", GetTableNameWithAlias(&B{}))
+	assert.Equal(t, "", GetTableNameWithAlias(&C{}))
+	assert.Equal(t, "", GetTableNameWithAlias(nil))
+	assert.Equal(t, "", GetTableNameWithAlias(&BadStruct{}))
 }
