@@ -25,19 +25,19 @@ type (
 
 	Repositories map[Repo]*repository
 
-	DTO   = interface{}
-	DTOID = interface {
-		Id() ID
+	DTO             = interface{}
+	DtoWithIdentity = interface {
+		Identity() ID
 	}
 
 	RepositoriesI interface {
 		Repo(Repo) Repository
 		AutoRepo(DTO) Repository
 
-		AutoCreate(context.Context, DTOID) (ID, error)
-		AutoGet(context.Context, DTOID) error
-		AutoUpdate(context.Context, DTOID) (int64, error)
-		AutoDelete(context.Context, DTOID) (int64, error)
+		AutoCreate(context.Context, DtoWithIdentity) (ID, error)
+		AutoGet(context.Context, DtoWithIdentity) error
+		AutoUpdate(context.Context, DtoWithIdentity) (int64, error)
+		AutoDelete(context.Context, DtoWithIdentity) (int64, error)
 	}
 
 	Repository interface {
@@ -64,10 +64,21 @@ type (
 	Argument = interface{}
 )
 
-func NewSqlxMapRepo(logger ZapLogger, db SqlxDBConnectorI, tables ...Table) Repositories {
+func NewSqlxMapRepo(logger ZapLogger, db SqlxDBConnectorI, tables []Table, objs []DTO) Repositories {
 	mapRepo := make(Repositories, len(tables))
 	for _, name := range tables {
 		mapRepo[name] = newRepository(logger, db, name)
+	}
+
+	for _, obj := range objs {
+		tableName := orm.GetTableName(obj)
+		if tableName == orm.Undefined {
+			continue
+		}
+		if _, found := mapRepo[tableName]; found {
+			continue
+		}
+		mapRepo[tableName] = newRepository(logger, db, tableName)
 	}
 	return mapRepo
 }
@@ -86,18 +97,18 @@ func (r Repositories) AutoRepo(obj DTO) Repository {
 	return emptyRepo
 }
 
-func (r Repositories) AutoCreate(ctx context.Context, obj DTOID) (ID, error) {
+func (r Repositories) AutoCreate(ctx context.Context, obj DtoWithIdentity) (ID, error) {
 	return r.AutoRepo(obj).Create(ctx, obj)
 }
 
-func (r Repositories) AutoUpdate(ctx context.Context, obj DTOID) (int64, error) {
-	return r.AutoRepo(obj).Update(ctx, obj.Id(), obj)
+func (r Repositories) AutoUpdate(ctx context.Context, obj DtoWithIdentity) (int64, error) {
+	return r.AutoRepo(obj).Update(ctx, obj.Identity(), obj)
 }
 
-func (r Repositories) AutoGet(ctx context.Context, obj DTOID) error {
-	return r.AutoRepo(obj).Get(ctx, obj.Id(), obj)
+func (r Repositories) AutoGet(ctx context.Context, obj DtoWithIdentity) error {
+	return r.AutoRepo(obj).Get(ctx, obj.Identity(), obj)
 }
 
-func (r Repositories) AutoDelete(ctx context.Context, obj DTOID) (int64, error) {
-	return r.AutoRepo(obj).Delete(ctx, obj.Id())
+func (r Repositories) AutoDelete(ctx context.Context, obj DtoWithIdentity) (int64, error) {
+	return r.AutoRepo(obj).Delete(ctx, obj.Identity())
 }
