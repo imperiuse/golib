@@ -38,6 +38,10 @@ type (
 	}
 )
 
+const (
+	Undefined = ""
+)
+
 var (
 	m            sync.RWMutex
 	cacheMetaDTO = map[structName]*MetaDTO{}
@@ -131,6 +135,9 @@ func GetTableNameWithAlias(obj interface{}) string {
 func getNoneCacheMetaDTO(obj interface{}) *MetaDTO {
 	meta := &MetaDTO{
 		ColsMap:    map[ormUseInTagValue][]Column{ormUseInSelect: {}, ormUseInCreate: {}, ormUseInUpdate: {}},
+		JoinCond:   Undefined,
+		TableName:  Undefined,
+		TableAlias: Undefined,
 		StructName: getObjTypeNameByReflect(obj),
 	}
 	if obj == nil {
