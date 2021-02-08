@@ -71,7 +71,7 @@ type (
 	}
 )
 
-func (b *BaseDTO) Id() interface{} {
+func (b *BaseDTO) Identity() ID {
 	return b.ID
 }
 
@@ -142,7 +142,7 @@ func (suite *RepositoryTestSuit) SetupSuite() {
 		assert.Nil(suite.T(), err)
 	}
 
-	suite.repos = NewSqlxMapRepo(suite.logger, db, tables...)
+	suite.repos = NewSqlxMapRepo(suite.logger, db, tables, nil)
 	assert.NotNil(suite.T(), suite.repos)
 
 }
@@ -255,6 +255,9 @@ func (suite *RepositoryTestSuit) Test_EmptyRepo_NotPanic() {
 
 	var temp interface{}
 	err = r.FindBy(suite.ctx, []Column{"*"}, squirrel.Eq{"id": 1}, &temp)
+	assert.NotNil(t, err)
+
+	err = r.FindOneBy(suite.ctx, []Column{"*"}, squirrel.Eq{"id": 1}, &temp)
 	assert.NotNil(t, err)
 
 	ucnt, err := r.CountByQuery(suite.ctx, squirrel.Select("*").From("unknown"))
@@ -381,6 +384,10 @@ func (suite *RepositoryTestSuit) Test_Advance_RepoFunc() {
 	assert.Equal(t, 1, len(roles))
 	assert.NotEqual(t, newName, roles[0].Name, "role name must not change, because we have not updated name yet ")
 
+	var roleOne Role
+	assert.Nil(t, suite.repos.AutoRepo(&role).FindOneBy(ctx, []Column{"rights"}, squirrel.Eq{"id": roleID}, &roleOne))
+	assert.NotEqual(t, newName, roleOne, "role name must not change, because we have not updated name yet ")
+
 	roles = roles[1:]
 	assert.Nil(t, suite.repos.AutoRepo(&role).FindBy(ctx, []Column{"name"}, squirrel.Eq{"id": roleID}, &roles))
 	assert.Equal(t, 1, len(roles))
@@ -457,6 +464,8 @@ func (suite *RepositoryTestSuit) Test_GetAllPossibleErrors() {
 	}
 
 	assert.NotNil(t, suite.repos.AutoRepo(&User{}).FindBy(ctx, []string{}, squirrel.Eq{}, nil))
+
+	assert.NotNil(t, suite.repos.AutoRepo(&User{}).FindOneBy(ctx, []string{}, squirrel.Eq{}, nil))
 
 	{
 		id, err := suite.repos.AutoRepo(&User{}).Insert(ctx, []string{}, []interface{}{})

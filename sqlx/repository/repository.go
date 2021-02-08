@@ -232,6 +232,21 @@ func (r *repository) FindBy(ctx context.Context, columns []string, condition squ
 	return sqlx.SelectContext(ctx, r.db, target, query, args...)
 }
 
+func (r *repository) FindOneBy(ctx context.Context, columns []string, condition squirrel.Eq, target interface{}) error {
+	r.logger.Info("[repo.FindBy]", r.zapFieldRepo(), zap.Any("columns", columns), zap.Any("condition", condition))
+
+	query, args, err := squirrel.Select(columns...).
+		From(r.name).
+		Where(condition).
+		PlaceholderFormat(squirrel.Dollar).
+		ToSql()
+	if err != nil {
+		return err
+	}
+
+	return sqlx.GetContext(ctx, r.db, target, query, args...)
+}
+
 func (r *repository) FindByWithInnerJoin(ctx context.Context, columns []string, fromWithAlias string, join string, condition squirrel.Eq, target interface{}) error {
 	r.logger.Info("[repo.FindByWithInnerJoin]", r.zapFieldRepo(),
 		zap.Any("columns", columns),
