@@ -1,5 +1,8 @@
 .EXPORT_ALL_VARIABLES:
 
+.PHONY: tests_all
+tests_all: test_env_up tests test_env_down
+
 .PHONY: test_env_up
 test_env_up:
 	@echo "Start test environment"
@@ -15,11 +18,4 @@ test_env_down:
 .PHONY: tests
 tests:
 	@echo "Running integrations tests"
-	@echo "1. Run test env"
-	make test_env_up
-
-	@echo "2. Run tests"
 	go test -timeout 5m -race -short `go list ./... `
-
-	@echo "3. Stop test env"
-	make test_env_down
