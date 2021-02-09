@@ -10,11 +10,11 @@ jobs:
 
     defaults:
       run:
-        working-directory: ../../sqlx/repository
+        working-directory: ./sqlx/repository
 
     steps:
-      - name: Create Nats Streaming cluster
-        run: sudo docker network create postgres-test && sudo docker run -d -p 5433:5432 --network postgres-test postgres:13
+#      - name: Create Postgres container
+#        run: sudo docker network create postgres-test && sudo docker run -d -p 5433:5432 --network postgres-test postgres:13
 
       - name: Install Go
         uses: actions/setup-go@v2
