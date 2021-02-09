@@ -138,7 +138,8 @@ func (suite *RepositoryTestSuit) SetupSuite() {
 
 	// Refresh DB
 	for _, table := range tables {
-		_, _ = db.ExecContext(suite.ctx, fmt.Sprintf("TRUNCATE TABLE %s RESTART IDENTITY CASCADE;", table))
+		_, err = db.ExecContext(suite.ctx, fmt.Sprintf("TRUNCATE TABLE %s RESTART IDENTITY CASCADE;", table))
+		assert.Nil(suite.T(), err)
 	}
 
 	suite.repos = NewSqlxMapRepo(suite.logger, db, tables, nil)
@@ -169,7 +170,35 @@ func (suite *RepositoryTestSuit) TearDownTest() {
 // In order for 'go test' to run this suite, we need to create
 // a normal test function and pass our suite to suite.Run
 func TestSuite(t *testing.T) {
+	initTables() // prevent errors when run first containers in github CI
 	suite.Run(t, new(RepositoryTestSuit))
+}
+
+func initTables() {
+	dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s",
+		PostgresUser,
+		PostgresPassword,
+		PostgresHost,
+		PostgresPort,
+		PostgresDB,
+	)
+
+	db, _ := sqlx.Connect("pgx", dsn)
+
+	tables := []string{}
+	// create table
+	for _, obj := range DTOs {
+		table := orm.GetTableName(obj)
+		tables = append(tables, table)
+
+		_, _ = db.ExecContext(context.Background(), DSL[table])
+	}
+
+	// Refresh DB
+	for _, table := range tables {
+		_, _ = db.ExecContext(context.Background(), fmt.Sprintf("TRUNCATE TABLE %s RESTART IDENTITY CASCADE;", table))
+	}
+
 }
 
 func (suite *RepositoryTestSuit) Test_Repo_AutoRepo_SqlxDBConnectorI() {
