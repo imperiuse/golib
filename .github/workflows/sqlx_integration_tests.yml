@@ -1,0 +1,27 @@
+on: [push, pull_request]
+name: SQLX_Integration_tests
+jobs:
+  tests:
+    strategy:
+      matrix:
+        go-version: [ 1.15.x ]
+        os: [ ubuntu-latest ] # [ macos-latest, windows-latest ]
+    runs-on: ${{ matrix.os }}
+
+    defaults:
+      run:
+        working-directory: ./sqlx/repository
+
+    steps:
+      - name: Create Nats Streaming cluster
+        run: sudo docker network create postgres-test && sudo docker run -d -p 5433:5432 --network postgres-test postgres:13
+
+      - name: Install Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go-version }}
+
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Test
+        run: make tests
