@@ -102,8 +102,6 @@ var DTOs = []interface{}{&User{}, &Role{}}
 // The SetupSuite method will be run by testify once, at the very
 // start of the testing suite, before any tests are run.
 func (suite *RepositoryTestSuit) SetupSuite() {
-	time.Sleep(time.Second * 5)
-
 	suite.ctx, suite.ctxCancel = context.WithCancel(context.Background())
 	suite.logger = zap.NewNop()
 
@@ -138,21 +136,13 @@ func (suite *RepositoryTestSuit) SetupSuite() {
 		assert.Nil(suite.T(), err)
 	}
 
-	time.Sleep(time.Second)
-
 	// Refresh DB
 	for _, table := range tables {
-		_, err = db.ExecContext(suite.ctx, fmt.Sprintf("TRUNCATE TABLE %s RESTART IDENTITY CASCADE;", table))
-		assert.Nil(suite.T(), err)
+		_, _ = db.ExecContext(suite.ctx, fmt.Sprintf("TRUNCATE TABLE %s RESTART IDENTITY CASCADE;", table))
 	}
-
-	time.Sleep(time.Second)
 
 	suite.repos = NewSqlxMapRepo(suite.logger, db, tables, nil)
 	assert.NotNil(suite.T(), suite.repos)
-
-	time.Sleep(time.Second)
-
 }
 
 // The TearDownSuite method will be run by testify once, at the very
