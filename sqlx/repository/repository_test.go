@@ -294,6 +294,9 @@ func (suite *RepositoryTestSuit) Test_EmptyRepo_NotPanic() {
 	err = r.FindByWithInnerJoin(suite.ctx, []Column{"*"}, "al as al", "ON al.id = p.id", squirrel.Eq{"id": 1}, &temp)
 	assert.NotNil(t, err)
 
+	err = r.FindOneByWithInnerJoin(suite.ctx, []Column{"*"}, "al as al", "ON al.id = p.id", squirrel.Eq{"id": 1}, &temp)
+	assert.NotNil(t, err)
+
 	rows1, err := r.GetRowsByQuery(suite.ctx, squirrel.Select("*").From("unknown"))
 	assert.NotNil(t, err)
 	assert.NotNil(t, rows1)
