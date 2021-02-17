@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	_ "github.com/jackc/pgx/stdlib"
+	_ "github.com/jackc/pgx/v4/stdlib"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/imperiuse/golib/reflect/orm"
@@ -439,7 +439,7 @@ func (suite *RepositoryTestSuit) Test_Advance_RepoFunc() {
 	nameWithAlias := orm.GetTableNameWithAlias(&user)
 	joinCond = orm.GetTableNameWithAlias(&Role{}) + " " + joinCond
 	var ur UsersRole
-	err = suite.repos.AutoRepo(&user).FindByWithInnerJoin(ctx, cols, nameWithAlias, joinCond, squirrel.Eq{"u.id": userID}, &ur)
+	err = suite.repos.AutoRepo(&user).FindOneByWithInnerJoin(ctx, cols, nameWithAlias, joinCond, squirrel.Eq{"u.id": userID}, &ur)
 	assert.Nil(t, err)
 	assert.NotNil(t, ur)
 	assert.Equal(t, userID, ur.User.ID)
