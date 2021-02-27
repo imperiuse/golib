@@ -1,3 +1,4 @@
+//nolint dupl // todo
 package repository
 
 import (
@@ -5,6 +6,8 @@ import (
 	"database/sql"
 	"fmt"
 	"strconv"
+
+	"github.com/pkg/errors"
 
 	"github.com/imperiuse/golib/sqlx/helper"
 
@@ -16,21 +19,22 @@ import (
 )
 
 const (
-	RowsAffectedUnknown = int64(0)
-	SerialUnknown       = int64(0)
+	RowsAffectedUnknown = int64(0) // RowsAffectedUnknown - 0
+	SerialUnknown       = int64(0) // SerialUnknown  - 0
 )
 
 type (
-	Query = string
-	Alias = string
-	Join  = string
+	Query = string // Query - sql query
+	Alias = string // Alias - alias of table
+	Join  = string // Join  - sql join part
 
-	Table = string
+	Table = string // Table - table name
 
-	ID = interface{}
+	ID = interface{} // ID - uniq ID
 )
 
 type (
+	//ZapLogger ZapLogger
 	ZapLogger = *zap.Logger
 
 	repository struct {
@@ -60,6 +64,7 @@ func zapFieldID(id ID) zap.Field {
 	return zap.Any("id", id)
 }
 
+// ConvertIDToInt64 convert ID to int64.
 func ConvertIDToInt64(id interface{}) int64 {
 	if id == nil {
 		return int64(0)
@@ -73,10 +78,12 @@ func ConvertIDToInt64(id interface{}) int64 {
 	return int64(temp)
 }
 
+// ConvertIDToString convert ID to string.
 func ConvertIDToString(id interface{}) string {
 	if id == nil {
 		return "0"
 	}
+
 	return fmt.Sprint(id)
 }
 
@@ -96,10 +103,11 @@ func (r *repository) Create(ctx context.Context, obj DTO) (ID, error) {
 		PlaceholderFormat(squirrel.Dollar).
 		ToSql()
 	if err != nil {
-		return SerialUnknown, err
+		return SerialUnknown, errors.Wrap(err, "[repo.Create] squirrel")
 	}
 
 	var lastInsertID ID = int64(0)
+
 	return lastInsertID, r.create(ctx, query, &lastInsertID, args...)
 }
 
@@ -109,13 +117,14 @@ func (r *repository) create(ctx context.Context, query Query, lastInsertID *ID, 
 
 func (r *repository) Get(ctx context.Context, id ID, dest DTO) error {
 	r.logger.Info("[repo.Get]", r.zapFieldRepo(), zapFieldID(id))
+
 	query, args, err := squirrel.Select("*").
 		From(r.name).
 		Where(squirrel.Eq{"id": id}).
 		PlaceholderFormat(squirrel.Dollar).
 		ToSql()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "[repo.Get] squirrel")
 	}
 
 	return sqlx.GetContext(ctx, r.db, dest, query, args...)
@@ -132,17 +141,17 @@ func (r *repository) Update(ctx context.Context, id ID, obj DTO) (int64, error) 
 		PlaceholderFormat(squirrel.Dollar).
 		ToSql()
 	if err != nil {
-		return RowsAffectedUnknown, err
+		return RowsAffectedUnknown, errors.Wrap(err, "[repo.Update] squirrel")
 	}
 
 	res, err := r.db.ExecContext(ctx, query, args...)
 	if err != nil {
-		return RowsAffectedUnknown, err
+		return RowsAffectedUnknown, errors.Wrap(err, "[repo.Update] db.ExecContext")
 	}
 
 	ra, err := res.RowsAffected()
 	if err != nil {
-		return RowsAffectedUnknown, err
+		return RowsAffectedUnknown, errors.Wrap(err, "[repo.Update] res.RowsAffected")
 	}
 
 	return ra, nil
@@ -156,17 +165,17 @@ func (r *repository) Delete(ctx context.Context, id ID) (int64, error) {
 		PlaceholderFormat(squirrel.Dollar).
 		ToSql()
 	if err != nil {
-		return RowsAffectedUnknown, err
+		return RowsAffectedUnknown, errors.Wrap(err, "[repo.Delete] squirrel")
 	}
 
 	res, err := r.db.ExecContext(ctx, query, args...)
 	if err != nil {
-		return RowsAffectedUnknown, err
+		return RowsAffectedUnknown, errors.Wrap(err, "[repo.Delete] db.ExecContext")
 	}
 
 	ra, err := res.RowsAffected()
 	if err != nil {
-		return RowsAffectedUnknown, err
+		return RowsAffectedUnknown, errors.Wrap(err, "[repo.Delete] res.RowsAffected")
 	}
 
 	return ra, nil
@@ -181,44 +190,46 @@ func (r *repository) Insert(ctx context.Context, columns []string, values []inte
 		PlaceholderFormat(squirrel.Dollar).
 		ToSql()
 	if err != nil {
-		return 0, err
+		return 0, errors.Wrap(err, "[repo.Insert] squirrel")
 	}
 
 	res, err := r.db.ExecContext(ctx, query, args...)
 	if err != nil {
-		return RowsAffectedUnknown, err
+		return RowsAffectedUnknown, errors.Wrap(err, "[repo.Insert] db.ExecContext")
 	}
 
 	return res.RowsAffected()
 }
 
-func (r *repository) UpdateCustom(ctx context.Context, set map[string]interface{}, condition squirrel.Eq) (int64, error) {
-	r.logger.Info("[repo.UpdateCustom]", r.zapFieldRepo(), zap.Any("set_map", set), zap.Any("condition", condition))
+func (r *repository) UpdateCustom(ctx context.Context, set map[string]interface{}, cond squirrel.Eq) (int64, error) {
+	r.logger.Info("[repo.UpdateCustom]", r.zapFieldRepo(),
+		zap.Any("set_map", set), zap.Any("condition", cond))
 
 	query, args, err := squirrel.Update(r.name).
 		SetMap(set).
-		Where(condition).
+		Where(cond).
 		PlaceholderFormat(squirrel.Dollar).
 		ToSql()
 	if err != nil {
-		return RowsAffectedUnknown, err
+		return RowsAffectedUnknown, errors.Wrap(err, "[repo.UpdateCustom] squirrel")
 	}
 
 	res, err := r.db.ExecContext(ctx, query, args...)
 	if err != nil {
-		return RowsAffectedUnknown, err
+		return RowsAffectedUnknown, errors.Wrap(err, "[repo.ExecContext] squirrel")
 	}
 
 	ra, err := res.RowsAffected()
 	if err != nil {
-		return RowsAffectedUnknown, err
+		return RowsAffectedUnknown, errors.Wrap(err, "[repo.ExecContext] RowsAffected")
 	}
 
 	return ra, nil
 }
 
 func (r *repository) FindBy(ctx context.Context, columns []string, condition squirrel.Eq, target interface{}) error {
-	r.logger.Info("[repo.FindBy]", r.zapFieldRepo(), zap.Any("columns", columns), zap.Any("condition", condition))
+	r.logger.Info("[repo.FindBy]", r.zapFieldRepo(),
+		zap.Any("columns", columns), zap.Any("condition", condition))
 
 	query, args, err := squirrel.Select(columns...).
 		From(r.name).
@@ -226,14 +237,15 @@ func (r *repository) FindBy(ctx context.Context, columns []string, condition squ
 		PlaceholderFormat(squirrel.Dollar).
 		ToSql()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "[repo.FindBy] squirrel")
 	}
 
 	return sqlx.SelectContext(ctx, r.db, target, query, args...)
 }
 
 func (r *repository) FindOneBy(ctx context.Context, columns []string, condition squirrel.Eq, target interface{}) error {
-	r.logger.Info("[repo.FindOneBy]", r.zapFieldRepo(), zap.Any("columns", columns), zap.Any("condition", condition))
+	r.logger.Info("[repo.FindOneBy]", r.zapFieldRepo(),
+		zap.Any("columns", columns), zap.Any("condition", condition))
 
 	query, args, err := squirrel.Select(columns...).
 		From(r.name).
@@ -241,7 +253,7 @@ func (r *repository) FindOneBy(ctx context.Context, columns []string, condition 
 		PlaceholderFormat(squirrel.Dollar).
 		ToSql()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "[repo.FindOneBy] squirrel")
 	}
 
 	return sqlx.GetContext(ctx, r.db, target, query, args...)
@@ -260,7 +272,7 @@ func (r *repository) FindByWithInnerJoin(ctx context.Context, columns []string, 
 		PlaceholderFormat(squirrel.Dollar).
 		ToSql()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "[repo.FindByWithInnerJoin] squirrel")
 	}
 
 	return sqlx.SelectContext(ctx, r.db, target, query, args...)
@@ -279,7 +291,7 @@ func (r *repository) FindOneByWithInnerJoin(ctx context.Context, columns []strin
 		PlaceholderFormat(squirrel.Dollar).
 		ToSql()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "[repo.FindOneByWithInnerJoin] squirrel")
 	}
 
 	return sqlx.GetContext(ctx, r.db, target, query, args...)
@@ -292,7 +304,7 @@ func (r *repository) GetRowsByQuery(ctx context.Context, qb squirrel.SelectBuild
 		PlaceholderFormat(squirrel.Dollar).
 		ToSql()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "[repo.GetRowsByQuery] squirrel")
 	}
 
 	return r.db.QueryContext(ctx, query, args...)
@@ -305,11 +317,15 @@ func (r *repository) CountByQuery(ctx context.Context, qb squirrel.SelectBuilder
 		PlaceholderFormat(squirrel.Dollar).
 		ToSql()
 	if err != nil {
-		return 0, err
+		return 0, errors.Wrap(err, "[repo.CountByQuery] squirrel")
 	}
 
 	counter := uint64(0)
-	err = r.db.QueryRowxContext(ctx, query, args...).Scan(&counter)
 
-	return counter, err
+	err = r.db.QueryRowxContext(ctx, query, args...).Scan(&counter)
+	if err != nil {
+		return counter, errors.Wrap(err, "[repo.CountByQuery] db.QueryRowxContext")
+	}
+
+	return counter, nil
 }

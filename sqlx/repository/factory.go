@@ -1,3 +1,4 @@
+//nolint golint
 package repository
 
 import (
@@ -79,11 +80,14 @@ func NewSqlxMapRepo(logger ZapLogger, db SqlxDBConnectorI, tables []Table, objs 
 		if tableName == orm.Undefined {
 			continue
 		}
+
 		if _, found := mapRepo[tableName]; found {
 			continue
 		}
+
 		mapRepo[tableName] = newRepository(logger, db, tableName)
 	}
+
 	return mapRepo
 }
 
@@ -91,6 +95,7 @@ func (r Repositories) Repo(name Repo) Repository {
 	if rep, found := r[name]; found {
 		return rep
 	}
+
 	return emptyRepo
 }
 
@@ -98,6 +103,7 @@ func (r Repositories) AutoRepo(obj DTO) Repository {
 	if rep, found := r[orm.GetMetaDTO(obj).TableName]; found {
 		return rep
 	}
+
 	return emptyRepo
 }
 

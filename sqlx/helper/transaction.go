@@ -8,12 +8,13 @@ import (
 	"github.com/pkg/errors"
 )
 
+// TxxI interface which contain sqlx.BeginTxx func.
 type TxxI interface {
 	// BeginTxx begins a transaction and returns an *sqlx.Tx instead of an *sql.Tx.
 	BeginTxx(ctx context.Context, opts *sql.TxOptions) (*sqlx.Tx, error)
 }
 
-// A Txfn is a function that will be called with an initialized `Transaction` object
+// TxFn is a function that will be called with an initialized `Transaction` object
 // that can be used for executing statements and queries against a database.
 type TxFn = func(*sqlx.Tx) error
 
@@ -25,7 +26,7 @@ type TxFn = func(*sqlx.Tx) error
 func WithTransaction(ctx context.Context, opt *sql.TxOptions, db TxxI, fn ...TxFn) error {
 	tx, err := db.BeginTxx(ctx, opt)
 	if err != nil {
-		return err
+		return errors.WithMessage(err, "[WithTransaction]")
 	}
 
 	// function used for panic control (defer inside)
@@ -35,14 +36,21 @@ func WithTransaction(ctx context.Context, opt *sql.TxOptions, db TxxI, fn ...TxF
 				// a library panic occurred, rollback and repanic
 				errR := tx.Rollback()
 				err = errors.WithMessagef(err, "Panic in WithTransaction: %v. --> Rollback error: %v", p, errR)
-			} else if err != nil {
-				// something went wrong when, rollback
+
+				return
+			}
+
+			// something went wrong when, rollback
+			// err!=nil when ctx is canceled
+			if err != nil {
 				errR := tx.Rollback()
 				err = errors.WithMessagef(err, "Err while execute fn. --> Rollback error: %v", errR)
-			} else {
-				// all good, commit
-				err = tx.Commit() // err!=nil when ctx is canceled
+
+				return
 			}
+
+			// all good, commit
+			err = tx.Commit()
 		}()
 
 		for _, f := range fn {
@@ -51,7 +59,6 @@ func WithTransaction(ctx context.Context, opt *sql.TxOptions, db TxxI, fn ...TxF
 				break // break loop, rollback in defer @see up
 			}
 		}
-
 	}()
 
 	return err
