@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/pkg/errors"
+
 	_ "github.com/jackc/pgx/v4/stdlib"
 
 	"github.com/Masterminds/squirrel"
@@ -239,37 +241,37 @@ func (suite *RepositoryTestSuit) Test_EmptyRepo_NotPanic() {
 	r1, r2, r3 := emptyCon.BindNamed("", nil)
 	assert.Equal(t, FakeStringAns, r1)
 	assert.Nil(t, r2)
-	assert.Equal(t, ErrEmptyRepo, r3)
+	assert.Equal(t, ErrEmptyRepo, errors.Cause(r3))
 
 	row, err := emptyCon.QueryxContext(suite.ctx, "select * from users;")
 	assert.NotNil(t, row)
-	assert.Equal(t, ErrEmptyRepo, err)
+	assert.Equal(t, ErrEmptyRepo, errors.Cause(err))
 
 	row2, err := emptyCon.QueryContext(suite.ctx, "select * from users;")
-	assert.Equal(t, ErrEmptyRepo, err)
+	assert.Equal(t, ErrEmptyRepo, errors.Cause(err))
 	assert.NotNil(t, row2)
 
 	assert.Equal(t, &sqlx.Row{}, emptyCon.QueryRowxContext(suite.ctx, "select * from users;"))
 
 	res, err := emptyCon.ExecContext(suite.ctx, "select * from users;")
-	assert.Equal(t, ErrEmptyRepo, err)
+	assert.Equal(t, ErrEmptyRepo, errors.Cause(err))
 	assert.NotNil(t, res)
 
 	stmt, err := emptyCon.PrepareContext(suite.ctx, "select * from users;")
-	assert.Equal(t, ErrEmptyRepo, err)
+	assert.Equal(t, ErrEmptyRepo, errors.Cause(err))
 	assert.NotNil(t, stmt)
 
 	tx, err := emptyCon.BeginTxx(suite.ctx, nil)
-	assert.Equal(t, ErrEmptyRepo, err)
+	assert.Equal(t, ErrEmptyRepo, errors.Cause(err))
 	assert.NotNil(t, tx)
 
 	// CHECK REPO CRUD
 
 	var role Role
-	assert.Equal(t, sql.ErrNoRows, r.Get(suite.ctx, 1, &role))
+	assert.Equal(t, sql.ErrNoRows, errors.Cause(r.Get(suite.ctx, 1, &role)))
 
 	id, err := r.Create(suite.ctx, &role)
-	assert.Equal(t, ErrEmptyRepo, err)
+	assert.Equal(t, ErrEmptyRepo, errors.Cause(err))
 	assert.Equal(t, int64(0), id)
 
 	cnt, err := r.Update(suite.ctx, 1, &role)
