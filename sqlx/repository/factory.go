@@ -52,13 +52,13 @@ type (
 		Delete(context.Context, ID) (int64, error)
 
 		Insert(context.Context, []Column, []Argument) (int64, error)
-		UpdateCustom(context.Context, map[string]interface{}, squirrel.Eq) (int64, error)
+		UpdateCustom(context.Context, map[string]interface{}, Condition) (int64, error)
 
-		FindBy(context.Context, []Column, squirrel.Eq, DTO) error
-		FindOneBy(context.Context, []Column, squirrel.Eq, DTO) error
+		FindBy(context.Context, []Column, Condition, DTO) error
+		FindOneBy(context.Context, []Column, Condition, DTO) error
 
-		FindByWithInnerJoin(context.Context, []Column, Alias, Join, squirrel.Eq, DTO) error
-		FindOneByWithInnerJoin(context.Context, []Column, Alias, Join, squirrel.Eq, DTO) error
+		FindByWithInnerJoin(context.Context, []Column, Alias, Join, Condition, DTO) error
+		FindOneByWithInnerJoin(context.Context, []Column, Alias, Join, Condition, DTO) error
 
 		GetRowsByQuery(ctx context.Context, qb squirrel.SelectBuilder) (*sql.Rows, error)
 		CountByQuery(ctx context.Context, qb squirrel.SelectBuilder) (uint64, error)
