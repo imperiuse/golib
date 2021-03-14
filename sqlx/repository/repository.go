@@ -37,6 +37,8 @@ type (
 	//ZapLogger ZapLogger
 	ZapLogger = *zap.Logger
 
+	Condition = squirrel.Sqlizer // squirrel.Eq or squirrel.Gt or squirrel.And and etc
+
 	repository struct {
 		logger ZapLogger
 		db     SqlxDBConnectorI
@@ -201,7 +203,7 @@ func (r *repository) Insert(ctx context.Context, columns []string, values []inte
 	return res.RowsAffected()
 }
 
-func (r *repository) UpdateCustom(ctx context.Context, set map[string]interface{}, cond squirrel.Eq) (int64, error) {
+func (r *repository) UpdateCustom(ctx context.Context, set map[string]interface{}, cond Condition) (int64, error) {
 	r.logger.Info("[repo.UpdateCustom]", r.zapFieldRepo(),
 		zap.Any("set_map", set), zap.Any("condition", cond))
 
@@ -227,7 +229,7 @@ func (r *repository) UpdateCustom(ctx context.Context, set map[string]interface{
 	return ra, nil
 }
 
-func (r *repository) FindBy(ctx context.Context, columns []string, condition squirrel.Eq, target interface{}) error {
+func (r *repository) FindBy(ctx context.Context, columns []string, condition Condition, target interface{}) error {
 	r.logger.Info("[repo.FindBy]", r.zapFieldRepo(),
 		zap.Any("columns", columns), zap.Any("condition", condition))
 
@@ -243,7 +245,7 @@ func (r *repository) FindBy(ctx context.Context, columns []string, condition squ
 	return sqlx.SelectContext(ctx, r.db, target, query, args...)
 }
 
-func (r *repository) FindOneBy(ctx context.Context, columns []string, condition squirrel.Eq, target interface{}) error {
+func (r *repository) FindOneBy(ctx context.Context, columns []string, condition Condition, target interface{}) error {
 	r.logger.Info("[repo.FindOneBy]", r.zapFieldRepo(),
 		zap.Any("columns", columns), zap.Any("condition", condition))
 
@@ -278,7 +280,14 @@ func (r *repository) FindByWithInnerJoin(ctx context.Context, columns []string, 
 	return sqlx.SelectContext(ctx, r.db, target, query, args...)
 }
 
-func (r *repository) FindOneByWithInnerJoin(ctx context.Context, columns []string, fromWithAlias string, join string, condition squirrel.Eq, target interface{}) error {
+func (r *repository) FindOneByWithInnerJoin(
+	ctx context.Context,
+	columns []string,
+	fromWithAlias string,
+	join string,
+	condition Condition,
+	target interface{},
+) error {
 	r.logger.Info("[repo.FindOneByWithInnerJoin]", r.zapFieldRepo(),
 		zap.Any("columns", columns),
 		zap.Any("join", join),
