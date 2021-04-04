@@ -114,22 +114,36 @@ func GetDataForUpdate(obj interface{}) map[Column]Argument {
 	return cv
 }
 
+// GetTableName - return table name
 func GetTableName(obj interface{}) Table {
 	meta := GetMetaDTO(obj)
 	return meta.TableName
 }
 
+// GetTableAlias - return alias of table, if not set, return table name
 func GetTableAlias(obj interface{}) Alias {
 	meta := GetMetaDTO(obj)
+	if meta.TableAlias == "" {
+		return meta.TableName
+	}
+
 	return meta.TableAlias
 }
 
+// GetTableNameWithAlias - return string: `table_name` as `alias_name`
+//(if alias_name not set, return `table_name` as `table_name`)
 func GetTableNameWithAlias(obj interface{}) string {
 	meta := GetMetaDTO(obj)
-	if meta.TableName != "" && meta.TableAlias != "" {
-		return fmt.Sprintf(" %s as %s ", meta.TableName, meta.TableAlias)
+	if meta.TableName == "" {
+		return ""
 	}
-	return ""
+
+	alias := meta.TableAlias
+	if meta.TableAlias == "" {
+		alias = meta.TableName
+	}
+
+	return fmt.Sprintf(" %s as %s ", meta.TableName, alias)
 }
 
 func getNoneCacheMetaDTO(obj interface{}) *MetaDTO {

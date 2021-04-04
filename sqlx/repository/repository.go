@@ -345,3 +345,65 @@ func (r *repository) CountByQuery(ctx context.Context, qb squirrel.SelectBuilder
 
 	return counter, nil
 }
+
+type (
+	PagePaginationParams struct {
+		PageNumber uint64
+		PageSize   uint64
+	}
+
+	PagePaginationResults struct {
+		CurrentPageNumber uint64
+		NextPageNumber    uint64
+		CntPages          uint64
+	}
+)
+
+func (r *repository) SelectWithPagePagination(
+	ctx context.Context,
+	selectBuilder squirrel.SelectBuilder,
+	params *PagePaginationParams,
+	target interface{},
+) (
+	*PagePaginationResults,
+	error,
+) {
+	r.logger.Info("[repo.SelectWithPagePagination]", r.zapFieldRepo(), zap.Any("params", params))
+
+	const pageNumberPresent = 1
+
+	paginationResult := &PagePaginationResults{
+		CurrentPageNumber: params.PageNumber,
+		NextPageNumber:    0,
+		CntPages:          0,
+	}
+
+	totalCount, err := r.CountByQuery(ctx, squirrel.Select("count(1)").From(r.name))
+	if err != nil {
+		return paginationResult, errors.Wrap(err, "SelectWithPagePagination: r.CountByQuery")
+	}
+
+	paginationResult.CntPages = totalCount / params.PageSize
+
+	selectBuilder = selectBuilder.Limit(params.PageSize)
+	if params.PageNumber > pageNumberPresent {
+		selectBuilder = selectBuilder.Offset(params.PageNumber * params.PageSize)
+	}
+
+	query, args, err := selectBuilder.ToSql()
+	if err != nil {
+		return paginationResult, errors.Wrap(err, "SelectWithPagePagination: selectBuilder.ToSql()")
+	}
+
+	if err = sqlx.SelectContext(ctx, r.db, target, query, args...); err != nil {
+		return paginationResult, errors.Wrap(err, "SelectWithPagePagination: sqlx.SelectContext()")
+	}
+
+	// todo think here
+	//if psl, ok := target.(*[]interface{}); ok && len(*psl) > 0 {
+	//	paginationResult.NextPageNumber = paginationResult.CurrentPageNumber + 1
+	//}
+
+	return paginationResult, nil
+
+}

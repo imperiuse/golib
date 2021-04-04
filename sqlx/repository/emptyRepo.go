@@ -4,12 +4,11 @@ import (
 	"database/sql"
 	"database/sql/driver"
 
-	"github.com/jmoiron/sqlx"
-	"go.uber.org/zap"
-
 	"github.com/imperiuse/golib/sqlx/repository/mocks"
+	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/mock"
+	"go.uber.org/zap"
 )
 
 //nolint golint

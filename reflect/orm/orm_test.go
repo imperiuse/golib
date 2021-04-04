@@ -39,6 +39,13 @@ type (
 		_ bool `orm_join:"ON a.id = b.id"`
 	}
 
+	D struct {
+		BaseDTO
+		CUS  float64     `db:"cus_field"   orm_use_in:"create,update,select"`
+		CUS2 int         `db:"cus2_field"  orm_use_in:"create,update,select"`
+		_    interface{} `orm_table_name:"D"`
+	}
+
 	BadStruct struct {
 		*A
 		_              struct{ a int }
@@ -169,6 +176,7 @@ func (suite *OrmTestSuit) Test_GetTableName() {
 
 	assert.Equal(t, "A", GetTableName(&A{}))
 	assert.Equal(t, "B", GetTableName(&B{}))
+	assert.Equal(t, "D", GetTableName(&D{}))
 	assert.Equal(t, "", GetTableName(&C{}))
 	assert.Equal(t, "", GetTableName(nil))
 	assert.Equal(t, "", GetTableName(&BadStruct{}))
@@ -179,6 +187,7 @@ func (suite *OrmTestSuit) Test_GetTableAlias() {
 
 	assert.Equal(t, "a", GetTableAlias(&A{}))
 	assert.Equal(t, "b", GetTableAlias(&B{}))
+	assert.Equal(t, "D", GetTableAlias(&D{}))
 	assert.Equal(t, "", GetTableAlias(&C{}))
 	assert.Equal(t, "", GetTableAlias(nil))
 	assert.Equal(t, "", GetTableAlias(&BadStruct{}))
@@ -191,6 +200,7 @@ func (suite *OrmTestSuit) Test_GetTableNameWithAlias() {
 
 	assert.Equal(t, " A as a ", GetTableNameWithAlias(&A{}))
 	assert.Equal(t, " B as b ", GetTableNameWithAlias(&B{}))
+	assert.Equal(t, " D as D ", GetTableNameWithAlias(&D{}))
 	assert.Equal(t, "", GetTableNameWithAlias(&C{}))
 	assert.Equal(t, "", GetTableNameWithAlias(nil))
 	assert.Equal(t, "", GetTableNameWithAlias(&BadStruct{}))
