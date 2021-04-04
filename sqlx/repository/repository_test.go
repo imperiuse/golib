@@ -587,12 +587,12 @@ func (suite *RepositoryTestSuit) Test_SelectWithPagePagination() {
 		{
 			Params: PagePaginationParams{
 				PageNumber: 1,
-				PageSize:   50,
+				PageSize:   49,
 			},
 			Results: PagePaginationResults{
 				CurrentPageNumber: 1,
 				NextPageNumber:    0,
-				CntPages:          4,
+				CntPages:          5,
 			},
 			LenData: 50,
 		},
