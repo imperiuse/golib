@@ -362,17 +362,17 @@ type (
 func (r *repository) SelectWithPagePagination(
 	ctx context.Context,
 	selectBuilder squirrel.SelectBuilder,
-	params *PagePaginationParams,
+	params PagePaginationParams,
 	target interface{},
 ) (
-	*PagePaginationResults,
+	PagePaginationResults,
 	error,
 ) {
 	r.logger.Info("[repo.SelectWithPagePagination]", r.zapFieldRepo(), zap.Any("params", params))
 
 	const pageNumberPresent = 1
 
-	paginationResult := &PagePaginationResults{
+	paginationResult := PagePaginationResults{
 		CurrentPageNumber: params.PageNumber,
 		NextPageNumber:    0,
 		CntPages:          0,

@@ -633,14 +633,14 @@ func (suite *RepositoryTestSuit) Test_SelectWithPagePagination() {
 		paginationRes, err := suite.repos.Repo(table).SelectWithPagePagination(
 			suite.ctx,
 			squirrel.Select(cols...).From(table).OrderBy("id DESC"),
-			&test.Params,
+			test.Params,
 			&res)
 
 		assert.Nil(t, err)
 		assert.NotNil(t, res)
 		assert.NotNil(t, paginationRes)
 		assert.Equal(t, test.LenData, len(res))
-		assert.Equal(t, test.Results, *paginationRes)
+		assert.Equal(t, test.Results, paginationRes)
 	}
 }
 
