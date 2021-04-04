@@ -594,7 +594,7 @@ func (suite *RepositoryTestSuit) Test_SelectWithPagePagination() {
 				NextPageNumber:    0,
 				CntPages:          5,
 			},
-			LenData: 50,
+			LenData: 49,
 		},
 
 		{
