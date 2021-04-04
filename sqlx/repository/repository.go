@@ -378,12 +378,18 @@ func (r *repository) SelectWithPagePagination(
 		CntPages:          0,
 	}
 
+	if params.PageSize == 0 {
+		return paginationResult, errors.New("zero value of params.PageSize")
+	}
+
 	totalCount, err := r.CountByQuery(ctx, squirrel.Select("count(1)").From(r.name))
 	if err != nil {
 		return paginationResult, errors.Wrap(err, "SelectWithPagePagination: r.CountByQuery")
 	}
 
-	paginationResult.CntPages = totalCount / params.PageSize
+	if paginationResult.CntPages = totalCount / params.PageSize; totalCount%params.PageSize != 0 {
+		paginationResult.CntPages++
+	}
 
 	selectBuilder = selectBuilder.Limit(params.PageSize)
 	if params.PageNumber > pageNumberPresent {
