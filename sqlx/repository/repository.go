@@ -393,7 +393,7 @@ func (r *repository) SelectWithPagePagination(
 
 	selectBuilder = selectBuilder.Limit(params.PageSize)
 	if params.PageNumber > pageNumberPresent {
-		selectBuilder = selectBuilder.Offset(params.PageNumber * params.PageSize)
+		selectBuilder = selectBuilder.Offset((params.PageNumber - 1) * params.PageSize)
 	}
 
 	query, args, err := selectBuilder.ToSql()
