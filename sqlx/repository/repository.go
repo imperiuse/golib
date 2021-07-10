@@ -89,7 +89,7 @@ func ConvertIDToString(id interface{}) string {
 	return fmt.Sprint(id)
 }
 
-func (r *repository) SqlxDBConnectorI() SqlxDBConnectorI {
+func (r *repository) PureConnector() SqlxDBConnectorI {
 	return r.db
 }
 
