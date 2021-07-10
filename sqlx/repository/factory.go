@@ -35,7 +35,7 @@ type (
 	}
 
 	RepositoriesI interface {
-		PureConnector() SqlxDBConnectorI
+		PureConnector() (SqlxDBConnectorI, error)
 
 		Repo(Repo) Repository
 		AutoRepo(DTO) Repository
