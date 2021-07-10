@@ -6,11 +6,14 @@ import (
 	"database/sql"
 
 	"github.com/imperiuse/golib/reflect/orm"
+	"github.com/imperiuse/golib/sqlx/helper"
 
 	"github.com/Masterminds/squirrel"
-	"github.com/imperiuse/golib/sqlx/helper"
 	"github.com/jmoiron/sqlx"
+	"github.com/pkg/errors"
 )
+
+var ErrNotFoundAnyRepo = errors.New("not found any repo (connectors)")
 
 //go:generate mockery --name=SqlxDBConnectorI
 type (
@@ -32,6 +35,8 @@ type (
 	}
 
 	RepositoriesI interface {
+		PureConnector() SqlxDBConnectorI
+
 		Repo(Repo) Repository
 		AutoRepo(DTO) Repository
 
@@ -43,7 +48,7 @@ type (
 
 	Repository interface {
 		// Pure Sqlx Db Connector which we pass to NewSqlxMapRepo
-		SqlxDBConnectorI() SqlxDBConnectorI
+		PureConnector() SqlxDBConnectorI
 
 		// usual "CRUD"
 		Create(context.Context, DTO) (ID, error)
@@ -91,6 +96,14 @@ func NewSqlxMapRepo(logger ZapLogger, db SqlxDBConnectorI, tables []Table, objs 
 	}
 
 	return mapRepo
+}
+
+func (r Repositories) PureConnector() (SqlxDBConnectorI, error) {
+	for _, repo := range r {
+		return repo.PureConnector(), nil
+	}
+
+	return nil, ErrNotFoundAnyRepo
 }
 
 func (r Repositories) Repo(name Repo) Repository {
