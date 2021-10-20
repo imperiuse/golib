@@ -66,6 +66,7 @@ type (
 		FindOneByWithInnerJoin(context.Context, []Column, Alias, Join, Condition, DTO) error
 
 		SelectWithPagePagination(context.Context, squirrel.SelectBuilder, PagePaginationParams, DTO) (PagePaginationResults, error)
+		SelectWithCursorOnPKPagination(context.Context, squirrel.SelectBuilder, CursorPaginationParams, DTO) error
 
 		GetRowsByQuery(ctx context.Context, qb squirrel.SelectBuilder) (*sql.Rows, error)
 		CountByQuery(ctx context.Context, qb squirrel.SelectBuilder) (uint64, error)

@@ -8,8 +8,6 @@ import (
 	"net/smtp"
 
 	"github.com/sirupsen/logrus"
-
-	"github.com/imperiuse/golib/archive/concat"
 )
 
 // MailBean - all settings for email package in Bean-like struct
@@ -72,9 +70,9 @@ func (m *MailBean) sendEmail(to mail.Address, subj, body string) (err error) {
 
 	message := ""
 	for k, v := range headers {
-		message = concat.Strings(message, fmt.Sprintf("%s: %s\r\n", k, v))
+		message = fmt.Sprintf("%s %s: %s\r\n", message, k, v)
 	}
-	message = concat.Strings(message, "\r\n", body)
+	message = fmt.Sprintf("%s %s \r\n", message, body)
 
 	// Connect to the SMTP Server
 	host, _, _ := net.SplitHostPort(m.Credentials.ServerName)

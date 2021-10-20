@@ -4,18 +4,17 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strconv"
-
-	"github.com/pkg/errors"
-
-	"github.com/imperiuse/golib/sqlx/helper"
 
 	"go.uber.org/zap"
 
 	"github.com/Masterminds/squirrel"
-	"github.com/imperiuse/golib/reflect/orm"
 	"github.com/jmoiron/sqlx"
+
+	"github.com/imperiuse/golib/reflect/orm"
+	"github.com/imperiuse/golib/sqlx/helper"
 )
 
 const (
@@ -27,10 +26,14 @@ type (
 	Query = string // Query - sql query
 	Alias = string // Alias - alias of table
 	Join  = string // Join  - sql join part
-
 	Table = string // Table - table name
 
 	ID = interface{} // ID - uniq ID
+)
+
+var (
+	ErrZeroPageSize  = errors.New("zero value of params.PageSize")
+	ErrZeroLimitSize = errors.New("zero value of params.Limit")
 )
 
 type (
@@ -105,7 +108,7 @@ func (r *repository) Create(ctx context.Context, obj DTO) (ID, error) {
 		PlaceholderFormat(squirrel.Dollar).
 		ToSql()
 	if err != nil {
-		return SerialUnknown, errors.Wrap(err, "[repo.Create] squirrel")
+		return SerialUnknown, fmt.Errorf("[repo.Create] squirrel: %w", err)
 	}
 
 	var lastInsertID ID = int64(0)
@@ -126,7 +129,7 @@ func (r *repository) Get(ctx context.Context, id ID, dest DTO) error {
 		PlaceholderFormat(squirrel.Dollar).
 		ToSql()
 	if err != nil {
-		return errors.Wrap(err, "[repo.Get] squirrel")
+		return fmt.Errorf("[repo.Get] squirrel: %w", err)
 	}
 
 	return sqlx.GetContext(ctx, r.db, dest, query, args...)
@@ -143,17 +146,17 @@ func (r *repository) Update(ctx context.Context, id ID, obj DTO) (int64, error) 
 		PlaceholderFormat(squirrel.Dollar).
 		ToSql()
 	if err != nil {
-		return RowsAffectedUnknown, errors.Wrap(err, "[repo.Update] squirrel")
+		return RowsAffectedUnknown, fmt.Errorf("[repo.Update] squirrel: %w", err)
 	}
 
 	res, err := r.db.ExecContext(ctx, query, args...)
 	if err != nil {
-		return RowsAffectedUnknown, errors.Wrap(err, "[repo.Update] db.ExecContext")
+		return RowsAffectedUnknown, fmt.Errorf("[repo.Update] db.ExecContext: %w", err)
 	}
 
 	ra, err := res.RowsAffected()
 	if err != nil {
-		return RowsAffectedUnknown, errors.Wrap(err, "[repo.Update] res.RowsAffected")
+		return RowsAffectedUnknown, fmt.Errorf("[repo.Update] res.RowsAffected: %w", err)
 	}
 
 	return ra, nil
@@ -167,17 +170,17 @@ func (r *repository) Delete(ctx context.Context, id ID) (int64, error) {
 		PlaceholderFormat(squirrel.Dollar).
 		ToSql()
 	if err != nil {
-		return RowsAffectedUnknown, errors.Wrap(err, "[repo.Delete] squirrel")
+		return RowsAffectedUnknown, fmt.Errorf("[repo.Delete] squirrel: %w", err)
 	}
 
 	res, err := r.db.ExecContext(ctx, query, args...)
 	if err != nil {
-		return RowsAffectedUnknown, errors.Wrap(err, "[repo.Delete] db.ExecContext")
+		return RowsAffectedUnknown, fmt.Errorf("[repo.Delete] db.ExecContext: %w", err)
 	}
 
 	ra, err := res.RowsAffected()
 	if err != nil {
-		return RowsAffectedUnknown, errors.Wrap(err, "[repo.Delete] res.RowsAffected")
+		return RowsAffectedUnknown, fmt.Errorf("[repo.Delete] res.RowsAffected: %w", err)
 	}
 
 	return ra, nil
@@ -192,12 +195,12 @@ func (r *repository) Insert(ctx context.Context, columns []string, values []inte
 		PlaceholderFormat(squirrel.Dollar).
 		ToSql()
 	if err != nil {
-		return 0, errors.Wrap(err, "[repo.Insert] squirrel")
+		return 0, fmt.Errorf("[repo.Insert] squirrel: %w", err)
 	}
 
 	res, err := r.db.ExecContext(ctx, query, args...)
 	if err != nil {
-		return RowsAffectedUnknown, errors.Wrap(err, "[repo.Insert] db.ExecContext")
+		return RowsAffectedUnknown, fmt.Errorf("[repo.Insert] db.ExecContext: %w", err)
 	}
 
 	return res.RowsAffected()
@@ -213,17 +216,17 @@ func (r *repository) UpdateCustom(ctx context.Context, set map[string]interface{
 		PlaceholderFormat(squirrel.Dollar).
 		ToSql()
 	if err != nil {
-		return RowsAffectedUnknown, errors.Wrap(err, "[repo.UpdateCustom] squirrel")
+		return RowsAffectedUnknown, fmt.Errorf("[repo.UpdateCustom] squirrel: %w", err)
 	}
 
 	res, err := r.db.ExecContext(ctx, query, args...)
 	if err != nil {
-		return RowsAffectedUnknown, errors.Wrap(err, "[repo.ExecContext] squirrel")
+		return RowsAffectedUnknown, fmt.Errorf("[repo.ExecContext] squirrel: %w", err)
 	}
 
 	ra, err := res.RowsAffected()
 	if err != nil {
-		return RowsAffectedUnknown, errors.Wrap(err, "[repo.ExecContext] RowsAffected")
+		return RowsAffectedUnknown, fmt.Errorf("[repo.ExecContext] RowsAffected: %w", err)
 	}
 
 	return ra, nil
@@ -239,7 +242,7 @@ func (r *repository) FindBy(ctx context.Context, columns []string, condition Con
 		PlaceholderFormat(squirrel.Dollar).
 		ToSql()
 	if err != nil {
-		return errors.Wrap(err, "[repo.FindBy] squirrel")
+		return fmt.Errorf("[repo.FindBy] squirrel: %w", err)
 	}
 
 	return sqlx.SelectContext(ctx, r.db, target, query, args...)
@@ -255,7 +258,7 @@ func (r *repository) FindOneBy(ctx context.Context, columns []string, condition 
 		PlaceholderFormat(squirrel.Dollar).
 		ToSql()
 	if err != nil {
-		return errors.Wrap(err, "[repo.FindOneBy] squirrel")
+		return fmt.Errorf("[repo.FindOneBy] squirrel: %w", err)
 	}
 
 	return sqlx.GetContext(ctx, r.db, target, query, args...)
@@ -281,7 +284,7 @@ func (r *repository) FindByWithInnerJoin(
 		PlaceholderFormat(squirrel.Dollar).
 		ToSql()
 	if err != nil {
-		return errors.Wrap(err, "[repo.FindByWithInnerJoin] squirrel")
+		return fmt.Errorf("[repo.FindByWithInnerJoin] squirrel: %w", err)
 	}
 
 	return sqlx.SelectContext(ctx, r.db, target, query, args...)
@@ -307,7 +310,7 @@ func (r *repository) FindOneByWithInnerJoin(
 		PlaceholderFormat(squirrel.Dollar).
 		ToSql()
 	if err != nil {
-		return errors.Wrap(err, "[repo.FindOneByWithInnerJoin] squirrel")
+		return fmt.Errorf("[repo.FindOneByWithInnerJoin] squirrel: %w", err)
 	}
 
 	return sqlx.GetContext(ctx, r.db, target, query, args...)
@@ -320,7 +323,7 @@ func (r *repository) GetRowsByQuery(ctx context.Context, qb squirrel.SelectBuild
 		PlaceholderFormat(squirrel.Dollar).
 		ToSql()
 	if err != nil {
-		return nil, errors.Wrap(err, "[repo.GetRowsByQuery] squirrel")
+		return nil, fmt.Errorf("[repo.GetRowsByQuery] squirrel: %w", err)
 	}
 
 	return r.db.QueryContext(ctx, query, args...)
@@ -333,14 +336,14 @@ func (r *repository) CountByQuery(ctx context.Context, qb squirrel.SelectBuilder
 		PlaceholderFormat(squirrel.Dollar).
 		ToSql()
 	if err != nil {
-		return 0, errors.Wrap(err, "[repo.CountByQuery] squirrel")
+		return 0, fmt.Errorf("[repo.CountByQuery] squirrel: %w", err)
 	}
 
 	counter := uint64(0)
 
 	err = r.db.QueryRowxContext(ctx, query, args...).Scan(&counter)
 	if err != nil {
-		return counter, errors.Wrap(err, "[repo.CountByQuery] db.QueryRowxContext")
+		return counter, fmt.Errorf("[repo.CountByQuery] db.QueryRowxContext: %w", err)
 	}
 
 	return counter, nil
@@ -356,6 +359,12 @@ type (
 		CurrentPageNumber uint64
 		NextPageNumber    uint64
 		CntPages          uint64
+	}
+
+	CursorPaginationParams struct {
+		Limit     uint64
+		Cursor    uint64
+		DescOrder bool
 	}
 )
 
@@ -379,37 +388,68 @@ func (r *repository) SelectWithPagePagination(
 	}
 
 	if params.PageSize == 0 {
-		return paginationResult, errors.New("zero value of params.PageSize")
+		return paginationResult, ErrZeroPageSize
 	}
 
 	totalCount, err := r.CountByQuery(ctx, squirrel.Select("count(1)").From(r.name))
 	if err != nil {
-		return paginationResult, errors.Wrap(err, "SelectWithPagePagination: r.CountByQuery")
+		return paginationResult, fmt.Errorf("SelectWithPagePagination: r.CountByQuery: %w", err)
 	}
 
 	if paginationResult.CntPages = totalCount / params.PageSize; totalCount%params.PageSize != 0 {
 		paginationResult.CntPages++
 	}
 
-	selectBuilder = selectBuilder.Limit(params.PageSize)
+	selectBuilder = selectBuilder.From(r.name).Limit(params.PageSize)
 	if params.PageNumber > pageNumberPresent {
 		selectBuilder = selectBuilder.Offset((params.PageNumber - 1) * params.PageSize)
 	}
 
 	query, args, err := selectBuilder.ToSql()
 	if err != nil {
-		return paginationResult, errors.Wrap(err, "SelectWithPagePagination: selectBuilder.ToSql()")
+		return paginationResult, fmt.Errorf("SelectWithPagePagination: selectBuilder.ToSql(): %w", err)
 	}
 
 	if err = sqlx.SelectContext(ctx, r.db, target, query, args...); err != nil {
-		return paginationResult, errors.Wrap(err, "SelectWithPagePagination: sqlx.SelectContext()")
+		return paginationResult, fmt.Errorf("SelectWithPagePagination: sqlx.SelectContext(): %w", err)
 	}
 
-	// todo think here
+	// todo think here, now this block doesn't execute because var `ok` is always false
 	//if psl, ok := target.(*[]interface{}); ok && len(*psl) > 0 {
 	//	paginationResult.NextPageNumber = paginationResult.CurrentPageNumber + 1
 	//}
 
 	return paginationResult, nil
+
+}
+
+func (r *repository) SelectWithCursorOnPKPagination(
+	ctx context.Context,
+	selectBuilder squirrel.SelectBuilder,
+	params CursorPaginationParams,
+	target interface{},
+) error {
+	r.logger.Info("[repo.SelectWithCursorOnPKPagination]", r.zapFieldRepo(), zap.Any("params", params))
+
+	if params.Limit == 0 {
+		return ErrZeroLimitSize
+	}
+
+	var wh squirrel.Sqlizer = squirrel.Gt{"id": params.Cursor}
+	if params.DescOrder {
+		wh = squirrel.Lt{"id": params.Cursor}
+		selectBuilder.OrderBy("id DESC")
+	}
+
+	query, args, err := selectBuilder.From(r.name).Where(wh).Limit(params.Limit).ToSql()
+	if err != nil {
+		return fmt.Errorf("SelectWithCursorOnPKPagination: selectBuilder.ToSql(): %w", err)
+	}
+
+	if err = sqlx.SelectContext(ctx, r.db, target, query, args...); err != nil {
+		return fmt.Errorf("SelectWithCursorOnPKPagination: sqlx.SelectContext(): %w", err)
+	}
+
+	return nil
 
 }
