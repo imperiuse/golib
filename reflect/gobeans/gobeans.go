@@ -9,7 +9,6 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
 
-	"github.com/imperiuse/golib/archive/concat"
 	"github.com/imperiuse/golib/jsonnocomment"
 	"github.com/imperiuse/golib/reflect/cast"
 )
@@ -264,7 +263,7 @@ func recursiveGetPkgAndTypeName(pkgName, typeName string, typ reflect.Type, maxC
 			typ = typ.Elem()
 			t := ""
 			pkgName, t = recursiveGetPkgAndTypeName(typ.PkgPath(), typ.Name(), typ, maxCntRecEstimate)
-			typeName = concat.Strings(typeName, "*", t)
+			typeName = fmt.Sprintf("%s*%s", typeName, t)
 		} else {
 			return pkgName, typeName
 		}
@@ -374,7 +373,7 @@ func (bs *BeansStorage) createEmptyBean(beanDescription *BeanDescription) (refle
 
 		// Регистрация нового созданного типа - анонимной структура на месте
 		if beanDescription.StructName == "" {
-			beanDescription.StructName = concat.Strings(AnonStructPrefixTypeName, string(beanDescription.ID))
+			beanDescription.StructName = fmt.Sprintf("%s%s",AnonStructPrefixTypeName, beanDescription.ID)
 		}
 		bs.typeMap[beanDescription.StructName] = typ
 
