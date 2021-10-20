@@ -249,8 +249,8 @@ func (suite *RepositoryTestSuit) Test_Repo_AutoRepo_SqlxDBConnectorI() {
 	t := suite.T()
 
 	for _, obj := range DTOs {
-		assert.NotNil(t, suite.repos.AutoRepo(obj).SqlxDBConnectorI())
-		assert.Equal(t, suite.db, suite.repos.AutoRepo(obj).SqlxDBConnectorI())
+		assert.NotNil(t, suite.repos.AutoRepo(obj).PureConnector())
+		assert.Equal(t, suite.db, suite.repos.AutoRepo(obj).PureConnector())
 		assert.NotEqual(t, suite.repos.AutoRepo(obj), suite.repos.Repo("_UNKNOWN_"))
 		assert.Equal(t, emptyRepo, suite.repos.Repo("_UNKNOWN_"))
 		assert.Equal(t, emptyRepo, suite.repos.Repo("_UNKNOWN_2"))
@@ -271,10 +271,10 @@ func (suite *RepositoryTestSuit) Test_EmptyRepo_NotPanic() {
 	assert.NotNil(t, r)
 	assert.Equal(t, r, emptyRepo)
 
-	assert.NotNil(t, r.SqlxDBConnectorI())
-	assert.NotEqual(t, suite.db, r.SqlxDBConnectorI())
+	assert.NotNil(t, r.PureConnector())
+	assert.NotEqual(t, suite.db, r.PureConnector())
 
-	emptyCon := r.SqlxDBConnectorI()
+	emptyCon := r.PureConnector()
 
 	assert.Equal(t, FakeStringAns, emptyCon.DriverName())
 
