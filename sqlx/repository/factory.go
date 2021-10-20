@@ -99,12 +99,12 @@ func NewSqlxMapRepo(logger ZapLogger, db SqlxDBConnectorI, tables []Table, objs 
 	return mapRepo
 }
 
-func (r Repositories) PureConnector() (SqlxDBConnectorI, error) {
+func (r Repositories) PureConnector() SqlxDBConnectorI {
 	for _, repo := range r {
-		return repo.PureConnector(), nil
+		return repo.PureConnector()
 	}
 
-	return nil, ErrNotFoundAnyRepo
+	return emptyRepo.PureConnector()
 }
 
 func (r Repositories) Repo(name Repo) Repository {
