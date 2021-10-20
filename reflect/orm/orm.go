@@ -94,6 +94,11 @@ func getMetaDTO(structName string, obj interface{}) *MetaDTO {
 	return cacheMetaDTO[structName]
 }
 
+func GetDataForSelectOnlyCols(obj interface{}) []Column {
+	meta := GetMetaDTO(obj)
+	return meta.ColsMap[ormUseInSelect]
+}
+
 func GetDataForSelect(obj interface{}) ([]Column, JoinCond) {
 	meta := GetMetaDTO(obj)
 	return meta.ColsMap[ormUseInSelect], meta.JoinCond
