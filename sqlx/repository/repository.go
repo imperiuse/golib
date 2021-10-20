@@ -405,7 +405,7 @@ func (r *repository) SelectWithPagePagination(
 		selectBuilder = selectBuilder.Offset((params.PageNumber - 1) * params.PageSize)
 	}
 
-	query, args, err := selectBuilder.ToSql()
+	query, args, err := selectBuilder.PlaceholderFormat(squirrel.Dollar).ToSql()
 	if err != nil {
 		return paginationResult, fmt.Errorf("SelectWithPagePagination: selectBuilder.ToSql(): %w", err)
 	}
@@ -441,7 +441,8 @@ func (r *repository) SelectWithCursorOnPKPagination(
 		selectBuilder.OrderBy("id DESC")
 	}
 
-	query, args, err := selectBuilder.From(r.name).Where(wh).Limit(params.Limit).ToSql()
+	query, args, err := selectBuilder.From(r.name).Where(wh).Limit(params.Limit).
+		PlaceholderFormat(squirrel.Dollar).ToSql()
 	if err != nil {
 		return fmt.Errorf("SelectWithCursorOnPKPagination: selectBuilder.ToSql(): %w", err)
 	}

@@ -107,6 +107,8 @@ func (suite *OrmTestSuit) Test_GetOrmDataForCreate() {
 func (suite *OrmTestSuit) Test_GetOrmDataForSelect() {
 	t := suite.T()
 	cols, join := GetDataForSelect(&C{})
+	cols2 := GetDataForSelectOnlyCols(&C{})
+	assert.Equal(t, cols, cols2)
 	assert.Equal(t, "ON a.id = b.id", join)
 	assert.Equal(t, []string{"a.id as \"a.id\"", "a.created_at as \"a.created_at\"", "a.updated_at as \"a.updated_at\"", "a.select_field as \"a.select_field\"", "b.id as \"b.id\"", "b.created_at as \"b.created_at\"", "b.updated_at as \"b.updated_at\"", "b.cus_field as \"b.cus_field\"", "b.cus2_field as \"b.cus2_field\""}, cols)
 }
@@ -150,22 +152,33 @@ func (suite *OrmTestSuit) Test_BadGetOrmDataForCreate() {
 func (suite *OrmTestSuit) Test_BadGetOrmDataForSelect() {
 	t := suite.T()
 	col, join := GetDataForSelect(&BadStruct{})
+	cols2 := GetDataForSelectOnlyCols(&BadStruct{})
+	assert.Equal(t, col, cols2)
+
 	assert.Equal(t, []string{}, col)
 	assert.Equal(t, "", join)
 
 	col, join = GetDataForSelect(nil)
+	cols2 = GetDataForSelectOnlyCols(nil)
+	assert.Equal(t, col, cols2)
 	assert.Equal(t, []string{}, col)
 	assert.Equal(t, "", join)
 
 	col, join = GetDataForSelect(new(interface{}))
+	cols2 = GetDataForSelectOnlyCols(new(interface{}))
+	assert.Equal(t, col, cols2)
 	assert.Equal(t, []string{}, col)
 	assert.Equal(t, "", join)
 
 	col, join = GetDataForSelect(1234)
+	cols2 = GetDataForSelectOnlyCols(1234)
+	assert.Equal(t, col, cols2)
 	assert.Equal(t, []string{}, col)
 	assert.Equal(t, "", join)
 
 	col, join = GetDataForSelect("")
+	cols2 = GetDataForSelectOnlyCols("")
+	assert.Equal(t, col, cols2)
 	assert.Equal(t, []string{}, col)
 	assert.Equal(t, "", join)
 
