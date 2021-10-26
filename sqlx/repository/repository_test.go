@@ -159,7 +159,7 @@ func (suite *RepositoryTestSuit) SetupSuite() {
 		assert.Nil(suite.T(), err)
 	}
 
-	suite.repos = NewSqlxMapRepo(suite.logger, db, tables, nil)
+	suite.repos = NewSqlxMapRepo(suite.logger, db, squirrel.Dollar, tables, nil)
 	assert.NotNil(suite.T(), suite.repos)
 
 	assert.Nil(suite.T(), appendTestDataToTables(suite))
