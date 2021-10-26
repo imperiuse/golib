@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"database/sql/driver"
 
+	"github.com/Masterminds/squirrel"
+
 	"github.com/imperiuse/golib/sqlx/repository/mocks"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
@@ -26,6 +28,7 @@ var (
 			logger: zap.NewNop(),
 			db:     badMockDBConn,
 			name:   "_emptyRepo_",
+			phf:    squirrel.Dollar,
 		}
 	}()
 
