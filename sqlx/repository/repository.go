@@ -61,6 +61,7 @@ func newRepository(logger ZapLogger, db SqlxDBConnectorI, tableName Table, phf P
 		logger: logger,
 		db:     db,
 		name:   tableName,
+		phf:    phf,
 	}
 }
 
