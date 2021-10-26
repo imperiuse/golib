@@ -42,14 +42,21 @@ type (
 
 	Condition = squirrel.Sqlizer // squirrel.Eq or squirrel.Gt or squirrel.And and etc
 
+	PlaceholderFormat = squirrel.PlaceholderFormat
+
 	repository struct {
 		logger ZapLogger
 		db     SqlxDBConnectorI
 		name   Repo
+		phf    PlaceholderFormat
 	}
 )
 
-func newRepository(logger ZapLogger, db SqlxDBConnectorI, tableName Table) *repository {
+func newRepository(logger ZapLogger, db SqlxDBConnectorI, tableName Table, phf PlaceholderFormat) *repository {
+	if phf == nil {
+		phf = squirrel.Dollar
+	}
+
 	return &repository{
 		logger: logger,
 		db:     db,
@@ -105,7 +112,7 @@ func (r *repository) Create(ctx context.Context, obj DTO) (ID, error) {
 		Columns(cols...).
 		Values(vals...).
 		Suffix("RETURNING id").
-		PlaceholderFormat(squirrel.Dollar).
+		PlaceholderFormat(r.phf).
 		ToSql()
 	if err != nil {
 		return SerialUnknown, fmt.Errorf("[repo.Create] squirrel: %w", err)
@@ -126,7 +133,7 @@ func (r *repository) Get(ctx context.Context, id ID, dest DTO) error {
 	query, args, err := squirrel.Select("*").
 		From(r.name).
 		Where(squirrel.Eq{"id": id}).
-		PlaceholderFormat(squirrel.Dollar).
+		PlaceholderFormat(r.phf).
 		ToSql()
 	if err != nil {
 		return fmt.Errorf("[repo.Get] squirrel: %w", err)
@@ -143,7 +150,7 @@ func (r *repository) Update(ctx context.Context, id ID, obj DTO) (int64, error) 
 	query, args, err := squirrel.Update(r.name).
 		SetMap(sm).
 		Where(squirrel.Eq{"id": id}).
-		PlaceholderFormat(squirrel.Dollar).
+		PlaceholderFormat(r.phf).
 		ToSql()
 	if err != nil {
 		return RowsAffectedUnknown, fmt.Errorf("[repo.Update] squirrel: %w", err)
@@ -167,7 +174,7 @@ func (r *repository) Delete(ctx context.Context, id ID) (int64, error) {
 
 	query, args, err := squirrel.Delete(r.name).
 		Where(squirrel.Eq{"id": id}).
-		PlaceholderFormat(squirrel.Dollar).
+		PlaceholderFormat(r.phf).
 		ToSql()
 	if err != nil {
 		return RowsAffectedUnknown, fmt.Errorf("[repo.Delete] squirrel: %w", err)
@@ -192,7 +199,7 @@ func (r *repository) Insert(ctx context.Context, columns []string, values []inte
 	query, args, err := squirrel.Insert(r.name).
 		Columns(columns...).
 		Values(values...).
-		PlaceholderFormat(squirrel.Dollar).
+		PlaceholderFormat(r.phf).
 		ToSql()
 	if err != nil {
 		return 0, fmt.Errorf("[repo.Insert] squirrel: %w", err)
@@ -213,7 +220,7 @@ func (r *repository) UpdateCustom(ctx context.Context, set map[string]interface{
 	query, args, err := squirrel.Update(r.name).
 		SetMap(set).
 		Where(cond).
-		PlaceholderFormat(squirrel.Dollar).
+		PlaceholderFormat(r.phf).
 		ToSql()
 	if err != nil {
 		return RowsAffectedUnknown, fmt.Errorf("[repo.UpdateCustom] squirrel: %w", err)
@@ -239,7 +246,7 @@ func (r *repository) FindBy(ctx context.Context, columns []string, condition Con
 	query, args, err := squirrel.Select(columns...).
 		From(r.name).
 		Where(condition).
-		PlaceholderFormat(squirrel.Dollar).
+		PlaceholderFormat(r.phf).
 		ToSql()
 	if err != nil {
 		return fmt.Errorf("[repo.FindBy] squirrel: %w", err)
@@ -255,7 +262,7 @@ func (r *repository) FindOneBy(ctx context.Context, columns []string, condition 
 	query, args, err := squirrel.Select(columns...).
 		From(r.name).
 		Where(condition).
-		PlaceholderFormat(squirrel.Dollar).
+		PlaceholderFormat(r.phf).
 		ToSql()
 	if err != nil {
 		return fmt.Errorf("[repo.FindOneBy] squirrel: %w", err)
@@ -281,7 +288,7 @@ func (r *repository) FindByWithInnerJoin(
 		From(fromWithAlias).
 		InnerJoin(join).
 		Where(condition).
-		PlaceholderFormat(squirrel.Dollar).
+		PlaceholderFormat(r.phf).
 		ToSql()
 	if err != nil {
 		return fmt.Errorf("[repo.FindByWithInnerJoin] squirrel: %w", err)
@@ -307,7 +314,7 @@ func (r *repository) FindOneByWithInnerJoin(
 		From(fromWithAlias).
 		InnerJoin(join).
 		Where(condition).
-		PlaceholderFormat(squirrel.Dollar).
+		PlaceholderFormat(r.phf).
 		ToSql()
 	if err != nil {
 		return fmt.Errorf("[repo.FindOneByWithInnerJoin] squirrel: %w", err)
@@ -320,7 +327,7 @@ func (r *repository) GetRowsByQuery(ctx context.Context, qb squirrel.SelectBuild
 	r.logger.Info("[repo.GetRowsByQuery]", r.zapFieldRepo(), zap.Any("qb", qb))
 
 	query, args, err := qb.
-		PlaceholderFormat(squirrel.Dollar).
+		PlaceholderFormat(r.phf).
 		ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("[repo.GetRowsByQuery] squirrel: %w", err)
@@ -333,7 +340,7 @@ func (r *repository) CountByQuery(ctx context.Context, qb squirrel.SelectBuilder
 	r.logger.Info("[repo.CountByQuery]", r.zapFieldRepo(), zap.Any("qb", qb))
 
 	query, args, err := qb.
-		PlaceholderFormat(squirrel.Dollar).
+		PlaceholderFormat(r.phf).
 		ToSql()
 	if err != nil {
 		return 0, fmt.Errorf("[repo.CountByQuery] squirrel: %w", err)
@@ -405,7 +412,7 @@ func (r *repository) SelectWithPagePagination(
 		selectBuilder = selectBuilder.Offset((params.PageNumber - 1) * params.PageSize)
 	}
 
-	query, args, err := selectBuilder.PlaceholderFormat(squirrel.Dollar).ToSql()
+	query, args, err := selectBuilder.PlaceholderFormat(r.phf).ToSql()
 	if err != nil {
 		return paginationResult, fmt.Errorf("SelectWithPagePagination: selectBuilder.ToSql(): %w", err)
 	}
@@ -439,10 +446,12 @@ func (r *repository) SelectWithCursorOnPKPagination(
 	if params.DescOrder {
 		wh = squirrel.Lt{"id": params.Cursor}
 		selectBuilder.OrderBy("id DESC")
+	} else {
+		selectBuilder.OrderBy("id ASC")
 	}
 
 	query, args, err := selectBuilder.From(r.name).Where(wh).Limit(params.Limit).
-		PlaceholderFormat(squirrel.Dollar).ToSql()
+		PlaceholderFormat(r.phf).ToSql()
 	if err != nil {
 		return fmt.Errorf("SelectWithCursorOnPKPagination: selectBuilder.ToSql(): %w", err)
 	}
