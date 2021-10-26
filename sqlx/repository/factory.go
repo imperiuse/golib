@@ -77,10 +77,10 @@ type (
 	Argument = interface{}
 )
 
-func NewSqlxMapRepo(logger ZapLogger, db SqlxDBConnectorI, tables []Table, objs []DTO) Repositories {
+func NewSqlxMapRepo(logger ZapLogger, db SqlxDBConnectorI, phf PlaceholderFormat, tables []Table, objs []DTO) Repositories {
 	mapRepo := make(Repositories, len(tables))
 	for _, name := range tables {
-		mapRepo[name] = newRepository(logger, db, name)
+		mapRepo[name] = newRepository(logger, db, name, phf)
 	}
 
 	for _, obj := range objs {
@@ -93,7 +93,7 @@ func NewSqlxMapRepo(logger ZapLogger, db SqlxDBConnectorI, tables []Table, objs 
 			continue
 		}
 
-		mapRepo[tableName] = newRepository(logger, db, tableName)
+		mapRepo[tableName] = newRepository(logger, db, tableName, phf)
 	}
 
 	return mapRepo
