@@ -23,6 +23,9 @@ type (
 		sqlx.ExtContext
 		sqlx.PreparerContext
 		helper.TxxI
+
+		SelectContext(ctx context.Context, q sqlx.QueryerContext, dest interface{}, query string, args ...interface{}) error
+		GetContext(ctx context.Context, q sqlx.QueryerContext, dest interface{}, query string, args ...interface{}) error
 	}
 
 	Repo = Table

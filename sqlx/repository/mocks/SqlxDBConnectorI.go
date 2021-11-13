@@ -110,6 +110,23 @@ func (_m *SqlxDBConnectorI) ExecContext(ctx context.Context, query string, args 
 	return r0, r1
 }
 
+// GetContext provides a mock function with given fields: ctx, q, dest, query, args
+func (_m *SqlxDBConnectorI) GetContext(ctx context.Context, q sqlx.QueryerContext, dest interface{}, query string, args ...interface{}) error {
+	var _ca []interface{}
+	_ca = append(_ca, ctx, q, dest, query)
+	_ca = append(_ca, args...)
+	ret := _m.Called(_ca...)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, sqlx.QueryerContext, interface{}, string, ...interface{}) error); ok {
+		r0 = rf(ctx, q, dest, query, args...)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // PrepareContext provides a mock function with given fields: ctx, query
 func (_m *SqlxDBConnectorI) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
 	ret := _m.Called(ctx, query)
@@ -213,6 +230,23 @@ func (_m *SqlxDBConnectorI) Rebind(_a0 string) string {
 		r0 = rf(_a0)
 	} else {
 		r0 = ret.Get(0).(string)
+	}
+
+	return r0
+}
+
+// SelectContext provides a mock function with given fields: ctx, q, dest, query, args
+func (_m *SqlxDBConnectorI) SelectContext(ctx context.Context, q sqlx.QueryerContext, dest interface{}, query string, args ...interface{}) error {
+	var _ca []interface{}
+	_ca = append(_ca, ctx, q, dest, query)
+	_ca = append(_ca, args...)
+	ret := _m.Called(_ca...)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, sqlx.QueryerContext, interface{}, string, ...interface{}) error); ok {
+		r0 = rf(ctx, q, dest, query, args...)
+	} else {
+		r0 = ret.Error(0)
 	}
 
 	return r0
