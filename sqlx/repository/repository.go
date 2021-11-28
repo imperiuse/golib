@@ -40,8 +40,13 @@ type (
 	//ZapLogger ZapLogger
 	ZapLogger = *zap.Logger
 
+	// Condition - squirrel.Sqlizer
 	Condition = squirrel.Sqlizer // squirrel.Eq or squirrel.Gt or squirrel.And and etc
 
+	// SelectBuilder - squirrel.SelectBuilder
+	SelectBuilder = squirrel.SelectBuilder
+
+	// PlaceholderFormat - squirrel.PlaceholderFormat
 	PlaceholderFormat = squirrel.PlaceholderFormat
 
 	repository struct {
@@ -98,6 +103,10 @@ func ConvertIDToString(id interface{}) string {
 	}
 
 	return fmt.Sprint(id)
+}
+
+func (r *repository) Name() Table {
+	return r.name
 }
 
 func (r *repository) PureConnector() SqlxDBConnectorI {
@@ -375,6 +384,19 @@ type (
 		DescOrder bool
 	}
 )
+
+func (r *repository) Select(ctx context.Context, sb SelectBuilder, target interface{}) error {
+	r.logger.Info("[repo.Select]", r.zapFieldRepo(), zap.Any("sb", sb))
+
+	query, args, err := sb.
+		PlaceholderFormat(r.phf).
+		ToSql()
+	if err != nil {
+		return fmt.Errorf("[repo.Select] squirrel: %w", err)
+	}
+
+	return sqlx.SelectContext(ctx, r.db, target, query, args...)
+}
 
 func (r *repository) SelectWithPagePagination(
 	ctx context.Context,

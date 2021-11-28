@@ -320,6 +320,24 @@ func (suite *RepositoryTestSuit) Test_EmptyRepo_NotPanic() {
 	assert.NotNil(t, err)
 	assert.Equal(t, int64(0), cnt)
 
+	var roles []Role
+	err = r.Select(suite.ctx, squirrel.Select("*").From(r.Name()).OrderBy("id DESC"), &roles)
+	assert.NotNil(t, err)
+	assert.Equal(t, 0, len(roles))
+
+	err = r.SelectWithCursorOnPKPagination(suite.ctx, squirrel.Select("*").From(r.Name()), CursorPaginationParams{
+		Limit:     10,
+		Cursor:    0,
+		DescOrder: false,
+	}, &roles)
+	assert.NotNil(t, err)
+	assert.Equal(t, 0, len(roles))
+
+	ppr, err := r.SelectWithPagePagination(suite.ctx, squirrel.Select("*").From(r.Name()), PagePaginationParams{PageNumber: 1, PageSize: 10}, &roles)
+	assert.NotNil(t, err)
+	assert.NotNil(t, ppr)
+	assert.Equal(t, 0, len(roles))
+
 	cnt, err = r.Delete(suite.ctx, 1)
 	assert.NotNil(t, err)
 	assert.Equal(t, int64(0), cnt)
@@ -356,6 +374,8 @@ func (suite *RepositoryTestSuit) Test_EmptyRepo_NotPanic() {
 
 func (suite *RepositoryTestSuit) Test_CRUD() {
 	t := suite.T()
+
+	assert.Equal(t, "Roles", suite.repos.AutoRepo(&Role{}).Name())
 
 	const (
 		rights       = 10
@@ -520,6 +540,28 @@ func (suite *RepositoryTestSuit) Test_Advance_RepoFunc() {
 	rows, err := suite.repos.AutoRepo(&role2).GetRowsByQuery(ctx, squirrel.Select("*").From(orm.GetTableName(&role2)))
 	assert.Nil(t, err)
 	assert.NotNil(t, rows)
+
+	roles = []Role{}
+	repo := suite.repos.AutoRepo(&role2)
+
+	err = repo.Select(suite.ctx, squirrel.Select("*").From(repo.Name()).OrderBy("id DESC"), &roles)
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(roles))
+
+	roles = []Role{}
+	err = repo.SelectWithCursorOnPKPagination(suite.ctx, squirrel.Select("*").From(repo.Name()), CursorPaginationParams{
+		Limit:     10,
+		Cursor:    0,
+		DescOrder: false,
+	}, &roles)
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(roles))
+
+	roles = []Role{}
+	ppr, err := repo.SelectWithPagePagination(suite.ctx, squirrel.Select("*").From(repo.Name()), PagePaginationParams{PageNumber: 1, PageSize: 10}, &roles)
+	assert.Nil(t, err)
+	assert.NotNil(t, ppr)
+	assert.Equal(t, 2, len(roles))
 }
 
 func (suite *RepositoryTestSuit) Test_GetAllPossibleErrors() {
