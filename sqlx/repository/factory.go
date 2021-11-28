@@ -8,7 +8,6 @@ import (
 	"github.com/imperiuse/golib/reflect/orm"
 	"github.com/imperiuse/golib/sqlx/helper"
 
-	"github.com/Masterminds/squirrel"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 )
@@ -47,6 +46,9 @@ type (
 	}
 
 	Repository interface {
+		// Name of main table (repo obj)
+		Name() Table
+
 		// Pure Sqlx Db Connector which we pass to NewSqlxMapRepo
 		PureConnector() SqlxDBConnectorI
 
@@ -65,11 +67,12 @@ type (
 		FindByWithInnerJoin(context.Context, []Column, Alias, Join, Condition, DTO) error
 		FindOneByWithInnerJoin(context.Context, []Column, Alias, Join, Condition, DTO) error
 
-		SelectWithPagePagination(context.Context, squirrel.SelectBuilder, PagePaginationParams, DTO) (PagePaginationResults, error)
-		SelectWithCursorOnPKPagination(context.Context, squirrel.SelectBuilder, CursorPaginationParams, DTO) error
+		Select(context.Context, SelectBuilder, DTO) error
+		SelectWithPagePagination(context.Context, SelectBuilder, PagePaginationParams, DTO) (PagePaginationResults, error)
+		SelectWithCursorOnPKPagination(context.Context, SelectBuilder, CursorPaginationParams, DTO) error
 
-		GetRowsByQuery(ctx context.Context, qb squirrel.SelectBuilder) (*sql.Rows, error)
-		CountByQuery(ctx context.Context, qb squirrel.SelectBuilder) (uint64, error)
+		GetRowsByQuery(ctx context.Context, qb SelectBuilder) (*sql.Rows, error)
+		CountByQuery(ctx context.Context, qb SelectBuilder) (uint64, error)
 	}
 
 	Column = string
