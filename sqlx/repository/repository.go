@@ -249,7 +249,7 @@ func (r *repository) UpdateCustom(ctx context.Context, set map[string]interface{
 	return ra, nil
 }
 
-func (r *repository) FindBy(ctx context.Context, columns []string, condition Condition, target interface{}) error {
+func (r *repository) FindBy(ctx context.Context, columns []string, condition Condition, target DTO) error {
 	r.logger.Info("[repo.FindBy]", r.zapFieldRepo(),
 		zap.Any("columns", columns), zap.Any("condition", condition))
 
@@ -265,7 +265,7 @@ func (r *repository) FindBy(ctx context.Context, columns []string, condition Con
 	return sqlx.SelectContext(ctx, r.db, target, query, args...)
 }
 
-func (r *repository) FindOneBy(ctx context.Context, columns []string, condition Condition, target interface{}) error {
+func (r *repository) FindOneBy(ctx context.Context, columns []string, condition Condition, target DTO) error {
 	r.logger.Info("[repo.FindOneBy]", r.zapFieldRepo(),
 		zap.Any("columns", columns), zap.Any("condition", condition))
 
@@ -287,7 +287,7 @@ func (r *repository) FindByWithInnerJoin(
 	fromWithAlias string,
 	join string,
 	condition Condition,
-	target interface{},
+	target DTO,
 ) error {
 	r.logger.Info("[repo.FindByWithInnerJoin]", r.zapFieldRepo(),
 		zap.Any("columns", columns),
@@ -313,7 +313,7 @@ func (r *repository) FindOneByWithInnerJoin(
 	fromWithAlias string,
 	join string,
 	condition Condition,
-	target interface{},
+	target DTO,
 ) error {
 	r.logger.Info("[repo.FindOneByWithInnerJoin]", r.zapFieldRepo(),
 		zap.Any("columns", columns),
@@ -385,7 +385,7 @@ type (
 	}
 )
 
-func (r *repository) Select(ctx context.Context, sb SelectBuilder, target interface{}) error {
+func (r *repository) Select(ctx context.Context, sb SelectBuilder, target DTO) error {
 	r.logger.Info("[repo.Select]", r.zapFieldRepo(), zap.Any("sb", sb))
 
 	query, args, err := sb.
@@ -402,7 +402,7 @@ func (r *repository) SelectWithPagePagination(
 	ctx context.Context,
 	selectBuilder squirrel.SelectBuilder,
 	params PagePaginationParams,
-	target interface{},
+	target DTO,
 ) (
 	PagePaginationResults,
 	error,
@@ -457,7 +457,7 @@ func (r *repository) SelectWithCursorOnPKPagination(
 	ctx context.Context,
 	selectBuilder squirrel.SelectBuilder,
 	params CursorPaginationParams,
-	target interface{},
+	target DTO,
 ) error {
 	r.logger.Info("[repo.SelectWithCursorOnPKPagination]", r.zapFieldRepo(), zap.Any("params", params))
 

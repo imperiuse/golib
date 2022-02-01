@@ -28,8 +28,10 @@ type (
 
 	Repositories map[Repo]*repository
 
-	DTO             = interface{}
-	DtoWithIdentity = interface {
+	DTO = interface{}
+
+	DtoWithAutoGenFunc = interface {
+		Repo() Repo
 		Identity() ID
 	}
 
@@ -37,12 +39,13 @@ type (
 		PureConnector() SqlxDBConnectorI
 
 		Repo(Repo) Repository
-		AutoRepo(DTO) Repository
+		AutoRepo(DtoWithAutoGenFunc) Repository
+		AutoReflectRepo(DTO) Repository
 
-		AutoCreate(context.Context, DtoWithIdentity) (ID, error)
-		AutoGet(context.Context, DtoWithIdentity) error
-		AutoUpdate(context.Context, DtoWithIdentity) (int64, error)
-		AutoDelete(context.Context, DtoWithIdentity) (int64, error)
+		AutoCreate(context.Context, DtoWithAutoGenFunc) (ID, error)
+		AutoGet(context.Context, DtoWithAutoGenFunc) error
+		AutoUpdate(context.Context, DtoWithAutoGenFunc) (int64, error)
+		AutoDelete(context.Context, DtoWithAutoGenFunc) (int64, error)
 	}
 
 	Repository interface {
@@ -118,7 +121,15 @@ func (r Repositories) Repo(name Repo) Repository {
 	return emptyRepo
 }
 
-func (r Repositories) AutoRepo(obj DTO) Repository {
+func (r Repositories) AutoRepo(obj DtoWithAutoGenFunc) Repository {
+	if rep, found := r[obj.Repo()]; found {
+		return rep
+	}
+
+	return emptyRepo
+}
+
+func (r Repositories) AutoReflectRepo(obj DTO) Repository {
 	if rep, found := r[orm.GetMetaDTO(obj).TableName]; found {
 		return rep
 	}
@@ -126,18 +137,18 @@ func (r Repositories) AutoRepo(obj DTO) Repository {
 	return emptyRepo
 }
 
-func (r Repositories) AutoCreate(ctx context.Context, obj DtoWithIdentity) (ID, error) {
-	return r.AutoRepo(obj).Create(ctx, obj)
+func (r Repositories) AutoCreate(ctx context.Context, obj DtoWithAutoGenFunc) (ID, error) {
+	return r.Repo(obj.Repo()).Create(ctx, obj)
 }
 
-func (r Repositories) AutoUpdate(ctx context.Context, obj DtoWithIdentity) (int64, error) {
-	return r.AutoRepo(obj).Update(ctx, obj.Identity(), obj)
+func (r Repositories) AutoUpdate(ctx context.Context, obj DtoWithAutoGenFunc) (int64, error) {
+	return r.Repo(obj.Repo()).Update(ctx, obj.Identity(), obj)
 }
 
-func (r Repositories) AutoGet(ctx context.Context, obj DtoWithIdentity) error {
-	return r.AutoRepo(obj).Get(ctx, obj.Identity(), obj)
+func (r Repositories) AutoGet(ctx context.Context, obj DtoWithAutoGenFunc) error {
+	return r.Repo(obj.Repo()).Get(ctx, obj.Identity(), obj)
 }
 
-func (r Repositories) AutoDelete(ctx context.Context, obj DtoWithIdentity) (int64, error) {
-	return r.AutoRepo(obj).Delete(ctx, obj.Identity())
+func (r Repositories) AutoDelete(ctx context.Context, obj DtoWithAutoGenFunc) (int64, error) {
+	return r.Repo(obj.Repo()).Delete(ctx, obj.Identity())
 }
