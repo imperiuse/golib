@@ -85,6 +85,18 @@ func (b *BaseDTO) Identity() ID {
 	return b.ID
 }
 
+func (_ *Paginator) Repo() Repo {
+	return "Paginators"
+}
+
+func (_ *Role) Repo() Repo {
+	return "Roles"
+}
+
+func (_ *User) Repo() Repo {
+	return "Users"
+}
+
 var DSL = map[string]string{
 	"Roles": `CREATE TABLE IF NOT EXISTS Roles
 (
@@ -169,7 +181,7 @@ func (suite *RepositoryTestSuit) SetupSuite() {
 // end of the testing suite, after all tests have been run.
 func (suite *RepositoryTestSuit) TearDownSuite() {
 	for _, obj := range DTOs {
-		_, err := suite.repos.AutoRepo(obj).Delete(suite.ctx, 1)
+		_, err := suite.repos.AutoReflectRepo(obj).Delete(suite.ctx, 1)
 		assert.Nil(suite.T(), err)
 	}
 
@@ -249,18 +261,18 @@ func (suite *RepositoryTestSuit) Test_Repo_AutoRepo_SqlxDBConnectorI() {
 	t := suite.T()
 
 	for _, obj := range DTOs {
-		assert.NotNil(t, suite.repos.AutoRepo(obj).PureConnector())
-		assert.Equal(t, suite.db, suite.repos.AutoRepo(obj).PureConnector())
-		assert.NotEqual(t, suite.repos.AutoRepo(obj), suite.repos.Repo("_UNKNOWN_"))
+		assert.NotNil(t, suite.repos.AutoReflectRepo(obj).PureConnector())
+		assert.Equal(t, suite.db, suite.repos.AutoReflectRepo(obj).PureConnector())
+		assert.NotEqual(t, suite.repos.AutoReflectRepo(obj), suite.repos.Repo("_UNKNOWN_"))
 		assert.Equal(t, emptyRepo, suite.repos.Repo("_UNKNOWN_"))
 		assert.Equal(t, emptyRepo, suite.repos.Repo("_UNKNOWN_2"))
-		assert.Equal(t, emptyRepo, suite.repos.AutoRepo(&BaseDTO{}))
-		assert.Equal(t, emptyRepo, suite.repos.AutoRepo(&NotDTO{}))
+		assert.Equal(t, emptyRepo, suite.repos.AutoReflectRepo(&BaseDTO{}))
+		assert.Equal(t, emptyRepo, suite.repos.AutoReflectRepo(&NotDTO{}))
 	}
 
-	assert.Equal(t, suite.repos.Repo(orm.GetTableName(&User{})), suite.repos.AutoRepo(User{}))
+	assert.Equal(t, suite.repos.Repo(orm.GetTableName(&User{})), suite.repos.AutoRepo(&User{}))
 	assert.NotNil(t, suite.repos.Repo(orm.GetTableName(&User{})))
-	assert.Equal(t, suite.repos.Repo(orm.GetTableName(&Role{})), suite.repos.AutoRepo(Role{}))
+	assert.Equal(t, suite.repos.Repo(orm.GetTableName(&Role{})), suite.repos.AutoRepo(&Role{}))
 	assert.NotNil(t, suite.repos.Repo(orm.GetTableName(&Role{})))
 }
 
@@ -418,10 +430,17 @@ func (suite *RepositoryTestSuit) Test_CRUD() {
 	assert.Nil(t, err)
 	assert.Equal(t, temp, temp2)
 
-	var temp3 Role
-	err = suite.repos.Repo(orm.GetTableName(&temp3)).Get(suite.ctx, id, &temp3)
+	var temp3 = Role{
+		BaseDTO: BaseDTO{ID: id.(Integer)},
+	}
+	err = suite.repos.AutoReflectRepo(temp3).Get(suite.ctx, id, &temp3)
 	assert.Nil(t, err)
 	assert.Equal(t, temp, temp3)
+
+	var temp4 Role
+	err = suite.repos.Repo(orm.GetTableName(&temp3)).Get(suite.ctx, id, &temp4)
+	assert.Nil(t, err)
+	assert.Equal(t, temp, temp4)
 
 	role.Name = updatedRole1
 	cnt, err := suite.repos.AutoRepo(&role).Update(suite.ctx, id, &role)

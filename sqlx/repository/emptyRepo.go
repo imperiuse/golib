@@ -5,7 +5,6 @@ import (
 	"database/sql/driver"
 
 	"github.com/Masterminds/squirrel"
-
 	"github.com/imperiuse/golib/sqlx/repository/mocks"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
