@@ -465,15 +465,17 @@ func (r *repository) SelectWithCursorOnPKPagination(
 		return ErrZeroLimitSize
 	}
 
-	var wh squirrel.Sqlizer = squirrel.Gt{"id": params.Cursor}
+	var (
+		wh      squirrel.Sqlizer = squirrel.Gt{"id": params.Cursor}
+		orderBy                  = "id ASC"
+	)
+
 	if params.DescOrder {
 		wh = squirrel.Lt{"id": params.Cursor}
-		selectBuilder.OrderBy("id DESC")
-	} else {
-		selectBuilder.OrderBy("id ASC")
+		orderBy = "id DESC"
 	}
 
-	query, args, err := selectBuilder.From(r.name).Where(wh).Limit(params.Limit).
+	query, args, err := selectBuilder.From(r.name).Where(wh).OrderBy(orderBy).Limit(params.Limit).
 		PlaceholderFormat(r.phf).ToSql()
 	if err != nil {
 		return fmt.Errorf("SelectWithCursorOnPKPagination: selectBuilder.ToSql(): %w", err)
