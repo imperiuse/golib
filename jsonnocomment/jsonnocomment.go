@@ -15,10 +15,11 @@ func ReadFileAndCleanComment(pathFile string) (cleanFile []byte, err error) {
 	l := len(file)
 	cleanFile = make([]byte, l) // Создаем байтовый массив размера прочитанного чтобы избежать перевыделения памяти
 	var (
-		commentLine  bool // признак комментариев (закомментирована вся линия  // ТУТ КОМЕНТ ДО КОНЦА СТРОЧКИ\n)
-		commentBlock bool // признак комментариев (закомментирован только блок  /* КОММЕНТ ТОЛЬКО ТУТ*/)
+		commentLine  bool // признак комментариев (закомментирована вся линия // ТУТ КОМЕНТ ДО КОНЦА СТРОЧКИ\n)
+		commentBlock bool // признак комментариев (закомментирован только блок /* КОММЕНТ ТОЛЬКО ТУТ*/)
 		j            int  // текущий индекс для заполнения среза cleanFile
 	)
+
 	for i := 0; i < l; i++ {
 		c := file[i]
 		switch c {
@@ -71,6 +72,5 @@ func ReadFileAndCleanComment(pathFile string) (cleanFile []byte, err error) {
 			}
 		}
 	}
-	//fmt.Println(cleanFile[:j])
 	return cleanFile[:j], err
 }

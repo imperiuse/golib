@@ -50,9 +50,9 @@ type (
 
 	// Properties - структура описывающая поля Bean
 	Properties struct {
-		Type  string      `json:"type"`  // тип инициализации см. выше const Natural, DeepCopyObj, PointerToObj, BeansObj
-		Name  string      `json:"name"`  // имя поля
-		Value interface{} `json:"value"` // значение поля, либо ссылка , либо объект
+		Type  string `json:"type"`  // тип инициализации см. выше const Natural, DeepCopyObj, PointerToObj, BeansObj
+		Name  string `json:"name"`  // имя поля
+		Value any    `json:"value"` // значение поля, либо ссылка , либо объект
 	}
 
 	// BeansStorage - Главный объект библиотеки - Beans (Хранилище Beans)
@@ -68,7 +68,7 @@ type (
 
 	// beanInstance - структура описывающая Bean объект
 	beanInstance struct {
-		pio interface{}      // содержит указатель на интерфейс объекта Bean ОСНОВНОЙ ОБЪЕКТ BEAN РЕКОМЕНДУЕТСЯ РАБОТАТЬ С НИМ!
+		pio any              // содержит указатель на интерфейс объекта Bean ОСНОВНОЙ ОБЪЕКТ BEAN РЕКОМЕНДУЕТСЯ РАБОТАТЬ С НИМ!
 		r   *reflectInstance // рефлексионное представление объекта (для служебного использования)
 	}
 
@@ -83,7 +83,7 @@ type (
 func CreateStorage() (BeansStorage, error) {
 
 	// Регистрация базовых стандартных типов
-	golangInlineTypes := []interface{}{
+	golangInlineTypes := []any{
 		(*int8)(nil), (*int16)(nil), (*int32)(nil), (*int64)(nil), (*int)(nil),
 		(*uint8)(nil), (*uint16)(nil), (*uint32)(nil), (*uint64)(nil), (*uint)(nil),
 		(*float32)(nil), (*float64)(nil), (*complex64)(nil), (*complex128)(nil),
@@ -117,12 +117,12 @@ func (bs *BeansStorage) GetAllBeansID() []string {
 }
 
 // GetBean - метод возращающий интерфейс (указатель) на объект Bean-а по его ID
-func (bs *BeansStorage) GetBean(id string) interface{} {
+func (bs *BeansStorage) GetBean(id string) any {
 	return bs.beansMap[id].getPIO()
 }
 
 // CloneBean - получить клонированный объект pio Bean-а по его ID
-func (bs *BeansStorage) CloneBean(id string) (interface{}, error) {
+func (bs *BeansStorage) CloneBean(id string) (any, error) {
 	return bs.beansMap[id].clonePIO()
 }
 
@@ -373,7 +373,7 @@ func (bs *BeansStorage) createEmptyBean(beanDescription *BeanDescription) (refle
 
 		// Регистрация нового созданного типа - анонимной структура на месте
 		if beanDescription.StructName == "" {
-			beanDescription.StructName = fmt.Sprintf("%s%s",AnonStructPrefixTypeName, beanDescription.ID)
+			beanDescription.StructName = fmt.Sprintf("%s%s", AnonStructPrefixTypeName, beanDescription.ID)
 		}
 		bs.typeMap[beanDescription.StructName] = typ
 

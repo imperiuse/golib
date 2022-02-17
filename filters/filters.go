@@ -33,7 +33,7 @@ type Filterer interface {
 	//  При возникновении ошибки вызывается метод ErrorHandler
 	Run(http.ResponseWriter, *http.Request, func(http.ResponseWriter, *http.Request))
 	GeneratorDeferRunFunc(http.ResponseWriter, *http.Request) func() // Генератор Defer для функции Run
-	ErrorHandler(http.ResponseWriter, *http.Request, interface{})    // Метод вызывающийся в случае ошибки на уровне
+	ErrorHandler(http.ResponseWriter, *http.Request, any)            // Метод вызывающийся в случае ошибки на уровне
 	// фильтра т.е. при вызове функций Before, After, Filter
 }
 
@@ -88,7 +88,7 @@ func (f *BaseFilter) Filter(http.ResponseWriter, *http.Request) {
 }
 
 // ErrorHandler - метод фильтра вызывающийся в случае ошибки на уровне фильтра
-func (f *BaseFilter) ErrorHandler(w http.ResponseWriter, r *http.Request, err interface{}) {
+func (f *BaseFilter) ErrorHandler(w http.ResponseWriter, r *http.Request, err any) {
 	//fmt.Println("[BaseFilter] ErrorHandler()", err)
 }
 

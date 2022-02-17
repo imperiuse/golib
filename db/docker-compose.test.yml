@@ -6,7 +6,7 @@ volumes:
 services:
 
   test-postgres:
-    image: postgres:13
+    image: postgres:14
     container_name: test-postgres
     environment:
       - POSTGRES_USER=test

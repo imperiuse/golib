@@ -14,7 +14,7 @@ type (
 	Key   = string
 	Value = struct {
 		time time.Time
-		data interface{}
+		data any
 	}
 	StoreMap = map[Key]Value
 
@@ -25,8 +25,8 @@ type (
 	}
 
 	StoreI interface {
-		Get(Key) (interface{}, bool)
-		Set(Key, interface{})
+		Get(Key) (any, bool)
+		Set(Key, any)
 	}
 )
 
@@ -65,7 +65,7 @@ func (c *Store) RemoveAll() {
 	c.m = StoreMap{}
 }
 
-func (c *Store) Get(k Key) (interface{}, bool) {
+func (c *Store) Get(k Key) (any, bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -73,14 +73,14 @@ func (c *Store) Get(k Key) (interface{}, bool) {
 
 }
 
-func (c *Store) GetTTL(k Key, ttl time.Duration) (interface{}, bool) {
+func (c *Store) GetTTL(k Key, ttl time.Duration) (any, bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	return c.get(k, ttl)
 }
 
-func (c *Store) get(k Key, ttl time.Duration) (interface{}, bool) {
+func (c *Store) get(k Key, ttl time.Duration) (any, bool) {
 	v, ok := c.m[k]
 	if ok && time.Since(v.time) > c.TTL { // auto remove too old data from cache
 		delete(c.m, k)
@@ -91,7 +91,7 @@ func (c *Store) get(k Key, ttl time.Duration) (interface{}, bool) {
 	return v.data, ok
 }
 
-func (c *Store) Set(k Key, v interface{}) {
+func (c *Store) Set(k Key, v any) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 

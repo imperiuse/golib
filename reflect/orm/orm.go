@@ -24,7 +24,7 @@ type (
 	Typ      = string
 	JoinCond = string
 	Alias    = string
-	Argument = interface{}
+	Argument = any
 
 	structName       = string
 	ormUseInTagValue = string
@@ -64,7 +64,7 @@ const (
 	emptyRootAlias = ""
 )
 
-func InitMetaTagInfoCache(objs ...interface{}) {
+func InitMetaTagInfoCache(objs ...any) {
 	m.Lock()
 	defer m.Unlock()
 
@@ -76,11 +76,11 @@ func InitMetaTagInfoCache(objs ...interface{}) {
 	}
 }
 
-func GetMetaDTO(obj interface{}) *MetaDTO {
+func GetMetaDTO(obj any) *MetaDTO {
 	return getMetaDTO(getObjTypeNameByReflect(obj), obj)
 }
 
-func getMetaDTO(structName string, obj interface{}) *MetaDTO {
+func getMetaDTO(structName string, obj any) *MetaDTO {
 	m.RLock()
 	if _, found := cacheMetaDTO[structName]; !found {
 		m.RUnlock()
@@ -94,22 +94,22 @@ func getMetaDTO(structName string, obj interface{}) *MetaDTO {
 	return cacheMetaDTO[structName]
 }
 
-func GetDataForSelectOnlyCols(obj interface{}) []Column {
+func GetDataForSelectOnlyCols(obj any) []Column {
 	meta := GetMetaDTO(obj)
 	return meta.ColsMap[ormUseInSelect]
 }
 
-func GetDataForSelect(obj interface{}) ([]Column, JoinCond) {
+func GetDataForSelect(obj any) ([]Column, JoinCond) {
 	meta := GetMetaDTO(obj)
 	return meta.ColsMap[ormUseInSelect], meta.JoinCond
 }
 
-func GetDataForCreate(obj interface{}) ([]Column, []Argument) {
+func GetDataForCreate(obj any) ([]Column, []Argument) {
 	cols, args := getMetaInfoUseInTag(obj, ormUseInCreate, emptyRootAlias)
 	return cols, args
 }
 
-func GetDataForUpdate(obj interface{}) map[Column]Argument {
+func GetDataForUpdate(obj any) map[Column]Argument {
 	cols, args := getMetaInfoUseInTag(obj, ormUseInUpdate, emptyRootAlias)
 
 	cv := make(map[Column]Argument, len(cols))
@@ -120,13 +120,13 @@ func GetDataForUpdate(obj interface{}) map[Column]Argument {
 }
 
 // GetTableName - return table name
-func GetTableName(obj interface{}) Table {
+func GetTableName(obj any) Table {
 	meta := GetMetaDTO(obj)
 	return meta.TableName
 }
 
 // GetTableAlias - return alias of table, if not set, return table name
-func GetTableAlias(obj interface{}) Alias {
+func GetTableAlias(obj any) Alias {
 	meta := GetMetaDTO(obj)
 	if meta.TableAlias == "" {
 		return meta.TableName
@@ -137,7 +137,7 @@ func GetTableAlias(obj interface{}) Alias {
 
 // GetTableNameWithAlias - return string: `table_name` as `alias_name`
 //(if alias_name not set, return `table_name` as `table_name`)
-func GetTableNameWithAlias(obj interface{}) string {
+func GetTableNameWithAlias(obj any) string {
 	meta := GetMetaDTO(obj)
 	if meta.TableName == "" {
 		return ""
@@ -151,7 +151,7 @@ func GetTableNameWithAlias(obj interface{}) string {
 	return fmt.Sprintf(" %s as %s ", meta.TableName, alias)
 }
 
-func getNoneCacheMetaDTO(obj interface{}) *MetaDTO {
+func getNoneCacheMetaDTO(obj any) *MetaDTO {
 	meta := &MetaDTO{
 		ColsMap:    map[ormUseInTagValue][]Column{ormUseInSelect: {}, ormUseInCreate: {}, ormUseInUpdate: {}},
 		JoinCond:   Undefined,
@@ -176,7 +176,7 @@ func getNoneCacheMetaDTO(obj interface{}) *MetaDTO {
 	return meta
 }
 
-func getObjTypeNameByReflect(obj interface{}) string {
+func getObjTypeNameByReflect(obj any) string {
 	if obj == nil {
 		return "nil"
 	}

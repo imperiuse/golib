@@ -30,7 +30,7 @@ func TestStorage_SetAndGet(t *testing.T) {
 
 	testCases := []struct {
 		key   string
-		value interface{}
+		value any
 	}{
 		{"key1", strings.Repeat("very big string", 100)},
 		{"key1", strings.Repeat("small string", 100)},
@@ -66,7 +66,7 @@ func TestStorage_Delete(t *testing.T) {
 
 	testCases := []struct {
 		key   string
-		value interface{}
+		value any
 	}{
 		{"key1", 1234},
 		{"key2", "1234"},
@@ -174,7 +174,7 @@ func TestStorage_GoRoutinSafe(t *testing.T) {
 	storage := New(TTL, time.Hour*24)
 	storage.Set(key, "init info")
 
-	stop := make(chan interface{}, 1)
+	stop := make(chan any, 1)
 
 	for i := 0; i < NumberGoroutine; i++ {
 		go func(i int) {

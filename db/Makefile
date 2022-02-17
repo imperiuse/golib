@@ -19,3 +19,8 @@ test_env_down:
 tests:
 	@echo "Running integrations tests"
 	go test -timeout 5m -race -short `go list ./... `
+
+.PHONY: docker_clean_all
+docker_clean_all:
+	docker rm -f `docker ps -aq`
+	docker volume rm -f `docker volume ls -q`
