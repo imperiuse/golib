@@ -8,16 +8,19 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pkg/errors"
+	"go.uber.org/zap"
 
 	_ "github.com/jackc/pgx/v4/stdlib"
 
 	"github.com/Masterminds/squirrel"
-	"github.com/imperiuse/golib/reflect/orm"
 	"github.com/jmoiron/sqlx"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	"go.uber.org/zap"
+
+	"github.com/imperiuse/golib/db"
+	"github.com/imperiuse/golib/db/mocks"
+	"github.com/imperiuse/golib/reflect/orm"
 )
 
 const (
@@ -32,11 +35,10 @@ type RepositoryTestSuit struct {
 	suite.Suite
 	ctx        context.Context
 	ctxCancel  context.CancelFunc
-	logger     *zap.Logger
-	repos      Repositories
+	logger     db.Logger
 	db         *sqlx.DB
-	goodMockDb SqlxDBConnectorI
-	badMockDb  SqlxDBConnectorI
+	goodMockDb db.PureSqlxConnection
+	badMockDb  db.PureSqlxConnection
 }
 
 // DTO
@@ -53,47 +55,47 @@ type (
 
 	User struct {
 		BaseDTO
-		Name     string      `db:"name"     orm_use_in:"select,create,update"`
-		Email    string      `db:"email"    orm_use_in:"select,create,update"`
-		Password string      `db:"password" orm_use_in:"select,create,update"`
-		RoleID   Integer     `db:"role_id" orm_use_in:"select,create,update"`
-		_        interface{} `orm_table_name:"Users" orm_alias:"u"`
+		Name     string  `db:"name"     orm_use_in:"select,create,update"`
+		Email    string  `db:"email"    orm_use_in:"select,create,update"`
+		Password string  `db:"password" orm_use_in:"select,create,update"`
+		RoleID   Integer `db:"role_id" orm_use_in:"select,create,update"`
+		_        any     `orm_table_name:"Users" orm_alias:"u"`
 	}
 
 	Role struct {
 		BaseDTO
-		Name   string      `db:"name"       orm_use_in:"select,create,update"`
-		Rights int         `db:"rights"     orm_use_in:"select,create,update"`
-		_      interface{} `orm_table_name:"Roles" orm_alias:"r"`
+		Name   string `db:"name"       orm_use_in:"select,create,update"`
+		Rights int    `db:"rights"     orm_use_in:"select,create,update"`
+		_      any    `orm_table_name:"Roles" orm_alias:"r"`
 	}
 
 	UsersRole struct {
 		User `db:"u" orm_alias:"u"`
 		Role `db:"r" orm_alias:"r"`
-		_    interface{} `orm_join:" ON u.role_id = r.id "`
+		_    any `orm_join:" ON u.role_id = r.id "`
 	}
 
 	Paginator struct {
 		BaseDTO
 		Name string `db:"name"       orm_use_in:"select,create,update"`
 
-		_ interface{} `orm_table_name:"Paginators"`
+		_ any `orm_table_name:"Paginators"`
 	}
 )
 
-func (b *BaseDTO) Identity() ID {
+func (b BaseDTO) Identity() db.ID {
 	return b.ID
 }
 
-func (_ *Paginator) Repo() Repo {
+func (_ Paginator) Repo() db.Table {
 	return "Paginators"
 }
 
-func (_ *Role) Repo() Repo {
+func (_ Role) Repo() db.Table {
 	return "Roles"
 }
 
-func (_ *User) Repo() Repo {
+func (_ User) Repo() db.Table {
 	return "Users"
 }
 
@@ -126,7 +128,7 @@ name         TEXT        NOT NULL
 );`,
 }
 
-var DTOs = []interface{}{&User{}, &Role{}, &Paginator{}}
+var DTOs = []any{&User{}, &Role{}, &Paginator{}}
 
 // The SetupSuite method will be run by testify once, at the very
 // start of the testing suite, before any tests are run.
@@ -134,8 +136,8 @@ func (suite *RepositoryTestSuit) SetupSuite() {
 	suite.ctx, suite.ctxCancel = context.WithCancel(context.Background())
 	suite.logger = zap.NewNop()
 
-	suite.badMockDb = badMockDBConn
-	suite.goodMockDb = goodMockDBConn
+	suite.badMockDb = mocks.BadMockDBConn
+	suite.goodMockDb = mocks.GoodMockDBConn
 
 	dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s",
 		PostgresUser,
@@ -295,28 +297,28 @@ func (suite *RepositoryTestSuit) Test_EmptyRepo_NotPanic() {
 	r1, r2, r3 := emptyCon.BindNamed("", nil)
 	assert.Equal(t, FakeStringAns, r1)
 	assert.Nil(t, r2)
-	assert.Equal(t, ErrEmptyRepo, errors.Cause(r3))
+	assert.Equal(t, db.ErrInvalidRepo, errors.Cause(r3))
 
 	row, err := emptyCon.QueryxContext(suite.ctx, "select * from users;")
 	assert.NotNil(t, row)
-	assert.Equal(t, ErrEmptyRepo, errors.Cause(err))
+	assert.Equal(t, db.ErrInvalidRepo, errors.Cause(err))
 
 	row2, err := emptyCon.QueryContext(suite.ctx, "select * from users;")
-	assert.Equal(t, ErrEmptyRepo, errors.Cause(err))
+	assert.Equal(t, db.ErrInvalidRepo, errors.Cause(err))
 	assert.NotNil(t, row2)
 
 	assert.Equal(t, &sqlx.Row{}, emptyCon.QueryRowxContext(suite.ctx, "select * from users;"))
 
 	res, err := emptyCon.ExecContext(suite.ctx, "select * from users;")
-	assert.Equal(t, ErrEmptyRepo, errors.Cause(err))
+	assert.Equal(t, db.ErrInvalidRepo, errors.Cause(err))
 	assert.NotNil(t, res)
 
 	stmt, err := emptyCon.PrepareContext(suite.ctx, "select * from users;")
-	assert.Equal(t, ErrEmptyRepo, errors.Cause(err))
+	assert.Equal(t, db.ErrInvalidRepo, errors.Cause(err))
 	assert.NotNil(t, stmt)
 
 	tx, err := emptyCon.BeginTxx(suite.ctx, nil)
-	assert.Equal(t, ErrEmptyRepo, errors.Cause(err))
+	assert.Equal(t, db.ErrInvalidRepo, errors.Cause(err))
 	assert.NotNil(t, tx)
 
 	// CHECK REPO CRUD
@@ -325,7 +327,7 @@ func (suite *RepositoryTestSuit) Test_EmptyRepo_NotPanic() {
 	assert.Equal(t, sql.ErrNoRows, errors.Cause(r.Get(suite.ctx, 1, &role)))
 
 	id, err := r.Create(suite.ctx, &role)
-	assert.Equal(t, ErrEmptyRepo, errors.Cause(err))
+	assert.Equal(t, db.ErrInvalidRepo, errors.Cause(err))
 	assert.Equal(t, int64(0), id)
 
 	cnt, err := r.Update(suite.ctx, 1, &role)
@@ -354,7 +356,7 @@ func (suite *RepositoryTestSuit) Test_EmptyRepo_NotPanic() {
 	assert.NotNil(t, err)
 	assert.Equal(t, int64(0), cnt)
 
-	var temp interface{}
+	var temp any
 	err = r.FindBy(suite.ctx, []Column{"*"}, squirrel.Eq{"id": 1}, &temp)
 	assert.NotNil(t, err)
 
@@ -375,11 +377,11 @@ func (suite *RepositoryTestSuit) Test_EmptyRepo_NotPanic() {
 	assert.NotNil(t, err)
 	assert.NotNil(t, rows1)
 
-	id, err = r.Insert(suite.ctx, []Column{"name"}, []interface{}{"test"})
+	id, err = r.Insert(suite.ctx, []Column{"name"}, []any{"test"})
 	assert.NotNil(t, err)
 	assert.Equal(t, int64(0), id)
 
-	cnt, err = r.UpdateCustom(suite.ctx, map[string]interface{}{}, squirrel.Eq{"id": 1})
+	cnt, err = r.UpdateCustom(suite.ctx, map[string]any{}, squirrel.Eq{"id": 1})
 	assert.NotNil(t, err)
 	assert.Equal(t, int64(0), cnt)
 }

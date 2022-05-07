@@ -1,62 +1,45 @@
-package repository
+package mocks
 
 import (
 	"database/sql"
 	"database/sql/driver"
 
-	"github.com/Masterminds/squirrel"
-	"github.com/imperiuse/golib/sqlx/repository/mocks"
+	"github.com/imperiuse/golib/db"
 	"github.com/jmoiron/sqlx"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/mock"
-	"go.uber.org/zap"
 )
 
-//nolint golint
 const (
 	FakeStringAns = "fake_string_ans"
 )
 
-//nolint dupl
 var (
-	// ErrEmptyRepo err empty repo.
-	ErrEmptyRepo = errors.New("repository: emptyRepo, can't found Repo by name or obj, please check arguments for methods Repo AutoRepo") // nolint lll
-
-	emptyRepo = func() *repository {
-		return &repository{
-			logger: zap.NewNop(),
-			db:     badMockDBConn,
-			name:   "_emptyRepo_",
-			phf:    squirrel.Dollar,
-		}
-	}()
-
-	badMockDBConn = func() SqlxDBConnectorI {
+	BadMockDBConn = func() db.PureSqlxConnection {
 		mockCtxArg := mock.AnythingOfType("*context.cancelCtx")
 		mockStringArg := mock.AnythingOfType("string")
 
-		conn := mocks.SqlxDBConnectorI{}
+		conn := PureSqlxConnection{}
 		conn.On("DriverName").Return(FakeStringAns)
 		conn.On("Rebind", mockStringArg).Return(FakeStringAns)
-		conn.On("BindNamed", mockStringArg, mock.Anything).Return(FakeStringAns, nil, ErrEmptyRepo)
-		conn.On("QueryContext", mockCtxArg, mockStringArg, mock.Anything).Return(&sql.Rows{}, ErrEmptyRepo)
+		conn.On("BindNamed", mockStringArg, mock.Anything).Return(FakeStringAns, nil, db.ErrInvalidRepo)
+		conn.On("QueryContext", mockCtxArg, mockStringArg, mock.Anything).Return(&sql.Rows{}, db.ErrInvalidRepo)
 		conn.On("QueryxContext", mockCtxArg, mockStringArg, mock.Anything).
-			Return(&sqlx.Rows{}, ErrEmptyRepo)
+			Return(&sqlx.Rows{}, db.ErrInvalidRepo)
 		conn.On("QueryRowxContext", mockCtxArg, mockStringArg, mock.Anything).Return(&sqlx.Row{})
 		conn.On("ExecContext", mockCtxArg, mockStringArg, mock.Anything, mock.Anything, mock.Anything,
 			mock.Anything).
-			Return(driver.RowsAffected(0), ErrEmptyRepo)
-		conn.On("PrepareContext", mockCtxArg, mockStringArg).Return(&sql.Stmt{}, ErrEmptyRepo)
-		conn.On("BeginTxx", mockCtxArg, mock.Anything).Return(&sqlx.Tx{}, ErrEmptyRepo)
+			Return(driver.RowsAffected(0), db.ErrInvalidRepo)
+		conn.On("PrepareContext", mockCtxArg, mockStringArg).Return(&sql.Stmt{}, db.ErrInvalidRepo)
+		conn.On("BeginTxx", mockCtxArg, mock.Anything).Return(&sqlx.Tx{}, db.ErrInvalidRepo)
 
 		return &conn
 	}()
 
-	goodMockDBConn = func() SqlxDBConnectorI {
+	GoodMockDBConn = func() db.PureSqlxConnection {
 		mockCtxArg := mock.AnythingOfType("*context.cancelCtx")
 		mockStringArg := mock.AnythingOfType("string")
 
-		conn := mocks.SqlxDBConnectorI{}
+		conn := PureSqlxConnection{}
 		conn.On("DriverName").Return(FakeStringAns)
 		conn.On("Rebind", mockStringArg).Return(FakeStringAns)
 		conn.On("BindNamed", mockStringArg, mock.Anything).Return(FakeStringAns, nil, nil)

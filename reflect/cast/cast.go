@@ -10,7 +10,7 @@ import (
 
 // DynamicTypeAssertion - функция для динамического сопоставления типа делает примерно следующее
 //                       r := vI.(origin.Type()) - это решило бы все проблемы!!!!
-func DynamicTypeAssertion(vI interface{}, origin reflect.Value) (reflect.Value, error) {
+func DynamicTypeAssertion(vI any, origin reflect.Value) (reflect.Value, error) {
 	var r reflect.Value
 	var err error
 
@@ -30,7 +30,7 @@ func DynamicTypeAssertion(vI interface{}, origin reflect.Value) (reflect.Value, 
 	case reflect.Bool:
 		b, ok := vI.(bool)
 		if !ok {
-			return r, errors.New("can't type assertion vI (interface{}) to bool")
+			return r, errors.New("can't type assertion vI (any) to bool")
 		}
 		var temp bool
 		r = reflect.ValueOf(&temp).Elem()
@@ -39,14 +39,14 @@ func DynamicTypeAssertion(vI interface{}, origin reflect.Value) (reflect.Value, 
 	case reflect.String:
 		s, ok := vI.(string)
 		if !ok {
-			return r, errors.New("can't type assertion vI (interface{}) to string")
+			return r, errors.New("can't type assertion vI (any) to string")
 		}
 		var temp string
 		r = reflect.ValueOf(&temp).Elem()
 		r.SetString(s)
 
 	case reflect.Slice:
-		sI := vI.([]interface{})
+		sI := vI.([]any)
 		lsI := len(sI)
 		r = reflect.MakeSlice(origin.Type(), lsI, lsI)
 
@@ -67,7 +67,7 @@ func DynamicTypeAssertion(vI interface{}, origin reflect.Value) (reflect.Value, 
 		r = reflect.MakeMap(origin.Type())
 		typeMapElement := reflect.TypeOf(r.Interface()).Elem()
 
-		m := vI.(map[string]interface{})
+		m := vI.(map[string]any)
 
 		if len(m) == 0 {
 			break
@@ -89,7 +89,7 @@ func DynamicTypeAssertion(vI interface{}, origin reflect.Value) (reflect.Value, 
 }
 
 // numCast - вспомогательная функция для приведения числовых значений
-func numCast(vI interface{}, origin reflect.Value) (r reflect.Value, err error) {
+func numCast(vI any, origin reflect.Value) (r reflect.Value, err error) {
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -99,7 +99,7 @@ func numCast(vI interface{}, origin reflect.Value) (r reflect.Value, err error) 
 
 	f64, ok := ToFloat64(vI)
 	if !ok {
-		return r, errors.New("can't type assertion vI (interface{}) to float64")
+		return r, errors.New("can't type assertion vI (any) to float64")
 	}
 
 	i64 := int64(f64)
@@ -211,16 +211,16 @@ func ToFloat64(v interface{}) (float64, bool) {
 	case int8:
 		return float64(i), true
 	case float64:
-		return float64(i), true
+		return i, true
 	case float32:
 		return float64(i), true
 	case bool:
-		if bool(i) {
+		if i {
 			return float64(1), true
 		}
 		return float64(0), true
 	case string:
-		f, err := strconv.ParseFloat(string(i), 64)
+		f, err := strconv.ParseFloat(i, 64)
 		if err != nil {
 			return float64(0), false
 		}
