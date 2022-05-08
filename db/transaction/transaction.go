@@ -33,6 +33,10 @@ func WithTransaction(ctx context.Context, opt *sql.TxOptions, db TxxI, fn ...TxF
 	func() {
 		defer func() {
 			if p := recover(); p != nil {
+				if tx.Tx == nil {
+					return
+				}
+
 				// a library panic occurred, rollback and repanic
 				errR := tx.Rollback()
 				err = errors.WithMessagef(err, "Panic in WithTransaction: %v. --> Rollback error: %v", p, errR)
@@ -43,6 +47,10 @@ func WithTransaction(ctx context.Context, opt *sql.TxOptions, db TxxI, fn ...TxF
 			// something went wrong when, rollback
 			// err!=nil when ctx is canceled
 			if err != nil {
+				if tx.Tx == nil {
+					return
+				}
+
 				errR := tx.Rollback()
 				err = errors.WithMessagef(err, "Err while execute fn. --> Rollback error: %v", errR)
 

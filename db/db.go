@@ -84,6 +84,8 @@ type (
 	// Connector - entity for describe connection to specific DB instance
 	Connector[C Config] interface {
 		Config() C
+		AddRepoNames(...Table)
+
 		Logger() Logger
 
 		Connection() PureSqlxConnection
@@ -171,7 +173,7 @@ type (
 )
 
 var (
-	ErrInvalidRepo = errors.New("invalid repo name. Not registrated?" +
+	ErrInvalidRepoEmptyRepo = errors.New("invalid repo (empty repo). Not registered?" +
 		" Check this usage connector.AddRepoNames(repos ...db.Table)")
 	ErrZeroPageSize  = errors.New("zero value of params.PageSize")
 	ErrZeroLimitSize = errors.New("zero value of params.Limit")

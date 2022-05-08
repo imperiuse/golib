@@ -22,12 +22,12 @@ type connector[C db.Config] struct {
 	cacheRepoMap      map[db.Table]db.Repository
 }
 
-func New[C db.Config](cfg C, logger db.Logger, dbConn db.PureSqlxConnection, phf db.PlaceholderFormat) db.Connector[C] {
+func New[C db.Config](cfg C, logger db.Logger, dbConn db.PureSqlxConnection) db.Connector[C] {
 	return &connector[C]{
 		cfg:    cfg,
 		logger: logger,
 		dbConn: dbConn,
-		phf:    phf,
+		phf:    cfg.PlaceholderFormat(),
 
 		mV:                sync.RWMutex{},
 		validationRepoMap: map[db.Table]any{},
@@ -36,6 +36,7 @@ func New[C db.Config](cfg C, logger db.Logger, dbConn db.PureSqlxConnection, phf
 	}
 }
 
+// AddRepoNames - store information about available repo names
 func (c *connector[C]) AddRepoNames(repos ...db.Table) {
 	c.mV.Lock()
 	defer c.mV.Unlock()
@@ -59,6 +60,9 @@ func (c *connector[C]) Connection() db.PureSqlxConnection {
 	return c.dbConn
 }
 
+// Repo - return db.Repository based on dto.Name() method
+// if cfg.IsEnableValidationRepoNames() == true =>  do validation action too)
+// if cfg.IsEnableReposCache() == true => use cache.
 func (c *connector[C]) Repo(dto db.DTO) db.Repository {
 	var repoName = dto.Repo()
 
@@ -67,7 +71,7 @@ func (c *connector[C]) Repo(dto db.DTO) db.Repository {
 		defer c.mV.RUnlock()
 
 		if _, found := c.validationRepoMap[repoName]; !found {
-			return empty.New()
+			return empty.Repo
 		}
 	}
 
