@@ -56,6 +56,19 @@ type (
 		Identity() ID
 	}
 
+	// NB! Idea for future ->
+	// type Resource[I any] interface {
+	//      GetID() I
+	//  }
+	//
+	//  type Storage[I any, R Resource[I]] interface {
+	//       GetByID(id I) R
+	//   }
+	// DTO[I ID] interface {
+	//	Repo() Table
+	//	Identity() I
+	// }
+
 	PureSqlxConnection interface {
 		sqlx.QueryerContext
 		sqlx.ExecerContext
@@ -92,10 +105,10 @@ type (
 
 		Repo(DTO) Repository
 		// TODO when Go in next versions will support generics in methods
-		// Repo[D DTO]() GRepository[D] // refactor to this NOW try use this ->
-		// repository.NewGen[DTO](connector) -> return GRepository
+		// Repo[I ID, D DTO]() gRepository[I, D] // refactor to this NOW try use this ->
+		// repository.NewGen[I, DTO]](connector) -> return GRepository
 
-		AutoCreate(context.Context, DTO) (ID, error)
+		AutoCreate(context.Context, DTO) (int64, error)
 		AutoGet(context.Context, DTO) error
 		AutoUpdate(context.Context, DTO) (int64, error)
 		AutoDelete(context.Context, DTO) (int64, error)
@@ -116,7 +129,7 @@ type (
 	Repository interface {
 		BaseRepositoryI
 
-		Create(context.Context, any) (ID, error)
+		Create(context.Context, any) (int64, error) // todo add one method for ID = string or move to generics API only
 		Get(context.Context, ID, any) error
 		Update(context.Context, ID, any) (int64, error)
 		Delete(context.Context, ID) (int64, error)
@@ -133,13 +146,13 @@ type (
 	}
 
 	// GRepository - methods for new (modern) approach generic based Repo's
-	GRepository[D DTO] interface {
+	GRepository[I ID, D DTO] interface {
 		BaseRepositoryI
 
-		Create(context.Context, D) (ID, error)
-		Get(context.Context, ID) (D, error)
-		Update(context.Context, ID, D) (int64, error)
-		Delete(context.Context, ID) (int64, error)
+		Create(context.Context, D) (I, error)
+		Get(context.Context, I) (D, error)
+		Update(context.Context, I, D) (int64, error)
+		Delete(context.Context, I) (int64, error)
 
 		FindBy(context.Context, []Column, Condition) ([]D, error)
 		FindOneBy(context.Context, []Column, Condition) (D, error)

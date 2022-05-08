@@ -93,7 +93,7 @@ func (c *connector[C]) Repo(dto db.DTO) db.Repository {
 	return repository.New(c.logger, c.dbConn, repoName, c.phf)
 }
 
-func (c *connector[C]) AutoCreate(ctx context.Context, dto db.DTO) (db.ID, error) {
+func (c *connector[C]) AutoCreate(ctx context.Context, dto db.DTO) (int64, error) {
 	return c.Repo(dto).Create(ctx, dto)
 }
 

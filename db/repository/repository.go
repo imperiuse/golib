@@ -18,8 +18,8 @@ import (
 )
 
 const (
-	RowsAffectedUnknown = int64(0) // RowsAffectedUnknown - 0
-	SerialUnknown       = int64(0) // SerialUnknown  - 0
+	RowsAffectedUnknown = 0 // RowsAffectedUnknown - 0
+	SerialUnknown       = 0 // SerialUnknown  - 0
 )
 
 type (
@@ -83,7 +83,7 @@ func (r *repository) Name() db.Table {
 	return r.name
 }
 
-func (r *repository) Create(ctx context.Context, obj any) (db.ID, error) {
+func (r *repository) Create(ctx context.Context, obj any) (int64, error) {
 	r.logger.Info("[repo.Create]", r.loggerFieldRepo(), loggerFieldObj(obj))
 
 	cols, vals := orm.GetDataForCreate(obj)
@@ -98,12 +98,12 @@ func (r *repository) Create(ctx context.Context, obj any) (db.ID, error) {
 		return SerialUnknown, fmt.Errorf("[repo.Create] squirrel: %w", err)
 	}
 
-	var lastInsertID db.ID = int64(0)
+	var lastInsertID = int64(0)
 
 	return lastInsertID, r.create(ctx, query, &lastInsertID, args...)
 }
 
-func (r *repository) create(ctx context.Context, query db.Query, lastInsertID *db.ID, args ...any) error {
+func (r *repository) create(ctx context.Context, query db.Query, lastInsertID any, args ...any) error {
 	return transaction.WithTransaction(ctx, nil, r.dbConn, helper.InsertAndGetLastID(ctx, lastInsertID, query, args...))
 }
 

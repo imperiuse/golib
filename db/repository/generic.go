@@ -3,19 +3,19 @@ package repository
 import (
 	"context"
 	"fmt"
+	"github.com/imperiuse/golib/reflect/orm"
 
 	"github.com/Masterminds/squirrel"
-
 	"github.com/imperiuse/golib/db"
 )
 
 type (
-	gRepository[D db.DTO] struct {
+	gRepository[I db.ID, D db.DTO] struct {
 		repository
 	}
 )
 
-func NewGen[D db.DTO, C db.Config](connector db.Connector[C]) db.GRepository[D] {
+func NewGen[I db.ID, D db.DTO, C db.Config](connector db.Connector[C]) db.GRepository[I, D] {
 	var dto D
 
 	phf := connector.Config().PlaceholderFormat()
@@ -23,7 +23,7 @@ func NewGen[D db.DTO, C db.Config](connector db.Connector[C]) db.GRepository[D] 
 		phf = squirrel.Dollar
 	}
 
-	return &gRepository[D]{
+	return &gRepository[I, D]{
 		repository{
 			logger: connector.Logger(),
 			dbConn: connector.Connection(),
@@ -33,36 +33,56 @@ func NewGen[D db.DTO, C db.Config](connector db.Connector[C]) db.GRepository[D] 
 	}
 }
 
-func (g *gRepository[D]) Create(ctx context.Context, d D) (db.ID, error) {
-	return g.repository.Create(ctx, d)
+func (g *gRepository[I, D]) Create(ctx context.Context, d D) (I, error) {
+	var lastInsertID I
+
+	g.logger.Info("[repo.Create]", g.loggerFieldRepo(), loggerFieldObj(d))
+
+	cols, vals := orm.GetDataForCreate(d)
+
+	query, args, err := squirrel.Insert(g.name).
+		Columns(cols...).
+		Values(vals...).
+		Suffix("RETURNING id").
+		PlaceholderFormat(g.phf).
+		ToSql()
+	if err != nil {
+		return lastInsertID, fmt.Errorf("[repo.Create] squirrel: %w", err)
+	}
+
+	return lastInsertID, g.create(ctx, query, &lastInsertID, args...)
 }
 
-func (g *gRepository[D]) Get(ctx context.Context, id db.ID) (D, error) {
+func (g *gRepository[I, D]) Get(ctx context.Context, id I) (D, error) {
 	var dto D
 	err := g.repository.Get(ctx, id, &dto)
 
 	return dto, err
 }
 
-func (g *gRepository[D]) Update(ctx context.Context, id db.ID, d D) (int64, error) {
+func (g *gRepository[I, D]) Update(ctx context.Context, id I, d D) (int64, error) {
 	return g.repository.Update(ctx, id, d)
 }
 
-func (g *gRepository[D]) FindBy(ctx context.Context, columns []db.Column, condition db.Condition) ([]D, error) {
+func (g *gRepository[I, D]) Delete(ctx context.Context, id I) (int64, error) {
+	return g.repository.Delete(ctx, id)
+}
+
+func (g *gRepository[I, D]) FindBy(ctx context.Context, columns []db.Column, condition db.Condition) ([]D, error) {
 	var dtos = make([]D, 0)
 	err := g.repository.FindBy(ctx, columns, condition, &dtos)
 
 	return dtos, err
 }
 
-func (g *gRepository[D]) FindOneBy(ctx context.Context, columns []db.Column, condition db.Condition) (D, error) {
+func (g *gRepository[I, D]) FindOneBy(ctx context.Context, columns []db.Column, condition db.Condition) (D, error) {
 	var dto D
 	err := g.repository.FindOneBy(ctx, columns, condition, &dto)
 
 	return dto, err
 }
 
-func (g *gRepository[D]) FindByWithInnerJoin(
+func (g *gRepository[I, D]) FindByWithInnerJoin(
 	ctx context.Context, columns []db.Column, alias db.Alias, join db.Join, condition db.Condition,
 ) ([]D, error) {
 	var dtos = make([]D, 0)
@@ -71,7 +91,7 @@ func (g *gRepository[D]) FindByWithInnerJoin(
 	return dtos, err
 }
 
-func (g *gRepository[D]) FindOneByWithInnerJoin(
+func (g *gRepository[I, D]) FindOneByWithInnerJoin(
 	ctx context.Context, columns []db.Column, alias db.Alias, join db.Join, condition db.Condition,
 ) (D, error) {
 	var dtos = make([]D, 0, 1)
@@ -85,14 +105,14 @@ func (g *gRepository[D]) FindOneByWithInnerJoin(
 
 }
 
-func (g *gRepository[D]) Select(ctx context.Context, builder db.SelectBuilder) ([]D, error) {
+func (g *gRepository[I, D]) Select(ctx context.Context, builder db.SelectBuilder) ([]D, error) {
 	var dtos = make([]D, 0)
 	err := g.repository.Select(ctx, builder, &dtos)
 
 	return dtos, err
 }
 
-func (g *gRepository[D]) SelectWithCursorOnPKPagination(
+func (g *gRepository[I, D]) SelectWithCursorOnPKPagination(
 	ctx context.Context, builder db.SelectBuilder, params db.CursorPaginationParams,
 ) ([]D, error) {
 	var dtos = make([]D, 0)
@@ -101,7 +121,7 @@ func (g *gRepository[D]) SelectWithCursorOnPKPagination(
 	return dtos, err
 }
 
-func (g *gRepository[D]) SelectWithPagePagination(
+func (g *gRepository[I, D]) SelectWithPagePagination(
 	ctx context.Context, builder db.SelectBuilder, params db.PagePaginationParams,
 ) ([]D, db.PagePaginationResults, error) {
 	var dtos = make([]D, 0)

@@ -34,8 +34,8 @@ func (r *repo) UpdateCustom(context.Context, map[string]any, db.Condition) (int6
 	return 0, db.ErrInvalidRepoEmptyRepo
 }
 
-func (r *repo) Create(context.Context, any) (db.ID, error) {
-	return nil, db.ErrInvalidRepoEmptyRepo
+func (r *repo) Create(context.Context, any) (int64, error) {
+	return int64(0), db.ErrInvalidRepoEmptyRepo
 }
 
 func (r *repo) Get(context.Context, db.ID, any) error {

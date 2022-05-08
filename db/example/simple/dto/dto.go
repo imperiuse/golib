@@ -40,11 +40,12 @@ type (
 		_    any `orm_join:" ON u.role_id = r.id "`
 	}
 
+	// Paginator - test table for pagination methods
 	Paginator struct {
 		BaseDTO
 		Name string `db:"name"       orm_use_in:"select,create,update"`
 
-		_ any `orm_table_name:"Paginators"`
+		_ any `orm_table_name:"Paginators"  orm_alias:"p"`
 	}
 )
 

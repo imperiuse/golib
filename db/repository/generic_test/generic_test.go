@@ -21,7 +21,7 @@ import (
 )
 
 func Test_NewGenRepo(t *testing.T) {
-	r := repository.NewGen[dto.User](
+	r := repository.NewGen[dto.ID, dto.User](
 		connector.New[config.SimpleTestConfig](config.SimpleTestConfig{}, zap.NewNop(), mocks.GoodMockDBConn),
 	)
 	assert.NotNil(t, r)
@@ -31,7 +31,7 @@ func Test_NewGenRepo(t *testing.T) {
 func Test_NewGenMethods(t *testing.T) {
 	ctx := context.Background()
 
-	r := repository.NewGen[dto.User](
+	r := repository.NewGen[dto.ID, dto.User](
 		connector.New[config.SimpleTestConfig](config.SimpleTestConfig{}, zap.NewNop(), mocks.GoodMockDBConn),
 	)
 	assert.Equal(t, dto.User{}.Repo(), r.Name())
@@ -49,7 +49,7 @@ func Test_NewGenMethods(t *testing.T) {
 	assert.Nil(t, err)
 
 	id, err := r.Create(ctx, u)
-	assert.Equal(t, int64(0), id)
+	assert.Equal(t, 0, id)
 	assert.Nil(t, err)
 
 	cols, jc := orm.GetDataForSelect(u)
@@ -104,7 +104,7 @@ func Test_NewGenMethods(t *testing.T) {
 func Test_NewGenMethods_Negative(t *testing.T) {
 	ctx := context.Background()
 
-	r := repository.NewGen[dto.User](
+	r := repository.NewGen[dto.ID, dto.User](
 		connector.New[config.SimpleTestConfig](config.SimpleTestConfig{}, zap.NewNop(), mocks.BadMockDBConn),
 	)
 	assert.Equal(t, dto.User{}.Repo(), r.Name())
@@ -122,7 +122,7 @@ func Test_NewGenMethods_Negative(t *testing.T) {
 	assert.Equal(t, db.ErrInvalidRepoEmptyRepo, errors.Unwrap(err))
 
 	id, err := r.Create(ctx, u)
-	assert.Equal(t, int64(0), id)
+	assert.Equal(t, 0, id)
 	assert.Equal(t, db.ErrInvalidRepoEmptyRepo, errors.Unwrap(err))
 
 	cols, jc := orm.GetDataForSelect(u)

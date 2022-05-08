@@ -4,9 +4,13 @@ import (
 	"context"
 	"fmt"
 
-	"go.uber.org/zap"
 	"math/rand"
 	"testing"
+
+	"go.uber.org/zap"
+
+	_ "github.com/jackc/pgx/v4"        // for pgx driver import.
+	_ "github.com/jackc/pgx/v4/stdlib" // for pgx driver import.
 
 	"github.com/Masterminds/squirrel"
 	"github.com/jmoiron/sqlx"
@@ -15,8 +19,10 @@ import (
 
 	"github.com/imperiuse/golib/db"
 	"github.com/imperiuse/golib/db/connector"
+	"github.com/imperiuse/golib/db/example/simple/config"
 	"github.com/imperiuse/golib/db/example/simple/dto"
-	"github.com/imperiuse/golib/db/mocks"
+	"github.com/imperiuse/golib/db/repository"
+	"github.com/imperiuse/golib/db/repository/empty"
 	"github.com/imperiuse/golib/reflect/orm"
 )
 
@@ -28,45 +34,34 @@ const (
 	PostgresPort     = "5433"
 )
 
-type TestConfig struct{}
-
-func (c TestConfig) PlaceholderFormat() db.PlaceholderFormat {
-	return squirrel.Dollar
-}
-
-func (c TestConfig) IsEnableValidationRepoNames() bool {
-	return false
-}
-
-func (c TestConfig) IsEnableReposCache() bool {
-	return false
-}
-
 type RepositoryTestSuit struct {
 	suite.Suite
-	ctx        context.Context
-	ctxCancel  context.CancelFunc
-	logger     db.Logger
-	db         *sqlx.DB
-	goodMockDb db.PureSqlxConnection
-	badMockDb  db.PureSqlxConnection
+	ctx       context.Context
+	ctxCancel context.CancelFunc
+	logger    db.Logger
 
-	realConnector db.Connector[TestConfig]
-
-	goodMockConnector db.Connector[TestConfig]
-	badMockConnector  db.Connector[TestConfig]
+	db                              *sqlx.DB
+	connector                       db.Connector[config.SimpleTestConfig]
+	connectorWithValidation         db.Connector[config.SimpleTestConfig]
+	connectorWithValidationAndCache db.Connector[config.SimpleTestConfig]
 }
 
 var DTOs = []db.DTO{&dto.User{}, &dto.Role{}, &dto.Paginator{}}
+
+func GetTableNames(dtos []db.DTO) []db.Table {
+	names := make([]db.Table, 0, len(dtos))
+	for _, v := range dtos {
+		names = append(names, v.Repo())
+	}
+
+	return names
+}
 
 // The SetupSuite method will be run by testify once, at the very
 // start of the testing suite, before any tests are run.
 func (suite *RepositoryTestSuit) SetupSuite() {
 	suite.ctx, suite.ctxCancel = context.WithCancel(context.Background())
 	suite.logger = zap.NewNop()
-
-	suite.badMockDb = mocks.BadMockDBConn
-	suite.goodMockDb = mocks.GoodMockDBConn
 
 	dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s",
 		PostgresUser,
@@ -107,14 +102,20 @@ func (suite *RepositoryTestSuit) SetupSuite() {
 		assert.Nil(suite.T(), err)
 	}
 
-	cfg := TestConfig{}
-	suite.realConnector = connector.New[TestConfig](cfg, zap.NewNop(), dbConn, squirrel.Dollar)
-	suite.goodMockConnector = connector.New[TestConfig](cfg, zap.NewNop(), dbConn, squirrel.Dollar)
-	suite.badMockConnector = connector.New[TestConfig](cfg, zap.NewNop(), dbConn, squirrel.Dollar)
+	suite.connector = connector.New[config.SimpleTestConfig](config.New(
+		squirrel.Dollar, false, false), zap.NewNop(), dbConn)
+	suite.connectorWithValidation = connector.New[config.SimpleTestConfig](
+		config.New(squirrel.Dollar, true, false), zap.NewNop(), dbConn)
+	suite.connectorWithValidationAndCache = connector.New[config.SimpleTestConfig](
+		config.New(squirrel.Dollar, true, true), zap.NewNop(), dbConn)
 
-	assert.NotNil(suite.T(), suite.realConnector)
-	assert.NotNil(suite.T(), suite.goodMockConnector)
-	assert.NotNil(suite.T(), suite.badMockConnector)
+	assert.NotNil(suite.T(), suite.connector)
+	assert.NotNil(suite.T(), suite.connectorWithValidation)
+	assert.NotNil(suite.T(), suite.connectorWithValidationAndCache)
+
+	suite.connector.AddRepoNames(GetTableNames(DTOs)...) // not needed only for test not error or panic here ...
+	suite.connectorWithValidation.AddRepoNames(GetTableNames(DTOs)...)
+	suite.connectorWithValidationAndCache.AddRepoNames(GetTableNames(DTOs)...)
 
 	assert.Nil(suite.T(), appendTestDataToTables(suite))
 }
@@ -123,7 +124,7 @@ func (suite *RepositoryTestSuit) SetupSuite() {
 // end of the testing suite, after all tests have been run.
 func (suite *RepositoryTestSuit) TearDownSuite() {
 	for _, obj := range DTOs {
-		_, err := suite.realConnector.Repo(obj).Delete(suite.ctx, 1)
+		_, err := suite.connector.Repo(obj).Delete(suite.ctx, 1)
 		assert.Nil(suite.T(), err)
 	}
 
@@ -155,7 +156,10 @@ func initTables() {
 		PostgresDB,
 	)
 
-	dbConn, _ := sqlx.Connect("pgx", dsn)
+	dbConn, err := sqlx.Connect("pgx", dsn)
+	if err != nil {
+		panic(err)
+	}
 
 	tables := []string{}
 	// create table
@@ -187,7 +191,7 @@ func appendTestDataToTables(s *RepositoryTestSuit) error {
 	}
 
 	for i := 0; i < cntRecords; i++ {
-		_, err := s.realConnector.AutoCreate(s.ctx, &dto.Paginator{
+		_, err := s.connector.AutoCreate(s.ctx, &dto.Paginator{
 			Name: randStringRunes(10),
 		})
 
@@ -197,6 +201,142 @@ func appendTestDataToTables(s *RepositoryTestSuit) error {
 	}
 
 	return nil
+}
+
+type notRegisterDTO struct{}
+
+func (n notRegisterDTO) Identity() db.ID { return 0 }
+func (n notRegisterDTO) Repo() db.Table  { return "not_register_dto" }
+
+func (suite *RepositoryTestSuit) Test_Connector_Repo_Creation() {
+	t := suite.T()
+
+	u := dto.User{}
+
+	for _, c := range []db.Connector[config.SimpleTestConfig]{
+		suite.connector,
+		suite.connectorWithValidation,
+		suite.connectorWithValidationAndCache,
+	} {
+		// test _system methods
+		assert.NotNil(t, c.Connection())
+		assert.NotNil(t, c.Logger())
+		assert.NotNil(t, c.Config())
+		assert.Equal(t, suite.db, c.Connection())
+
+		repo := c.Repo(u)
+		assert.NotNil(t, repo)
+		assert.Equal(t, dto.User{}.Repo(), repo.Name())
+
+		genericRepo := repository.NewGen[dto.ID, dto.User](c)
+		assert.NotNil(t, genericRepo)
+		assert.Equal(t, dto.User{}.Repo(), genericRepo.Name())
+	}
+
+	// without validation, we should create new repo
+	repo := suite.connector.Repo(notRegisterDTO{})
+	assert.NotNil(t, repo)
+	assert.Equal(t, notRegisterDTO{}.Repo(), repo.Name())
+
+	genericRepo := repository.NewGen[int, notRegisterDTO](suite.connector)
+	assert.NotNil(t, genericRepo)
+	assert.Equal(t, notRegisterDTO{}.Repo(), repo.Name())
+
+	// without validation, we should NOT create new repo // we must return empty repo
+	repo = suite.connectorWithValidation.Repo(notRegisterDTO{})
+	assert.NotNil(t, repo)
+	assert.Equal(t, empty.Repo, repo)
+
+	genericRepo = repository.NewGen[int, notRegisterDTO](suite.connectorWithValidation)
+	assert.NotNil(t, genericRepo)
+	assert.Equal(t, empty.Repo, repo)
+
+	repo = suite.connectorWithValidationAndCache.Repo(notRegisterDTO{})
+	assert.NotNil(t, repo)
+	assert.Equal(t, empty.Repo, repo)
+
+	genericRepo = repository.NewGen[int, notRegisterDTO](suite.connectorWithValidationAndCache)
+	assert.NotNil(t, genericRepo)
+	assert.Equal(t, empty.Repo, repo)
+}
+
+func (suite *RepositoryTestSuit) Test_Connector_AutoCRUD() {
+	t := suite.T()
+
+	r := dto.Role{
+		BaseDTO: dto.BaseDTO{ID: 1},
+		Name:    "User",
+		Rights:  1,
+	}
+
+	u := dto.User{
+		BaseDTO:  dto.BaseDTO{ID: 1},
+		Name:     "User1",
+		Email:    "user@mail.com",
+		Password: "p@ssw0rd",
+		RoleID:   1,
+	}
+
+	var i = 0
+	for _, c := range []db.Connector[config.SimpleTestConfig]{
+		suite.connector,
+		//suite.connectorWithValidation, // todo uncomment
+		//suite.connectorWithValidationAndCache, // todo uncomment
+	} {
+
+		// I. Part
+		// 	1) Could not create User (foreign constraint)
+		// 		a) repo way
+		{
+			id, err := c.AutoCreate(suite.ctx, u)
+			assert.Equal(t, int64(i), id) // even for failed we return 0,1,2,3,4,5 etc. which will increment
+			assert.NotNil(t, err)         // actual  : *fmt.wrapError(&fmt.wrapError{msg:"err while Rollback. error: <nil>, ERROR: insert or update on table \"users\" violates foreign key constraint \"fkey__r\" (SQLSTATE 23503)", err:(*pgconn.PgError)(0xc0002602d0)})
+			i++
+		}
+		// 		b) generic repo way
+		{
+			id, err := repository.NewGen[dto.ID, dto.User](c).Create(suite.ctx, u)
+			assert.Equal(t, dto.ID(0), id)
+			assert.NotNil(t, err) // actual  : *fmt.wrapError(&fmt.wrapError{msg:"err while Rollback. error: <nil>, ERROR: insert or update on table \"users\" violates foreign key constraint \"fkey__r\" (SQLSTATE 23503)", err:(*pgconn.PgError)(0xc0002602d0)})
+		}
+		// 		c) old school (pure connection) way
+		{
+			res, err := c.Connection().ExecContext(
+				suite.ctx, fmt.Sprintf("INSERT INTO %s (name) VAlUES($1);", u.Repo()), u.Name)
+			assert.Nil(t, res)
+			assert.NotNil(t, err) // actual  : *fmt.wrapError(&fmt.wrapError{msg:"err while Rollback. error: <nil>, ERROR: insert or update on table \"users\" violates foreign key constraint \"fkey__r\" (SQLSTATE 23503)", err:(*pgconn.PgError)(0xc0002602d0)})
+		}
+		// 	2) Check that we could not Get User (User not exists)
+		u2 := dto.User{BaseDTO: dto.BaseDTO{ID: 1}}
+		err := c.AutoGet(suite.ctx, &u2)
+		assert.Equal(t, "", u2.Name)
+		assert.NotEqual(t, u, u2)
+
+		// 	3) Check we could not update User (User not exist)
+
+		// 	4) Check we delete without error User. (User not exist)
+
+		// II. Part
+		// 	1) Create Role and User
+		id, err := c.AutoCreate(suite.ctx, r)
+		r.ID = dto.ID(id)
+		assert.Nil(t, err)
+		id, err = c.AutoCreate(suite.ctx, u)
+		u.ID = dto.ID(id)
+		assert.Nil(t, err)
+
+		// III. Part delete all records
+		//
+		n, err := c.AutoDelete(suite.ctx, u)
+		assert.Equal(t, int64(1), n)
+		assert.Nil(t, err)
+
+		n, err = c.AutoDelete(suite.ctx, r)
+		assert.Equal(t, int64(1), n)
+		assert.Nil(t, err)
+
+	}
+
 }
 
 //func (suite *RepositoryTestSuit) Test_Repo_AutoRepo_SqlxDBConnectorI() {
