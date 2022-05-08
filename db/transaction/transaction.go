@@ -3,9 +3,9 @@ package transaction
 import (
 	"context"
 	"database/sql"
+	"fmt"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/pkg/errors"
 )
 
 // TxxI interface which contain sqlx.BeginTxx func.
@@ -26,7 +26,7 @@ type TxFn = func(*sqlx.Tx) error
 func WithTransaction(ctx context.Context, opt *sql.TxOptions, db TxxI, fn ...TxFn) error {
 	tx, err := db.BeginTxx(ctx, opt)
 	if err != nil {
-		return errors.WithMessage(err, "[WithTransaction]")
+		return fmt.Errorf("[WithTransaction] %w", err)
 	}
 
 	// function used for panic control (defer inside)
@@ -39,7 +39,7 @@ func WithTransaction(ctx context.Context, opt *sql.TxOptions, db TxxI, fn ...TxF
 
 				// a library panic occurred, rollback and repanic
 				errR := tx.Rollback()
-				err = errors.WithMessagef(err, "Panic in WithTransaction: %v. --> Rollback error: %v", p, errR)
+				err = fmt.Errorf("panic [WithTransaction]: %v. --> Rollback error: %v, %w", p, errR, err)
 
 				return
 			}
@@ -52,7 +52,7 @@ func WithTransaction(ctx context.Context, opt *sql.TxOptions, db TxxI, fn ...TxF
 				}
 
 				errR := tx.Rollback()
-				err = errors.WithMessagef(err, "Err while execute fn. --> Rollback error: %v", errR)
+				err = fmt.Errorf("err while Rollback. error: %v, %w", errR, err)
 
 				return
 			}

@@ -175,6 +175,7 @@ type (
 var (
 	ErrInvalidRepoEmptyRepo = errors.New("invalid repo (empty repo). Not registered?" +
 		" Check this usage connector.AddRepoNames(repos ...db.Table)")
-	ErrZeroPageSize  = errors.New("zero value of params.PageSize")
-	ErrZeroLimitSize = errors.New("zero value of params.Limit")
+	ErrMismatchRowsCnt = errors.New("mismatch rows counts")
+	ErrZeroPageSize    = errors.New("zero value of params.PageSize")
+	ErrZeroLimitSize   = errors.New("zero value of params.Limit")
 )

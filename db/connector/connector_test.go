@@ -5,17 +5,15 @@ import (
 	"database/sql"
 	"testing"
 
-	"github.com/imperiuse/golib/db/repository/empty"
-
-	"github.com/imperiuse/golib/db/mocks"
-
-	"github.com/imperiuse/golib/db/example/simple/dto"
-
 	"go.uber.org/zap"
 
 	"github.com/Masterminds/squirrel"
-	"github.com/imperiuse/golib/db/example/simple/config"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/imperiuse/golib/db/example/simple/config"
+	"github.com/imperiuse/golib/db/example/simple/dto"
+	"github.com/imperiuse/golib/db/mocks"
+	"github.com/imperiuse/golib/db/repository/empty"
 )
 
 func TestConnector_New(t *testing.T) {

@@ -2,6 +2,10 @@ package repository
 
 import (
 	"context"
+	"fmt"
+
+	"github.com/Masterminds/squirrel"
+
 	"github.com/imperiuse/golib/db"
 )
 
@@ -13,11 +17,17 @@ type (
 
 func NewGen[D db.DTO, C db.Config](connector db.Connector[C]) db.GRepository[D] {
 	var dto D
+
+	phf := connector.Config().PlaceholderFormat()
+	if phf == nil {
+		phf = squirrel.Dollar
+	}
+
 	return &gRepository[D]{
 		repository{
 			logger: connector.Logger(),
 			dbConn: connector.Connection(),
-			phf:    connector.Config().PlaceholderFormat(),
+			phf:    phf,
 			name:   dto.Repo(),
 		},
 	}
@@ -64,10 +74,14 @@ func (g *gRepository[D]) FindByWithInnerJoin(
 func (g *gRepository[D]) FindOneByWithInnerJoin(
 	ctx context.Context, columns []db.Column, alias db.Alias, join db.Join, condition db.Condition,
 ) (D, error) {
-	var dto D
-	err := g.repository.FindByWithInnerJoin(ctx, columns, alias, join, condition, &dto)
+	var dtos = make([]D, 0, 1)
+	err := g.repository.FindByWithInnerJoin(ctx, columns, alias, join, condition, &dtos)
 
-	return dto, err
+	if len(dtos) == 1 {
+		return dtos[0], err
+	}
+
+	return *new(D), fmt.Errorf("%v, %w", db.ErrMismatchRowsCnt, err)
 
 }
 

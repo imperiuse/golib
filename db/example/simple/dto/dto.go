@@ -8,10 +8,12 @@ import (
 
 // Various example of DTO's
 type (
+	ID = int
+
 	NotDTO struct{}
 
 	BaseDTO struct {
-		ID        db.ID     `db:"id"          orm_use_in:"select"`
+		ID        ID        `db:"id"          orm_use_in:"select"`
 		CreatedAt time.Time `db:"created_at"  orm_use_in:"select"`
 		UpdatedAt time.Time `db:"updated_at"  orm_use_in:"select,update"`
 	}
@@ -21,7 +23,7 @@ type (
 		Name     string `db:"name"     orm_use_in:"select,create,update"`
 		Email    string `db:"email"    orm_use_in:"select,create,update"`
 		Password string `db:"password" orm_use_in:"select,create,update"`
-		RoleID   db.ID  `db:"role_id" orm_use_in:"select,create,update"`
+		RoleID   ID     `db:"role_id" orm_use_in:"select,create,update"`
 		_        any    `orm_table_name:"Users" orm_alias:"u"`
 	}
 
