@@ -1,4 +1,4 @@
-package generic_test
+package tests
 
 import (
 	"context"
@@ -15,26 +15,42 @@ import (
 	"github.com/imperiuse/golib/db/connector"
 	"github.com/imperiuse/golib/db/example/simple/config"
 	"github.com/imperiuse/golib/db/example/simple/dto"
+	"github.com/imperiuse/golib/db/genrepo/empty"
 	"github.com/imperiuse/golib/db/mocks"
-	"github.com/imperiuse/golib/db/repository"
+	"github.com/imperiuse/golib/db/repo"
 	"github.com/imperiuse/golib/reflect/orm"
 )
 
 func Test_NewGenRepo(t *testing.T) {
-	r := repository.NewGen[dto.ID, dto.User](
+	r := repo.NewGen[dto.ID, dto.User[dto.ID]](
 		connector.New[config.SimpleTestConfig](config.SimpleTestConfig{}, zap.NewNop(), mocks.GoodMockDBConn),
 	)
 	assert.NotNil(t, r)
-	assert.Equal(t, dto.User{}.Repo(), r.Name())
+	assert.Equal(t, dto.User[dto.ID]{}.Repo(), r.Name())
+}
+
+func Test_NewGenRepo_NotValid(t *testing.T) {
+	c := connector.New[config.SimpleTestConfig](config.New(nil, true, false),
+		zap.NewNop(), mocks.GoodMockDBConn)
+
+	r := repo.NewGen[dto.ID, dto.User[dto.ID]](c)
+	assert.NotNil(t, r)
+	assert.Equal(t, empty.NewGen[dto.ID, dto.User[dto.ID]](), r)
+
+	c.AddAllowsRepos(dto.User[dto.ID]{}.Repo())
+
+	r = repo.NewGen[dto.ID, dto.User[dto.ID]](c)
+	assert.NotNil(t, r)
+	assert.Equal(t, dto.User[dto.ID]{}.Repo(), r.Name())
 }
 
 func Test_NewGenMethods(t *testing.T) {
 	ctx := context.Background()
 
-	r := repository.NewGen[dto.ID, dto.User](
+	r := repo.NewGen[dto.ID, dto.User[dto.ID]](
 		connector.New[config.SimpleTestConfig](config.SimpleTestConfig{}, zap.NewNop(), mocks.GoodMockDBConn),
 	)
-	assert.Equal(t, dto.User{}.Repo(), r.Name())
+	assert.Equal(t, dto.User[dto.ID]{}.Repo(), r.Name())
 
 	u, err := r.Get(ctx, 1)
 	assert.NotNil(t, u)
@@ -104,10 +120,10 @@ func Test_NewGenMethods(t *testing.T) {
 func Test_NewGenMethods_Negative(t *testing.T) {
 	ctx := context.Background()
 
-	r := repository.NewGen[dto.ID, dto.User](
+	r := repo.NewGen[dto.ID, dto.User[dto.ID]](
 		connector.New[config.SimpleTestConfig](config.SimpleTestConfig{}, zap.NewNop(), mocks.BadMockDBConn),
 	)
-	assert.Equal(t, dto.User{}.Repo(), r.Name())
+	assert.Equal(t, dto.User[dto.ID]{}.Repo(), r.Name())
 
 	u, err := r.Get(ctx, 1)
 	assert.NotNil(t, u)

@@ -1,12 +1,14 @@
-package repository
+package repo
 
 import (
 	"context"
 	"fmt"
-	"github.com/imperiuse/golib/reflect/orm"
 
 	"github.com/Masterminds/squirrel"
+
 	"github.com/imperiuse/golib/db"
+	"github.com/imperiuse/golib/db/genrepo/empty"
+	"github.com/imperiuse/golib/reflect/orm"
 )
 
 type (
@@ -15,10 +17,16 @@ type (
 	}
 )
 
-func NewGen[I db.ID, D db.DTO, C db.Config](connector db.Connector[C]) db.GRepository[I, D] {
+func NewGen[I db.ID, D db.GDTO[I], C db.Config](connector db.Connector[C]) db.GRepository[I, D] {
 	var dto D
 
-	phf := connector.Config().PlaceholderFormat()
+	cfg := connector.Config()
+
+	if cfg.IsEnableValidationRepoNames() && !connector.IsAllowRepo(dto.Repo()) {
+		return empty.NewGen[I, D]()
+	}
+
+	phf := cfg.PlaceholderFormat()
 	if phf == nil {
 		phf = squirrel.Dollar
 	}

@@ -14,6 +14,10 @@ const name = "emptyRepo"
 
 type repo struct{}
 
+func New() db.Repository {
+	return &repo{}
+}
+
 func (r *repo) Name() db.Table {
 	return name
 }
@@ -76,8 +80,4 @@ func (r *repo) SelectWithPagePagination(context.Context, db.SelectBuilder, db.Pa
 
 func (r *repo) SelectWithCursorOnPKPagination(context.Context, db.SelectBuilder, db.CursorPaginationParams, any) error {
 	return db.ErrInvalidRepoEmptyRepo
-}
-
-func New() db.Repository {
-	return &repo{}
 }

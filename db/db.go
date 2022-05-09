@@ -3,9 +3,11 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"go.uber.org/zap"
+
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
-	"go.uber.org/zap"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/imperiuse/golib/db/transaction"
@@ -51,23 +53,15 @@ type (
 		PlaceholderFormat() PlaceholderFormat // squirrel int code for placeholder
 	}
 
+	GDTO[I ID] interface {
+		ID() I
+		DTO
+	}
+
 	DTO interface {
 		Repo() Table
 		Identity() ID
 	}
-
-	// NB! Idea for future ->
-	// type Resource[I any] interface {
-	//      GetID() I
-	//  }
-	//
-	//  type Storage[I any, R Resource[I]] interface {
-	//       GetByID(id I) R
-	//   }
-	// DTO[I ID] interface {
-	//	Repo() Table
-	//	Identity() I
-	// }
 
 	PureSqlxConnection interface {
 		sqlx.QueryerContext
@@ -97,7 +91,10 @@ type (
 	// Connector - entity for describe connection to specific DB instance
 	Connector[C Config] interface {
 		Config() C
-		AddRepoNames(...Table)
+
+		AddAllowsRepos(...Table)
+		GetAllowsRepos() []Table
+		IsAllowRepo(Table) bool
 
 		Logger() Logger
 
@@ -146,7 +143,7 @@ type (
 	}
 
 	// GRepository - methods for new (modern) approach generic based Repo's
-	GRepository[I ID, D DTO] interface {
+	GRepository[I ID, D DTO] interface { // todo later change DTO to GDTO[I] // now GolandIDE has bug for this  -> Cannot use D (dto.User[dto.ID]) as the type GDTO[I] Type does not implement 'GDTO[I]' need the method: ID() I have the method: ID() I
 		BaseRepositoryI
 
 		Create(context.Context, D) (I, error)
@@ -187,7 +184,7 @@ type (
 
 var (
 	ErrInvalidRepoEmptyRepo = errors.New("invalid repo (empty repo). Not registered?" +
-		" Check this usage connector.AddRepoNames(repos ...db.Table)")
+		" Check this usage connector.AddAllowsRepos(repos ...db.Table)")
 	ErrMismatchRowsCnt = errors.New("mismatch rows counts")
 	ErrZeroPageSize    = errors.New("zero value of params.PageSize")
 	ErrZeroLimitSize   = errors.New("zero value of params.Limit")

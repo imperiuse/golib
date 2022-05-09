@@ -2,6 +2,7 @@ package intergation
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 
 	"math/rand"
@@ -21,7 +22,6 @@ import (
 	"github.com/imperiuse/golib/db/connector"
 	"github.com/imperiuse/golib/db/example/simple/config"
 	"github.com/imperiuse/golib/db/example/simple/dto"
-	"github.com/imperiuse/golib/db/repository"
 	"github.com/imperiuse/golib/db/repository/empty"
 	"github.com/imperiuse/golib/reflect/orm"
 )
@@ -46,7 +46,7 @@ type RepositoryTestSuit struct {
 	connectorWithValidationAndCache db.Connector[config.SimpleTestConfig]
 }
 
-var DTOs = []db.DTO{&dto.User{}, &dto.Role{}, &dto.Paginator{}}
+var DTOs = []db.DTO{&dto.User[dto.ID]{}, &dto.Role[dto.ID]{}, &dto.Paginator[dto.ID]{}}
 
 func GetTableNames(dtos []db.DTO) []db.Table {
 	names := make([]db.Table, 0, len(dtos))
@@ -83,7 +83,7 @@ func (suite *RepositoryTestSuit) SetupSuite() {
 	}
 
 	orm.InitMetaTagInfoCache(a...)
-	orm.InitMetaTagInfoCache(&dto.BaseDTO{}, &dto.UsersRole{})
+	orm.InitMetaTagInfoCache(&dto.BaseDTO[dto.ID]{}, &dto.UsersRole[dto.ID]{})
 
 	tables := []string{}
 	// create table
@@ -113,9 +113,9 @@ func (suite *RepositoryTestSuit) SetupSuite() {
 	assert.NotNil(suite.T(), suite.connectorWithValidation)
 	assert.NotNil(suite.T(), suite.connectorWithValidationAndCache)
 
-	suite.connector.AddRepoNames(GetTableNames(DTOs)...) // not needed only for test not error or panic here ...
-	suite.connectorWithValidation.AddRepoNames(GetTableNames(DTOs)...)
-	suite.connectorWithValidationAndCache.AddRepoNames(GetTableNames(DTOs)...)
+	suite.connector.AddAllowsRepos(GetTableNames(DTOs)...) // not needed only for test not error or panic here ...
+	suite.connectorWithValidation.AddAllowsRepos(GetTableNames(DTOs)...)
+	suite.connectorWithValidationAndCache.AddAllowsRepos(GetTableNames(DTOs)...)
 
 	assert.Nil(suite.T(), appendTestDataToTables(suite))
 }
@@ -191,7 +191,7 @@ func appendTestDataToTables(s *RepositoryTestSuit) error {
 	}
 
 	for i := 0; i < cntRecords; i++ {
-		_, err := s.connector.AutoCreate(s.ctx, &dto.Paginator{
+		_, err := s.connector.AutoCreate(s.ctx, &dto.Paginator[dto.ID]{
 			Name: randStringRunes(10),
 		})
 
@@ -203,15 +203,16 @@ func appendTestDataToTables(s *RepositoryTestSuit) error {
 	return nil
 }
 
-type notRegisterDTO struct{}
+type notRegisterDTO[I db.ID] struct{}
 
-func (n notRegisterDTO) Identity() db.ID { return 0 }
-func (n notRegisterDTO) Repo() db.Table  { return "not_register_dto" }
+func (n notRegisterDTO[I]) Identity() db.ID { return 0 }
+func (n notRegisterDTO[I]) ID() I           { return *new(I) }
+func (n notRegisterDTO[I]) Repo() db.Table  { return "not_register_dto" }
 
 func (suite *RepositoryTestSuit) Test_Connector_Repo_Creation() {
 	t := suite.T()
 
-	u := dto.User{}
+	u := dto.User[dto.ID]{}
 
 	for _, c := range []db.Connector[config.SimpleTestConfig]{
 		suite.connector,
@@ -226,36 +227,36 @@ func (suite *RepositoryTestSuit) Test_Connector_Repo_Creation() {
 
 		repo := c.Repo(u)
 		assert.NotNil(t, repo)
-		assert.Equal(t, dto.User{}.Repo(), repo.Name())
+		assert.Equal(t, dto.User[dto.ID]{}.Repo(), repo.Name())
 
-		genericRepo := repository.NewGen[dto.ID, dto.User](c)
+		genericRepo := repo.NewGen[dto.ID, dto.User[dto.ID]](c)
 		assert.NotNil(t, genericRepo)
-		assert.Equal(t, dto.User{}.Repo(), genericRepo.Name())
+		assert.Equal(t, dto.User[dto.ID]{}.Repo(), genericRepo.Name())
 	}
 
 	// without validation, we should create new repo
-	repo := suite.connector.Repo(notRegisterDTO{})
+	repo := suite.connector.Repo(notRegisterDTO[dto.ID]{})
 	assert.NotNil(t, repo)
-	assert.Equal(t, notRegisterDTO{}.Repo(), repo.Name())
+	assert.Equal(t, notRegisterDTO[dto.ID]{}.Repo(), repo.Name())
 
-	genericRepo := repository.NewGen[int, notRegisterDTO](suite.connector)
+	genericRepo := repo.NewGen[dto.ID, notRegisterDTO[dto.ID]](suite.connector)
 	assert.NotNil(t, genericRepo)
-	assert.Equal(t, notRegisterDTO{}.Repo(), repo.Name())
+	assert.Equal(t, notRegisterDTO[dto.ID]{}.Repo(), repo.Name())
 
 	// without validation, we should NOT create new repo // we must return empty repo
-	repo = suite.connectorWithValidation.Repo(notRegisterDTO{})
+	repo = suite.connectorWithValidation.Repo(notRegisterDTO[dto.ID]{})
 	assert.NotNil(t, repo)
 	assert.Equal(t, empty.Repo, repo)
 
-	genericRepo = repository.NewGen[int, notRegisterDTO](suite.connectorWithValidation)
+	genericRepo = repo.NewGen[dto.ID, notRegisterDTO[dto.ID]](suite.connectorWithValidation)
 	assert.NotNil(t, genericRepo)
 	assert.Equal(t, empty.Repo, repo)
 
-	repo = suite.connectorWithValidationAndCache.Repo(notRegisterDTO{})
+	repo = suite.connectorWithValidationAndCache.Repo(notRegisterDTO[dto.ID]{})
 	assert.NotNil(t, repo)
 	assert.Equal(t, empty.Repo, repo)
 
-	genericRepo = repository.NewGen[int, notRegisterDTO](suite.connectorWithValidationAndCache)
+	genericRepo = repo.NewGen[int, notRegisterDTO[dto.ID]](suite.connectorWithValidationAndCache)
 	assert.NotNil(t, genericRepo)
 	assert.Equal(t, empty.Repo, repo)
 }
@@ -263,40 +264,54 @@ func (suite *RepositoryTestSuit) Test_Connector_Repo_Creation() {
 func (suite *RepositoryTestSuit) Test_Connector_AutoCRUD() {
 	t := suite.T()
 
-	r := dto.Role{
-		BaseDTO: dto.BaseDTO{ID: 1},
+	r := dto.Role[dto.ID]{
+		BaseDTO: dto.BaseDTO[dto.ID]{Id: 1},
 		Name:    "User",
 		Rights:  1,
 	}
 
-	u := dto.User{
-		BaseDTO:  dto.BaseDTO{ID: 1},
+	u := dto.User[dto.ID]{
+		BaseDTO:  dto.BaseDTO[dto.ID]{Id: 1},
 		Name:     "User1",
 		Email:    "user@mail.com",
 		Password: "p@ssw0rd",
 		RoleID:   1,
 	}
 
-	var i = 0
-	for _, c := range []db.Connector[config.SimpleTestConfig]{
+	var j = 0
+	for i, c := range []db.Connector[config.SimpleTestConfig]{
 		suite.connector,
-		//suite.connectorWithValidation, // todo uncomment
-		//suite.connectorWithValidationAndCache, // todo uncomment
+		suite.connectorWithValidation,
+		//suite.connectorWithValidationAndCache,
 	} {
+		nr := notRegisterDTO[dto.ID]{}
+		// For second two connectors check Validation  (Could not create Repo)
+		if i > 0 {
+			// check we returned empty repo for all
+			assert.Equal(t, empty.Repo, c.Repo(nr))
+
+			// 		a) repo way
+			_, err := c.AutoCreate(suite.ctx, nr)
+			assert.Equal(t, db.ErrInvalidRepoEmptyRepo, err)
+
+			// 		b) generic repo way
+			_, err = repo.NewGen[dto.ID, notRegisterDTO[dto.ID]](c).Create(suite.ctx, nr)
+			assert.Equal(t, db.ErrInvalidRepoEmptyRepo, err)
+		}
 
 		// I. Part
 		// 	1) Could not create User (foreign constraint)
 		// 		a) repo way
 		{
 			id, err := c.AutoCreate(suite.ctx, u)
-			assert.Equal(t, int64(i), id) // even for failed we return 0,1,2,3,4,5 etc. which will increment
+			assert.Equal(t, int64(j), id) // even for failed we return 0,1,2,3,4,5 etc. which will increment
 			assert.NotNil(t, err)         // actual  : *fmt.wrapError(&fmt.wrapError{msg:"err while Rollback. error: <nil>, ERROR: insert or update on table \"users\" violates foreign key constraint \"fkey__r\" (SQLSTATE 23503)", err:(*pgconn.PgError)(0xc0002602d0)})
-			i++
+			j++
 		}
 		// 		b) generic repo way
 		{
-			id, err := repository.NewGen[dto.ID, dto.User](c).Create(suite.ctx, u)
-			assert.Equal(t, dto.ID(0), id)
+			id, err := repo.NewGen[dto.ID, dto.User[dto.ID]](c).Create(suite.ctx, u)
+			assert.Equal(t, 0, id)
 			assert.NotNil(t, err) // actual  : *fmt.wrapError(&fmt.wrapError{msg:"err while Rollback. error: <nil>, ERROR: insert or update on table \"users\" violates foreign key constraint \"fkey__r\" (SQLSTATE 23503)", err:(*pgconn.PgError)(0xc0002602d0)})
 		}
 		// 		c) old school (pure connection) way
@@ -307,36 +322,93 @@ func (suite *RepositoryTestSuit) Test_Connector_AutoCRUD() {
 			assert.NotNil(t, err) // actual  : *fmt.wrapError(&fmt.wrapError{msg:"err while Rollback. error: <nil>, ERROR: insert or update on table \"users\" violates foreign key constraint \"fkey__r\" (SQLSTATE 23503)", err:(*pgconn.PgError)(0xc0002602d0)})
 		}
 		// 	2) Check that we could not Get User (User not exists)
-		u2 := dto.User{BaseDTO: dto.BaseDTO{ID: 1}}
+		// 		a) repo way
+		u2 := dto.User[dto.ID]{BaseDTO: dto.BaseDTO[dto.ID]{Id: u.ID()}}
 		err := c.AutoGet(suite.ctx, &u2)
 		assert.Equal(t, "", u2.Name)
 		assert.NotEqual(t, u, u2)
+		assert.Equal(t, sql.ErrNoRows, err)
+
+		r2 := dto.Role[dto.ID]{BaseDTO: dto.BaseDTO[dto.ID]{Id: u.ID()}}
+		err = c.AutoGet(suite.ctx, &r2)
+		assert.Equal(t, "", r2.Name)
+		assert.NotEqual(t, r, r2)
+		assert.Equal(t, sql.ErrNoRows, err)
+
+		// 		b) generic repo way
+		u2, err = repo.NewGen[dto.ID, dto.User[dto.ID]](c).Get(suite.ctx, u.ID())
+		assert.Equal(t, "", u2.Name)
+		assert.NotEqual(t, u, u2)
+		assert.Equal(t, sql.ErrNoRows, err)
+
+		r2, err = repo.NewGen[dto.ID, dto.Role[dto.ID]](c).Get(suite.ctx, r.ID())
+		assert.Equal(t, "", r2.Name)
+		assert.NotEqual(t, r, r2)
+		assert.Equal(t, sql.ErrNoRows, err)
+
+		// 		c) old school (pure connection) way
+		res, err := c.Connection().QueryContext(
+			suite.ctx, fmt.Sprintf("SELECT * FROM %s WHERE id=$1 LIMIT 1;", u.Repo()), u.ID())
+		assert.NotNil(t, res)
+		assert.Nil(t, err)
+
+		res, err = c.Connection().QueryContext(
+			suite.ctx, fmt.Sprintf("SELECT * FROM %s WHERE id=$1 LIMIT 1;", r.Repo()), r.ID())
+		assert.NotNil(t, res)
+		assert.Nil(t, err)
 
 		// 	3) Check we could not update User (User not exist)
+		// 		a) repo way
+		// 		b) generic repo way
+		// 		c) old school (pure connection) way
 
 		// 	4) Check we delete without error User. (User not exist)
+		// 		a) repo wa
+		n, err := c.AutoDelete(suite.ctx, u)
+		assert.Equal(t, int64(0), n)
+		assert.Nil(t, err)
+
+		n, err = c.AutoDelete(suite.ctx, r)
+		assert.Equal(t, int64(0), n)
+		assert.Nil(t, err)
+
+		// 		b) generic repo way
+		n, err = repo.NewGen[dto.ID, dto.User[dto.ID]](c).Delete(suite.ctx, u.Identity().(dto.ID))
+		assert.Equal(t, int64(0), n)
+		assert.Nil(t, err)
+
+		n, err = c.AutoDelete(suite.ctx, r)
+		assert.Equal(t, int64(0), n)
+		assert.Nil(t, err)
+
+		// 		c) old school (pure connection) way
+		_, err = c.Connection().ExecContext(
+			suite.ctx, fmt.Sprintf("DELETE FROM %s WHERE id=$1;", r.Repo()), r.ID())
+		assert.Nil(t, err)
+
+		_, err = c.Connection().ExecContext(
+			suite.ctx, fmt.Sprintf("DELETE FROM %s WHERE id=$1;", r.Repo()), r.ID())
+		assert.Nil(t, err)
 
 		// II. Part
 		// 	1) Create Role and User
 		id, err := c.AutoCreate(suite.ctx, r)
-		r.ID = dto.ID(id)
+		r.Id = dto.ID(id)
 		assert.Nil(t, err)
+
 		id, err = c.AutoCreate(suite.ctx, u)
-		u.ID = dto.ID(id)
+		u.Id = dto.ID(id)
 		assert.Nil(t, err)
 
 		// III. Part delete all records
-		//
-		n, err := c.AutoDelete(suite.ctx, u)
+		n, err = c.AutoDelete(suite.ctx, u)
 		assert.Equal(t, int64(1), n)
 		assert.Nil(t, err)
 
 		n, err = c.AutoDelete(suite.ctx, r)
 		assert.Equal(t, int64(1), n)
 		assert.Nil(t, err)
-
 	}
-
 }
 
 //func (suite *RepositoryTestSuit) Test_Repo_AutoRepo_SqlxDBConnectorI() {

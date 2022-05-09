@@ -1,4 +1,4 @@
-package repository
+package repo
 
 import (
 	"context"
@@ -20,13 +20,13 @@ import (
 func Test_NewRepo(t *testing.T) {
 	logger := zap.NewNop()
 
-	r := New(logger, mocks.GoodMockDBConn, dto.User{}.Repo(), nil)
+	r := New(logger, mocks.GoodMockDBConn, dto.User[dto.ID]{}.Repo(), nil)
 	assert.NotNil(t, r)
 	assert.Equal(t, logger, r.logger)
 	assert.Equal(t, mocks.GoodMockDBConn, r.dbConn)
 	assert.Equal(t, squirrel.Dollar, r.phf)
 
-	r = New(logger, mocks.GoodMockDBConn, dto.User{}.Repo(), squirrel.Dollar)
+	r = New(logger, mocks.GoodMockDBConn, dto.User[dto.ID]{}.Repo(), squirrel.Dollar)
 	assert.NotNil(t, r)
 	assert.Equal(t, logger, r.logger)
 	assert.Equal(t, mocks.GoodMockDBConn, r.dbConn)
@@ -36,12 +36,12 @@ func Test_NewRepo(t *testing.T) {
 func Test_RepoMethods(t *testing.T) {
 	ctx := context.Background()
 
-	r := New(zap.NewNop(), mocks.GoodMockDBConn, dto.User{}.Repo(), squirrel.Dollar)
+	r := New(zap.NewNop(), mocks.GoodMockDBConn, dto.User[dto.ID]{}.Repo(), squirrel.Dollar)
 	assert.NotNil(t, r)
 
-	assert.NotNil(t, dto.User{}.Repo(), r.Name())
+	assert.NotNil(t, dto.User[dto.ID]{}.Repo(), r.Name())
 
-	user := dto.User{BaseDTO: dto.BaseDTO{ID: 1}}
+	user := dto.User[dto.ID]{BaseDTO: dto.BaseDTO[dto.ID]{Id: 1}}
 	assert.Equal(t, sql.ErrNoRows, r.Get(ctx, 1, user))
 
 	n, err := r.Update(ctx, 1, user)
@@ -56,7 +56,7 @@ func Test_RepoMethods(t *testing.T) {
 	assert.Equal(t, int64(0), id)
 	assert.Nil(t, err)
 
-	users := []dto.User{}
+	users := []dto.User[dto.ID]{}
 	cols, jc := orm.GetDataForSelect(user)
 	al := orm.GetTableAlias(user)
 	assert.Equal(t, sql.ErrNoRows, r.FindOneBy(ctx, cols, squirrel.Eq{"id": 1}, &user))
@@ -98,12 +98,12 @@ func Test_RepoMethods(t *testing.T) {
 func Test_RepoMethods_Negative(t *testing.T) {
 	ctx := context.Background()
 
-	r := New(zap.NewNop(), mocks.BadMockDBConn, dto.User{}.Repo(), squirrel.Dollar)
+	r := New(zap.NewNop(), mocks.BadMockDBConn, dto.User[dto.ID]{}.Repo(), squirrel.Dollar)
 	assert.NotNil(t, r)
 
-	assert.NotNil(t, dto.User{}.Repo(), r.Name())
+	assert.NotNil(t, dto.User[dto.ID]{}.Repo(), r.Name())
 
-	user := dto.User{BaseDTO: dto.BaseDTO{ID: 1}}
+	user := dto.User[dto.ID]{BaseDTO: dto.BaseDTO[dto.ID]{Id: 1}}
 	assert.Equal(t, sql.ErrNoRows, r.Get(ctx, 1, user))
 
 	n, err := r.Update(ctx, 1, user)
@@ -118,7 +118,7 @@ func Test_RepoMethods_Negative(t *testing.T) {
 	assert.Equal(t, int64(0), id)
 	assert.Error(t, db.ErrInvalidRepoEmptyRepo, errors.Unwrap(err))
 
-	users := []dto.User{}
+	users := []dto.User[dto.ID]{}
 	cols, jc := orm.GetDataForSelect(user)
 	al := orm.GetTableAlias(user)
 	assert.Equal(t, sql.ErrNoRows, r.FindOneBy(ctx, cols, squirrel.Eq{"id": 1}, &user))

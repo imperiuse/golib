@@ -2,10 +2,11 @@ package connector
 
 import (
 	"context"
-	"github.com/imperiuse/golib/db"
-	"github.com/imperiuse/golib/db/repository"
-	"github.com/imperiuse/golib/db/repository/empty"
 	"sync"
+
+	"github.com/imperiuse/golib/db"
+	"github.com/imperiuse/golib/db/repo"
+	"github.com/imperiuse/golib/db/repo/empty"
 )
 
 type connector[C db.Config] struct {
@@ -36,8 +37,8 @@ func New[C db.Config](cfg C, logger db.Logger, dbConn db.PureSqlxConnection) db.
 	}
 }
 
-// AddRepoNames - store information about available repo names
-func (c *connector[C]) AddRepoNames(repos ...db.Table) {
+// AddAllowsRepos - store information about available repo names
+func (c *connector[C]) AddAllowsRepos(repos ...db.Table) {
 	c.mV.Lock()
 	defer c.mV.Unlock()
 
@@ -48,14 +49,40 @@ func (c *connector[C]) AddRepoNames(repos ...db.Table) {
 	return
 }
 
+// GetAllowsRepos - get list of allow repos
+func (c *connector[C]) GetAllowsRepos() []db.Table {
+	c.mV.RLock()
+	defer c.mV.RUnlock()
+
+	var l = make([]db.Table, 0, len(c.validationRepoMap))
+	for tableName := range c.validationRepoMap {
+		l = append(l, tableName)
+	}
+
+	return l
+}
+
+// IsAllowRepo - is repo name in validationRepoMap (were previously add by connector.AddRepoNames)
+func (c *connector[C]) IsAllowRepo(repo db.Table) bool {
+	c.mV.RLock()
+	defer c.mV.RUnlock()
+
+	_, found := c.validationRepoMap[repo]
+
+	return found
+}
+
+// Config - return config of connector
 func (c *connector[C]) Config() C {
 	return c.cfg
 }
 
+// Logger - return logger instance (*zap.Logger)
 func (c *connector[C]) Logger() db.Logger {
 	return c.logger
 }
 
+// Connection - return pure sqlx connection
 func (c *connector[C]) Connection() db.PureSqlxConnection {
 	return c.dbConn
 }
@@ -79,32 +106,36 @@ func (c *connector[C]) Repo(dto db.DTO) db.Repository {
 		c.mC.Lock()
 		defer c.mC.Unlock()
 
-		repo, found := c.cacheRepoMap[repoName]
+		r, found := c.cacheRepoMap[repoName]
 		if found {
-			return repo
+			return r
 		}
 
-		repo = repository.New(c.logger, c.dbConn, repoName, c.phf)
-		c.cacheRepoMap[repoName] = repo
+		r = repo.New(c.logger, c.dbConn, repoName, c.phf)
+		c.cacheRepoMap[repoName] = r
 
-		return repo
+		return r
 	}
 
-	return repository.New(c.logger, c.dbConn, repoName, c.phf)
+	return repo.New(c.logger, c.dbConn, repoName, c.phf)
 }
 
+// AutoCreate - wrapper for c.Repo(dto).Create(ctx, dto)
 func (c *connector[C]) AutoCreate(ctx context.Context, dto db.DTO) (int64, error) {
 	return c.Repo(dto).Create(ctx, dto)
 }
 
+// AutoGet - wrapper for c.Repo(dto).Get(ctx, dto.Identity(), dto)
 func (c *connector[C]) AutoGet(ctx context.Context, dto db.DTO) error {
 	return c.Repo(dto).Get(ctx, dto.Identity(), dto)
 }
 
+// AutoUpdate - wrapper for c.Repo(dto).Update(ctx, dto.Identity(), dto)
 func (c *connector[C]) AutoUpdate(ctx context.Context, dto db.DTO) (int64, error) {
 	return c.Repo(dto).Update(ctx, dto.Identity(), dto)
 }
 
+// AutoDelete - wrapper for c.Repo(dto).Delete(ctx, dto.Identity())
 func (c *connector[C]) AutoDelete(ctx context.Context, dto db.DTO) (int64, error) {
-	return c.Repo(dto).Delete(ctx, dto)
+	return c.Repo(dto).Delete(ctx, dto.Identity())
 }
