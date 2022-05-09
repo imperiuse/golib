@@ -15,6 +15,7 @@ import (
 	"github.com/imperiuse/golib/db/connector"
 	"github.com/imperiuse/golib/db/example/simple/config"
 	"github.com/imperiuse/golib/db/example/simple/dto"
+	"github.com/imperiuse/golib/db/genrepo/emptygen"
 	"github.com/imperiuse/golib/db/mocks"
 	"github.com/imperiuse/golib/db/repo"
 	"github.com/imperiuse/golib/reflect/orm"
