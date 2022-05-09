@@ -7,7 +7,7 @@ import (
 	"github.com/Masterminds/squirrel"
 
 	"github.com/imperiuse/golib/db"
-	"github.com/imperiuse/golib/db/genrepo/empty"
+	"github.com/imperiuse/golib/db/genrepo/emptygen"
 	"github.com/imperiuse/golib/reflect/orm"
 )
 
@@ -23,7 +23,7 @@ func NewGen[I db.ID, D db.GDTO[I], C db.Config](connector db.Connector[C]) db.GR
 	cfg := connector.Config()
 
 	if cfg.IsEnableValidationRepoNames() && !connector.IsAllowRepo(dto.Repo()) {
-		return empty.NewGen[I, D]()
+		return emptygen.NewGen[I, D]()
 	}
 
 	phf := cfg.PlaceholderFormat()

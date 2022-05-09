@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"github.com/imperiuse/golib/db/genrepo/emptygen"
 
 	"math/rand"
 	"testing"
@@ -22,7 +23,8 @@ import (
 	"github.com/imperiuse/golib/db/connector"
 	"github.com/imperiuse/golib/db/example/simple/config"
 	"github.com/imperiuse/golib/db/example/simple/dto"
-	"github.com/imperiuse/golib/db/repository/empty"
+	"github.com/imperiuse/golib/db/repo"
+	"github.com/imperiuse/golib/db/repo/empty"
 	"github.com/imperiuse/golib/reflect/orm"
 )
 
@@ -225,9 +227,9 @@ func (suite *RepositoryTestSuit) Test_Connector_Repo_Creation() {
 		assert.NotNil(t, c.Config())
 		assert.Equal(t, suite.db, c.Connection())
 
-		repo := c.Repo(u)
-		assert.NotNil(t, repo)
-		assert.Equal(t, dto.User[dto.ID]{}.Repo(), repo.Name())
+		r := c.Repo(u)
+		assert.NotNil(t, r)
+		assert.Equal(t, dto.User[dto.ID]{}.Repo(), r.Name())
 
 		genericRepo := repo.NewGen[dto.ID, dto.User[dto.ID]](c)
 		assert.NotNil(t, genericRepo)
@@ -235,30 +237,30 @@ func (suite *RepositoryTestSuit) Test_Connector_Repo_Creation() {
 	}
 
 	// without validation, we should create new repo
-	repo := suite.connector.Repo(notRegisterDTO[dto.ID]{})
-	assert.NotNil(t, repo)
-	assert.Equal(t, notRegisterDTO[dto.ID]{}.Repo(), repo.Name())
+	r := suite.connector.Repo(notRegisterDTO[dto.ID]{})
+	assert.NotNil(t, r)
+	assert.Equal(t, notRegisterDTO[dto.ID]{}.Repo(), r.Name())
 
 	genericRepo := repo.NewGen[dto.ID, notRegisterDTO[dto.ID]](suite.connector)
 	assert.NotNil(t, genericRepo)
-	assert.Equal(t, notRegisterDTO[dto.ID]{}.Repo(), repo.Name())
+	assert.Equal(t, notRegisterDTO[dto.ID]{}.Repo(), genericRepo.Name())
 
 	// without validation, we should NOT create new repo // we must return empty repo
-	repo = suite.connectorWithValidation.Repo(notRegisterDTO[dto.ID]{})
-	assert.NotNil(t, repo)
-	assert.Equal(t, empty.Repo, repo)
+	r = suite.connectorWithValidation.Repo(notRegisterDTO[dto.ID]{})
+	assert.NotNil(t, r)
+	assert.Equal(t, empty.Repo, r)
 
 	genericRepo = repo.NewGen[dto.ID, notRegisterDTO[dto.ID]](suite.connectorWithValidation)
 	assert.NotNil(t, genericRepo)
-	assert.Equal(t, empty.Repo, repo)
+	assert.Equal(t, emptygen.NewGen[dto.ID, notRegisterDTO[dto.ID]](), genericRepo)
 
-	repo = suite.connectorWithValidationAndCache.Repo(notRegisterDTO[dto.ID]{})
-	assert.NotNil(t, repo)
-	assert.Equal(t, empty.Repo, repo)
+	r = suite.connectorWithValidationAndCache.Repo(notRegisterDTO[dto.ID]{})
+	assert.NotNil(t, r)
+	assert.Equal(t, empty.Repo, r)
 
 	genericRepo = repo.NewGen[int, notRegisterDTO[dto.ID]](suite.connectorWithValidationAndCache)
 	assert.NotNil(t, genericRepo)
-	assert.Equal(t, empty.Repo, repo)
+	assert.Equal(t, emptygen.NewGen[dto.ID, notRegisterDTO[dto.ID]](), genericRepo)
 }
 
 func (suite *RepositoryTestSuit) Test_Connector_AutoCRUD() {
@@ -278,11 +280,10 @@ func (suite *RepositoryTestSuit) Test_Connector_AutoCRUD() {
 		RoleID:   1,
 	}
 
-	var j = 0
 	for i, c := range []db.Connector[config.SimpleTestConfig]{
 		suite.connector,
 		suite.connectorWithValidation,
-		//suite.connectorWithValidationAndCache,
+		suite.connectorWithValidationAndCache,
 	} {
 		nr := notRegisterDTO[dto.ID]{}
 		// For second two connectors check Validation  (Could not create Repo)
@@ -303,15 +304,12 @@ func (suite *RepositoryTestSuit) Test_Connector_AutoCRUD() {
 		// 	1) Could not create User (foreign constraint)
 		// 		a) repo way
 		{
-			id, err := c.AutoCreate(suite.ctx, u)
-			assert.Equal(t, int64(j), id) // even for failed we return 0,1,2,3,4,5 etc. which will increment
-			assert.NotNil(t, err)         // actual  : *fmt.wrapError(&fmt.wrapError{msg:"err while Rollback. error: <nil>, ERROR: insert or update on table \"users\" violates foreign key constraint \"fkey__r\" (SQLSTATE 23503)", err:(*pgconn.PgError)(0xc0002602d0)})
-			j++
+			_, err := c.AutoCreate(suite.ctx, u)
+			assert.NotNil(t, err) // actual  : *fmt.wrapError(&fmt.wrapError{msg:"err while Rollback. error: <nil>, ERROR: insert or update on table \"users\" violates foreign key constraint \"fkey__r\" (SQLSTATE 23503)", err:(*pgconn.PgError)(0xc0002602d0)})
 		}
 		// 		b) generic repo way
 		{
-			id, err := repo.NewGen[dto.ID, dto.User[dto.ID]](c).Create(suite.ctx, u)
-			assert.Equal(t, 0, id)
+			_, err := repo.NewGen[dto.ID, dto.User[dto.ID]](c).Create(suite.ctx, u)
 			assert.NotNil(t, err) // actual  : *fmt.wrapError(&fmt.wrapError{msg:"err while Rollback. error: <nil>, ERROR: insert or update on table \"users\" violates foreign key constraint \"fkey__r\" (SQLSTATE 23503)", err:(*pgconn.PgError)(0xc0002602d0)})
 		}
 		// 		c) old school (pure connection) way
@@ -396,6 +394,7 @@ func (suite *RepositoryTestSuit) Test_Connector_AutoCRUD() {
 		r.Id = dto.ID(id)
 		assert.Nil(t, err)
 
+		u.RoleID = r.Id
 		id, err = c.AutoCreate(suite.ctx, u)
 		u.Id = dto.ID(id)
 		assert.Nil(t, err)

@@ -1,4 +1,4 @@
-package empty
+package emptygen
 
 import (
 	"context"

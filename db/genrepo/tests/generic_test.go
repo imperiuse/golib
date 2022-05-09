@@ -15,7 +15,6 @@ import (
 	"github.com/imperiuse/golib/db/connector"
 	"github.com/imperiuse/golib/db/example/simple/config"
 	"github.com/imperiuse/golib/db/example/simple/dto"
-	"github.com/imperiuse/golib/db/genrepo/empty"
 	"github.com/imperiuse/golib/db/mocks"
 	"github.com/imperiuse/golib/db/repo"
 	"github.com/imperiuse/golib/reflect/orm"
@@ -35,7 +34,7 @@ func Test_NewGenRepo_NotValid(t *testing.T) {
 
 	r := repo.NewGen[dto.ID, dto.User[dto.ID]](c)
 	assert.NotNil(t, r)
-	assert.Equal(t, empty.NewGen[dto.ID, dto.User[dto.ID]](), r)
+	assert.Equal(t, emptygen.NewGen[dto.ID, dto.User[dto.ID]](), r)
 
 	c.AddAllowsRepos(dto.User[dto.ID]{}.Repo())
 
