@@ -154,7 +154,6 @@ func Test_RepoMethods_Negative(t *testing.T) {
 	pr, err = r.SelectWithPagePagination(ctx, squirrel.SelectBuilder{}.Columns(cols...).Where("1=1"), db.PagePaginationParams{PageSize: 10, PageNumber: 1}, &users)
 	assert.NotNil(t, pr)
 	assert.Equal(t, sql.ErrNoRows, errors.Unwrap(errors.Unwrap(err)))
-
 }
 
 func Test_ConvertFunc(t *testing.T) {

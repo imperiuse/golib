@@ -21,9 +21,29 @@ import (
 	"github.com/imperiuse/golib/reflect/orm"
 )
 
+type badConfig struct{}
+
+func (_ badConfig) PlaceholderFormat() db.PlaceholderFormat {
+	return nil
+}
+
+func (_ badConfig) IsEnableValidationRepoNames() bool {
+	return false
+}
+
+func (_ badConfig) IsEnableReposCache() bool {
+	return false
+}
+
 func Test_NewGenRepo(t *testing.T) {
 	r := repo.NewGen[dto.ID, dto.User[dto.ID]](
 		connector.New[config.SimpleTestConfig](config.SimpleTestConfig{}, zap.NewNop(), mocks.GoodMockDBConn),
+	)
+	assert.NotNil(t, r)
+	assert.Equal(t, dto.User[dto.ID]{}.Repo(), r.Name())
+
+	r = repo.NewGen[dto.ID, dto.User[dto.ID]](
+		connector.New[badConfig](badConfig{}, zap.NewNop(), mocks.GoodMockDBConn),
 	)
 	assert.NotNil(t, r)
 	assert.Equal(t, dto.User[dto.ID]{}.Repo(), r.Name())
@@ -94,11 +114,7 @@ func Test_NewGenMethods(t *testing.T) {
 	assert.Nil(t, err)
 
 	// todo think how to test without panic issues (problem we need fake Rows structure.... it's too complex...
-	//ul, err = r.FindOneByWithInnerJoin(ctx, cols, al, jc, squirrel.Gt{"id": 1})
-	//assert.Equal(t, sql.ErrNoRows, err)
-
 	//assert.Equal(t, sql.ErrNoRows, r.FindBy(ctx, cols, squirrel.Eq{"id": 1}, &users))
-	//assert.Equal(t, sql.ErrNoRows, r.FindByWithInnerJoin(ctx, cols, al, jc, squirrel.Gt{"id": 1}, &users))
 	//assert.Equal(t, sql.ErrNoRows, r.Select(ctx, squirrel.SelectBuilder{}.Columns(cols...).Where("1=1"), &users))
 	//assert.Equal(t, nil, r.SelectWithCursorOnPKPagination(ctx, squirrel.SelectBuilder{}.Columns(cols...).Where("1=1"), db.CursorPaginationParams{Limit: 10, Cursor: 1}, &users))
 
@@ -167,11 +183,7 @@ func Test_NewGenMethods_Negative(t *testing.T) {
 	assert.Equal(t, db.ErrInvalidRepoEmptyRepo, errors.Unwrap(err))
 
 	// todo think how to test without panic issues (problem we need fake Rows structure.... it's too complex...
-	//ul, err = r.FindOneByWithInnerJoin(ctx, cols, al, jc, squirrel.Gt{"id": 1})
-	//assert.Equal(t, sql.ErrNoRows, err)
-
 	//assert.Equal(t, sql.ErrNoRows, r.FindBy(ctx, cols, squirrel.Eq{"id": 1}, &users))
-	//assert.Equal(t, sql.ErrNoRows, r.FindByWithInnerJoin(ctx, cols, al, jc, squirrel.Gt{"id": 1}, &users))
 	//assert.Equal(t, sql.ErrNoRows, r.Select(ctx, squirrel.SelectBuilder{}.Columns(cols...).Where("1=1"), &users))
 	//assert.Equal(t, nil, r.SelectWithCursorOnPKPagination(ctx, squirrel.SelectBuilder{}.Columns(cols...).Where("1=1"), db.CursorPaginationParams{Limit: 10, Cursor: 1}, &users))
 

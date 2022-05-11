@@ -90,29 +90,6 @@ func (g *gRepository[I, D]) FindOneBy(ctx context.Context, columns []db.Column, 
 	return dto, err
 }
 
-func (g *gRepository[I, D]) FindByWithInnerJoin(
-	ctx context.Context, columns []db.Column, alias db.Alias, join db.Join, condition db.Condition,
-) ([]D, error) {
-	var dtos = make([]D, 0)
-	err := g.repository.FindByWithInnerJoin(ctx, columns, alias, join, condition, &dtos)
-
-	return dtos, err
-}
-
-func (g *gRepository[I, D]) FindOneByWithInnerJoin(
-	ctx context.Context, columns []db.Column, alias db.Alias, join db.Join, condition db.Condition,
-) (D, error) {
-	var dtos = make([]D, 0, 1)
-	err := g.repository.FindByWithInnerJoin(ctx, columns, alias, join, condition, &dtos)
-
-	if len(dtos) == 1 {
-		return dtos[0], err
-	}
-
-	return *new(D), fmt.Errorf("%v, %w", db.ErrMismatchRowsCnt, err)
-
-}
-
 func (g *gRepository[I, D]) Select(ctx context.Context, builder db.SelectBuilder) ([]D, error) {
 	var dtos = make([]D, 0)
 	err := g.repository.Select(ctx, builder, &dtos)
