@@ -10,10 +10,10 @@ import (
 
 type (
 	BaseDTO struct {
-		ID        int64       `db:"id"          orm_use_in:"select"`
-		CreatedAt time.Time   `db:"created_at"  orm_use_in:"select"`
-		UpdatedAt time.Time   `db:"updated_at"  orm_use_in:"select,update"`
-		_         interface{} `orm_use_in:"select,create,update"`
+		ID        int64     `db:"id"          orm_use_in:"select"`
+		CreatedAt time.Time `db:"created_at"  orm_use_in:"select"`
+		UpdatedAt time.Time `db:"updated_at"  orm_use_in:"select,update"`
+		_         any       `orm_use_in:"select,create,update"`
 	}
 
 	A struct {
@@ -23,14 +23,14 @@ type (
 		UpdateOnly   int    `db:"update_field"   orm_use_in:"update"`
 		NoDbTagField string `orm_use_for:"update"`
 		NoTagField   string
-		_            interface{} `orm_table_name:"A" orm_alias:"a"`
+		_            any `orm_table_name:"A" orm_alias:"a"`
 	}
 
 	B struct {
 		BaseDTO
-		CUS  float64     `db:"cus_field"   orm_use_in:"create,update,select"`
-		CUS2 int         `db:"cus2_field"  orm_use_in:"create,update,select"`
-		_    interface{} `orm_table_name:"B" orm_alias:"b"`
+		CUS  float64 `db:"cus_field"   orm_use_in:"create,update,select"`
+		CUS2 int     `db:"cus2_field"  orm_use_in:"create,update,select"`
+		_    any     `orm_table_name:"B" orm_alias:"b"`
 	}
 
 	C struct {
@@ -41,15 +41,15 @@ type (
 
 	D struct {
 		BaseDTO
-		CUS  float64     `db:"cus_field"   orm_use_in:"create,update,select"`
-		CUS2 int         `db:"cus2_field"  orm_use_in:"create,update,select"`
-		_    interface{} `orm_table_name:"D"`
+		CUS  float64 `db:"cus_field"   orm_use_in:"create,update,select"`
+		CUS2 int     `db:"cus2_field"  orm_use_in:"create,update,select"`
+		_    any     `orm_table_name:"D"`
 	}
 
 	BadStruct struct {
 		*A
 		_              struct{ a int }
-		bad_name_field interface{} `orm_table_name:"B" orm_alias:"b"`
+		bad_name_field any `orm_table_name:"B" orm_alias:"b"`
 	}
 )
 
@@ -64,8 +64,8 @@ type OrmTestSuit struct {
 }
 
 func (suite *OrmTestSuit) SetupSuite() {
-	InitMetaTagInfoCache([]interface{}{&A{}, &B{}, &C{}}...)
-	InitMetaTagInfoCache(new(interface{}))
+	InitMetaTagInfoCache([]any{&A{}, &B{}, &C{}}...)
+	InitMetaTagInfoCache(new(any))
 	InitMetaTagInfoCache(1, "", 1.23, &struct{}{})
 	InitMetaTagInfoCache(nil)
 }
@@ -122,7 +122,7 @@ func (suite *OrmTestSuit) Test_GetUpdateColumnsValues() {
 	})
 	assert.NotNil(t, cv)
 	assert.Equal(t, 2, len(cv))
-	assert.Equal(t, map[string]interface{}{"update_field": 123, "updated_at": time.Time{}}, cv)
+	assert.Equal(t, map[string]any{"update_field": 123, "updated_at": time.Time{}}, cv)
 }
 
 func (suite *OrmTestSuit) Test_BadGetOrmDataForCreate() {
@@ -130,23 +130,23 @@ func (suite *OrmTestSuit) Test_BadGetOrmDataForCreate() {
 
 	col, args := GetDataForCreate(&BadStruct{})
 	assert.Equal(t, []string{}, col)
-	assert.Equal(t, []interface{}{}, args)
+	assert.Equal(t, []any{}, args)
 
 	col, args = GetDataForCreate(nil)
 	assert.Equal(t, []string{}, col)
-	assert.Equal(t, []interface{}{}, args)
+	assert.Equal(t, []any{}, args)
 
-	col, args = GetDataForCreate(new(interface{}))
+	col, args = GetDataForCreate(new(any))
 	assert.Equal(t, []string{}, col)
-	assert.Equal(t, []interface{}{}, args)
+	assert.Equal(t, []any{}, args)
 
 	col, args = GetDataForCreate("123")
 	assert.Equal(t, []string{}, col)
-	assert.Equal(t, []interface{}{}, args)
+	assert.Equal(t, []any{}, args)
 
 	col, args = GetDataForCreate(123)
 	assert.Equal(t, []string{}, col)
-	assert.Equal(t, []interface{}{}, args)
+	assert.Equal(t, []any{}, args)
 }
 
 func (suite *OrmTestSuit) Test_BadGetOrmDataForSelect() {
@@ -164,8 +164,8 @@ func (suite *OrmTestSuit) Test_BadGetOrmDataForSelect() {
 	assert.Equal(t, []string{}, col)
 	assert.Equal(t, "", join)
 
-	col, join = GetDataForSelect(new(interface{}))
-	cols2 = GetDataForSelectOnlyCols(new(interface{}))
+	col, join = GetDataForSelect(new(any))
+	cols2 = GetDataForSelectOnlyCols(new(any))
 	assert.Equal(t, col, cols2)
 	assert.Equal(t, []string{}, col)
 	assert.Equal(t, "", join)

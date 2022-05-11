@@ -31,12 +31,12 @@ var (
 	sufLongSI  = []string{"byte", "Kbyte", "Mbyte", "Gbyte", "Tbyte", "Pbyte", "Ebyte"}
 )
 
-// produces a human readable representation of an SI size. (82854982) -> 83 MB
+// BytesSi - produces a human readable representation of an SI size. (82854982) -> 83 MB
 func BytesSi(s uint64) string {
 	return HumValue(s, 1000, sufShortSI)
 }
 
-// produces a human readable representation of an IEC size. (82854982) -> 79 MiB
+// Bytes - produces a human readable representation of an IEC size. (82854982) -> 79 MiB
 func Bytes(s uint64) string {
 	return HumValue(s, 1024, sufLongSI)
 }

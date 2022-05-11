@@ -10,7 +10,7 @@ import (
 
 const deferDuration = 1
 
-// Dispatcher - структура "диспетчер" занимается выдачей очередного id аккаунта, балансирует нагрузку засчет ожидания очередного account id
+// Dispatcher - структура "диспетчер" занимается выдачей очередного id аккаунта, балансирует нагрузку за счет ожидания очередного account id
 // содержит два набора каналов и параметров, для очередей выпуска и перевыпуска сертификатов соответственно.
 type Dispatcher struct {
 	timeoutWaitID        int // время в секундах ожидания очередного id из каналов, до достижения таймута
@@ -70,7 +70,7 @@ func (d *Dispatcher) NextNewAccountID(ctx context.Context) (string, bool) {
 	}
 }
 
-// NextRenewAccountID -  возвращает следующий аккаунт id доступный для перевыпуска сертов, и флаг - успех/нет
+// NextRenewAccountID - возвращает следующий аккаунт id доступный для перевыпуска сертов, и флаг - успех/нет
 func (d *Dispatcher) NextRenewAccountID(ctx context.Context) (string, bool) {
 
 	ctxWithTimeout, cancelFunction := context.WithTimeout(ctx, time.Duration(d.timeoutWaitID)*time.Second)
@@ -84,7 +84,7 @@ func (d *Dispatcher) NextRenewAccountID(ctx context.Context) (string, bool) {
 	}
 }
 
-// FreeNewAccountID - возращает использованный id в канал new accounts id
+// FreeNewAccountID - возвращает использованный id в канал new accounts id
 func (d *Dispatcher) FreeNewAccountID(ctx context.Context, id string) error {
 
 	ctxWithTimeout, cancelFunction := context.WithTimeout(ctx, time.Duration(deferDuration)*time.Second)

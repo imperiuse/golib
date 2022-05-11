@@ -17,6 +17,7 @@ func CopyFile(src, dst string) (err error) {
 	if err != nil {
 		return err
 	}
+
 	defer func() {
 		if err != nil {
 			_ = srcfd.Close()
