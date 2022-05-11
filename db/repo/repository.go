@@ -88,10 +88,11 @@ func (r *repository) Create(ctx context.Context, obj any) (int64, error) {
 
 	cols, vals := orm.GetDataForCreate(obj)
 
-	query, args, err := squirrel.Insert(r.name).
+	query, args, err := squirrel.
+		Insert(r.name).
 		Columns(cols...).
 		Values(vals...).
-		Suffix("RETURNING id").
+		Suffix("RETURNING id"). // todo check this foe MySQL, Sqlite and other db.... I'm not sure ...
 		PlaceholderFormat(r.phf).
 		ToSql()
 	if err != nil {
@@ -110,7 +111,8 @@ func (r *repository) create(ctx context.Context, query db.Query, lastInsertID an
 func (r *repository) Get(ctx context.Context, id db.ID, dest any) error {
 	r.logger.Info("[repo.Get]", r.loggerFieldRepo(), loggerFieldID(id))
 
-	query, args, err := squirrel.Select("*").
+	query, args, err := squirrel.
+		Select("*").
 		From(r.name).
 		Where(squirrel.Eq{"id": id}).
 		PlaceholderFormat(r.phf).
@@ -127,7 +129,8 @@ func (r *repository) Update(ctx context.Context, id db.ID, obj any) (int64, erro
 
 	sm := orm.GetDataForUpdate(obj)
 
-	query, args, err := squirrel.Update(r.name).
+	query, args, err := squirrel.
+		Update(r.name).
 		SetMap(sm).
 		Where(squirrel.Eq{"id": id}).
 		PlaceholderFormat(r.phf).
@@ -152,7 +155,8 @@ func (r *repository) Update(ctx context.Context, id db.ID, obj any) (int64, erro
 func (r *repository) Delete(ctx context.Context, id db.ID) (int64, error) {
 	r.logger.Info("[repo.Delete]", r.loggerFieldRepo(), loggerFieldID(id))
 
-	query, args, err := squirrel.Delete(r.name).
+	query, args, err := squirrel.
+		Delete(r.name).
 		Where(squirrel.Eq{"id": id}).
 		PlaceholderFormat(r.phf).
 		ToSql()
@@ -176,7 +180,8 @@ func (r *repository) Delete(ctx context.Context, id db.ID) (int64, error) {
 func (r *repository) Insert(ctx context.Context, columns []string, values []any) (int64, error) {
 	r.logger.Info("[repo.Insert]", r.loggerFieldRepo(), zap.Any("columns", columns), zap.Any("values", values))
 
-	query, args, err := squirrel.Insert(r.name).
+	query, args, err := squirrel.
+		Insert(r.name).
 		Columns(columns...).
 		Values(values...).
 		PlaceholderFormat(r.phf).
@@ -197,7 +202,8 @@ func (r *repository) UpdateCustom(ctx context.Context, set map[string]any, cond 
 	r.logger.Info("[repo.UpdateCustom]", r.loggerFieldRepo(),
 		zap.Any("set_map", set), zap.Any("condition", cond))
 
-	query, args, err := squirrel.Update(r.name).
+	query, args, err := squirrel.
+		Update(r.name).
 		SetMap(set).
 		Where(cond).
 		PlaceholderFormat(r.phf).
@@ -223,7 +229,8 @@ func (r *repository) FindBy(ctx context.Context, columns []string, condition db.
 	r.logger.Info("[repo.FindBy]", r.loggerFieldRepo(),
 		zap.Any("columns", columns), zap.Any("condition", condition))
 
-	query, args, err := squirrel.Select(columns...).
+	query, args, err := squirrel.
+		Select(columns...).
 		From(r.name).
 		Where(condition).
 		PlaceholderFormat(r.phf).
@@ -239,7 +246,8 @@ func (r *repository) FindOneBy(ctx context.Context, columns []string, condition 
 	r.logger.Info("[repo.FindOneBy]", r.loggerFieldRepo(),
 		zap.Any("columns", columns), zap.Any("condition", condition))
 
-	query, args, err := squirrel.Select(columns...).
+	query, args, err := squirrel.
+		Select(columns...).
 		From(r.name).
 		Where(condition).
 		PlaceholderFormat(r.phf).
@@ -264,7 +272,8 @@ func (r *repository) FindByWithInnerJoin(
 		zap.Any("join", join),
 		zap.Any("condition", condition))
 
-	query, args, err := squirrel.Select(columns...).
+	query, args, err := squirrel.
+		Select(columns...).
 		From(fromWithAlias).
 		InnerJoin(join).
 		Where(condition).
@@ -290,7 +299,8 @@ func (r *repository) FindOneByWithInnerJoin(
 		zap.Any("join", join),
 		zap.Any("condition", condition))
 
-	query, args, err := squirrel.Select(columns...).
+	query, args, err := squirrel.
+		Select(columns...).
 		From(fromWithAlias).
 		InnerJoin(join).
 		Where(condition).
@@ -307,6 +317,7 @@ func (r *repository) GetRowsByQuery(ctx context.Context, qb squirrel.SelectBuild
 	r.logger.Info("[repo.GetRowsByQuery]", r.loggerFieldRepo(), zap.Any("qb", qb))
 
 	query, args, err := qb.
+		From(r.name).
 		PlaceholderFormat(r.phf).
 		ToSql()
 	if err != nil {
@@ -320,6 +331,7 @@ func (r *repository) CountByQuery(ctx context.Context, qb squirrel.SelectBuilder
 	r.logger.Info("[repo.CountByQuery]", r.loggerFieldRepo(), zap.Any("qb", qb))
 
 	query, args, err := qb.
+		From(r.name).
 		PlaceholderFormat(r.phf).
 		ToSql()
 	if err != nil {
@@ -340,6 +352,7 @@ func (r *repository) Select(ctx context.Context, sb db.SelectBuilder, target any
 	r.logger.Info("[repo.Select]", r.loggerFieldRepo(), zap.Any("sb", sb))
 
 	query, args, err := sb.
+		From(r.name).
 		PlaceholderFormat(r.phf).
 		ToSql()
 	if err != nil {
@@ -372,7 +385,7 @@ func (r *repository) SelectWithPagePagination(
 		return paginationResult, db.ErrZeroPageSize
 	}
 
-	totalCount, err := r.CountByQuery(ctx, squirrel.Select("count(1)").From(r.name))
+	totalCount, err := r.CountByQuery(ctx, squirrel.Select("count(1)"))
 	if err != nil {
 		return paginationResult, fmt.Errorf("SelectWithPagePagination: r.CountByQuery: %w", err)
 	}
@@ -426,7 +439,11 @@ func (r *repository) SelectWithCursorOnPKPagination(
 		orderBy = "id DESC"
 	}
 
-	query, args, err := selectBuilder.From(r.name).Where(wh).OrderBy(orderBy).Limit(params.Limit).
+	query, args, err := selectBuilder.
+		From(r.name).
+		Where(wh).
+		OrderBy(orderBy).
+		Limit(params.Limit).
 		PlaceholderFormat(r.phf).ToSql()
 	if err != nil {
 		return fmt.Errorf("SelectWithCursorOnPKPagination: selectBuilder.ToSql(): %w", err)

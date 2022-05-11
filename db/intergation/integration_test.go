@@ -4,8 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/imperiuse/golib/db/genrepo/emptygen"
-
 	"math/rand"
 	"testing"
 
@@ -23,6 +21,7 @@ import (
 	"github.com/imperiuse/golib/db/connector"
 	"github.com/imperiuse/golib/db/example/simple/config"
 	"github.com/imperiuse/golib/db/example/simple/dto"
+	"github.com/imperiuse/golib/db/genrepo/emptygen"
 	"github.com/imperiuse/golib/db/repo"
 	"github.com/imperiuse/golib/db/repo/empty"
 	"github.com/imperiuse/golib/reflect/orm"
@@ -195,6 +194,7 @@ func appendTestDataToTables(s *RepositoryTestSuit) error {
 	for i := 0; i < cntRecords; i++ {
 		_, err := s.connector.AutoCreate(s.ctx, &dto.Paginator[dto.ID]{
 			Name: randStringRunes(10),
+			N:    i + 1,
 		})
 
 		if err != nil {
@@ -266,26 +266,27 @@ func (suite *RepositoryTestSuit) Test_Connector_Repo_Creation() {
 func (suite *RepositoryTestSuit) Test_Connector_AutoCRUD() {
 	t := suite.T()
 
-	r := dto.Role[dto.ID]{
-		BaseDTO: dto.BaseDTO[dto.ID]{Id: 1},
-		Name:    "User",
-		Rights:  1,
-	}
-
-	u := dto.User[dto.ID]{
-		BaseDTO:  dto.BaseDTO[dto.ID]{Id: 1},
-		Name:     "User1",
-		Email:    "user@mail.com",
-		Password: "p@ssw0rd",
-		RoleID:   1,
-	}
-
 	for i, c := range []db.Connector[config.SimpleTestConfig]{
 		suite.connector,
 		suite.connectorWithValidation,
 		suite.connectorWithValidationAndCache,
 	} {
+		r := dto.Role[dto.ID]{
+			BaseDTO: dto.BaseDTO[dto.ID]{Id: 1},
+			Name:    "User",
+			Rights:  1,
+		}
+
+		u := dto.User[dto.ID]{
+			BaseDTO:  dto.BaseDTO[dto.ID]{Id: 1},
+			Name:     "User1",
+			Email:    "user@mail.com",
+			Password: "p@ssw0rd",
+			RoleID:   1,
+		}
+
 		nr := notRegisterDTO[dto.ID]{}
+
 		// For second two connectors check Validation  (Could not create Repo)
 		if i > 0 {
 			// check we returned empty repo for all
@@ -357,12 +358,24 @@ func (suite *RepositoryTestSuit) Test_Connector_AutoCRUD() {
 
 		// 	3) Check we could not update User (User not exist)
 		// 		a) repo way
+		n, err := c.AutoUpdate(suite.ctx, u)
+		assert.Equal(t, int64(0), n)
+		assert.Nil(t, err)
+
 		// 		b) generic repo way
+		n, err = repo.NewGen[dto.ID, dto.User[dto.ID]](c).Update(suite.ctx, u.ID(), u)
+		assert.Equal(t, int64(0), n)
+		assert.Nil(t, err)
+
 		// 		c) old school (pure connection) way
+		res2, err := c.Connection().ExecContext(suite.ctx,
+			fmt.Sprintf("UPDATE %s SET name=$1 WHERE id=$2;", u.Repo()), u.Name, u.ID())
+		assert.NotNil(t, res2)
+		assert.Nil(t, err)
 
 		// 	4) Check we delete without error User. (User not exist)
-		// 		a) repo wa
-		n, err := c.AutoDelete(suite.ctx, u)
+		// 		a) repo way
+		n, err = c.AutoDelete(suite.ctx, u)
 		assert.Equal(t, int64(0), n)
 		assert.Nil(t, err)
 
@@ -390,16 +403,108 @@ func (suite *RepositoryTestSuit) Test_Connector_AutoCRUD() {
 
 		// II. Part
 		// 	1) Create Role and User
+		// 		a) repo way
 		id, err := c.AutoCreate(suite.ctx, r)
 		r.Id = dto.ID(id)
 		assert.Nil(t, err)
 
+		// 		b) generic repo way
 		u.RoleID = r.Id
-		id, err = c.AutoCreate(suite.ctx, u)
-		u.Id = dto.ID(id)
+		u.Id, err = repo.NewGen[dto.ID, dto.User[dto.ID]](c).Create(suite.ctx, u)
 		assert.Nil(t, err)
 
-		// III. Part delete all records
+		// 2) Get Role and User
+		// 		a) repo way
+		r2 = dto.Role[dto.ID]{BaseDTO: dto.BaseDTO[dto.ID]{Id: r.ID()}}
+		assert.Nil(t, c.AutoGet(suite.ctx, &r2))
+		assert.Equal(t, r.Name, r2.Name)
+		assert.Equal(t, r.Rights, r2.Rights)
+		assert.NotEqual(t, r.CreatedAt, r2.CreatedAt) // db set up it auto
+
+		// 		b) generic repo way
+		u3, err := repo.NewGen[dto.ID, dto.User[dto.ID]](c).Get(suite.ctx, u.ID())
+		assert.Equal(t, u.Name, u3.Name)
+		assert.Equal(t, u.Email, u3.Email)
+		assert.NotEqual(t, u.CreatedAt, u3.CreatedAt) // db set up it auto
+		assert.Nil(t, err)
+
+		// 3) Update Role and User
+		// 		a) repo way
+		r.Name = "New Role"
+		r.Rights = 7
+		n, err = c.AutoUpdate(suite.ctx, r)
+		assert.Equal(t, int64(1), n)
+		assert.Nil(t, err)
+
+		// 		b) generic repo way
+		u.Name = "New User"
+		u.Email = "new-user@mail.com"
+
+		n, err = repo.NewGen[dto.ID, dto.User[dto.ID]](c).Update(suite.ctx, u.ID(), u)
+		assert.Equal(t, int64(1), n)
+		assert.Nil(t, err)
+
+		// 4) Get again and check update is apply
+		//      c) old school (pure connection) way I
+		var r4 = dto.Role[dto.ID]{BaseDTO: dto.BaseDTO[dto.ID]{Id: r2.ID()}}
+		assert.Nil(t,
+			sqlx.GetContext(
+				suite.ctx,
+				c.Connection(),
+				&r4,
+				fmt.Sprintf("SELECT * FROM %s WHERE id=$1 LIMIT 1;", r4.Repo()), r4.ID(),
+			),
+		)
+
+		assert.Equal(t, r.Name, r4.Name)
+		assert.Equal(t, r.Rights, r4.Rights)
+		assert.NotEqual(t, r.CreatedAt, r4.CreatedAt) // db set up it auto
+
+		//      c) old school (pure connection) way II
+		var u4 = dto.User[dto.ID]{BaseDTO: dto.BaseDTO[dto.ID]{Id: u.Id}}
+		assert.Nil(t,
+			sqlx.GetContext(
+				suite.ctx,
+				c.Connection(),
+				&u4,
+				fmt.Sprintf("SELECT * FROM %s WHERE id=$1 LIMIT 1;", u4.Repo()), u4.ID(),
+			),
+		)
+		assert.Equal(t, u.Name, u4.Name)
+		assert.Equal(t, u.Email, u4.Email)
+		assert.NotEqual(t, u.CreatedAt, u4.CreatedAt) // db set up it auto
+
+		// III. Tests FindOneByWithInnerJoin
+		{
+			cols, joinCond := orm.GetDataForSelect(&dto.UsersRole[dto.ID]{})
+			nameWithAlias := orm.GetTableNameWithAlias(&dto.User[dto.ID]{})
+			joinCond = orm.GetTableNameWithAlias(&dto.Role[dto.ID]{}) + " " + joinCond
+
+			var ur dto.UsersRole[dto.ID]
+			err := c.Repo(u).FindOneByWithInnerJoin(suite.ctx, cols, nameWithAlias, joinCond, squirrel.Eq{"u.id": u.ID()}, &ur)
+			assert.Nil(t, err)
+			assert.NotNil(t, ur)
+			assert.Equal(t, u.ID(), ur.User.ID())
+			assert.Equal(t, u.Name, ur.User.Name)
+			assert.Equal(t, u.Email, ur.User.Email)
+			assert.Equal(t, u.Password, ur.User.Password)
+			assert.Equal(t, u.RoleID, ur.Role.ID())
+			assert.Equal(t, r.Rights, ur.Role.Rights)
+
+			var url = make([]dto.UsersRole[dto.ID], 0)
+			err = c.Repo(u).FindByWithInnerJoin(suite.ctx, cols, nameWithAlias, joinCond, squirrel.Eq{"u.id": u.ID()}, &url)
+			assert.Nil(t, err)
+			assert.NotNil(t, url)
+			ur = url[0]
+			assert.Equal(t, u.ID(), ur.User.ID())
+			assert.Equal(t, u.Name, ur.User.Name)
+			assert.Equal(t, u.Email, ur.User.Email)
+			assert.Equal(t, u.Password, ur.User.Password)
+			assert.Equal(t, u.RoleID, ur.Role.ID())
+			assert.Equal(t, r.Rights, ur.Role.Rights)
+		}
+
+		// IV. Part delete all records
 		n, err = c.AutoDelete(suite.ctx, u)
 		assert.Equal(t, int64(1), n)
 		assert.Nil(t, err)
@@ -410,450 +515,423 @@ func (suite *RepositoryTestSuit) Test_Connector_AutoCRUD() {
 	}
 }
 
-//func (suite *RepositoryTestSuit) Test_Repo_AutoRepo_SqlxDBConnectorI() {
-//	t := suite.T()
-//
-//	for _, obj := range DTOs {
-//		assert.NotNil(t, suite.repos.AutoReflectRepo(obj).PureConnector())
-//		assert.Equal(t, suite.db, suite.repos.AutoReflectRepo(obj).PureConnector())
-//		assert.NotEqual(t, suite.repos.AutoReflectRepo(obj), suite.repos.Repo("_UNKNOWN_"))
-//		assert.Equal(t, emptyRepo, suite.repos.Repo("_UNKNOWN_"))
-//		assert.Equal(t, emptyRepo, suite.repos.Repo("_UNKNOWN_2"))
-//		assert.Equal(t, emptyRepo, suite.repos.AutoReflectRepo(&BaseDTO{}))
-//		assert.Equal(t, emptyRepo, suite.repos.AutoReflectRepo(&NotDTO{}))
-//	}
-//
-//	assert.Equal(t, suite.repos.Repo(orm.GetTableName(&User{})), suite.repos.AutoRepo(&User{}))
-//	assert.NotNil(t, suite.repos.Repo(orm.GetTableName(&User{})))
-//	assert.Equal(t, suite.repos.Repo(orm.GetTableName(&Role{})), suite.repos.AutoRepo(&Role{}))
-//	assert.NotNil(t, suite.repos.Repo(orm.GetTableName(&Role{})))
-//}
-//
-//func (suite *RepositoryTestSuit) Test_EmptyRepo_NotPanic() {
-//	t := suite.T()
-//
-//	r := suite.repos.Repo("_UNKNOWN_")
-//	assert.NotNil(t, r)
-//	assert.Equal(t, r, emptyRepo)
-//
-//	assert.NotNil(t, r.PureConnector())
-//	assert.NotEqual(t, suite.db, r.PureConnector())
-//
-//	emptyCon := r.PureConnector()
-//
-//	assert.Equal(t, FakeStringAns, emptyCon.DriverName())
-//
-//	assert.Equal(t, FakeStringAns, emptyCon.Rebind(""))
-//
-//	r1, r2, r3 := emptyCon.BindNamed("", nil)
-//	assert.Equal(t, FakeStringAns, r1)
-//	assert.Nil(t, r2)
-//	assert.Equal(t, db.ErrInvalidRepoEmptyRepo, errors.Cause(r3))
-//
-//	row, err := emptyCon.QueryxContext(suite.ctx, "select * from users;")
-//	assert.NotNil(t, row)
-//	assert.Equal(t, db.ErrInvalidRepoEmptyRepo, errors.Cause(err))
-//
-//	row2, err := emptyCon.QueryContext(suite.ctx, "select * from users;")
-//	assert.Equal(t, db.ErrInvalidRepoEmptyRepo, errors.Cause(err))
-//	assert.NotNil(t, row2)
-//
-//	assert.Equal(t, &sqlx.Row{}, emptyCon.QueryRowxContext(suite.ctx, "select * from users;"))
-//
-//	res, err := emptyCon.ExecContext(suite.ctx, "select * from users;")
-//	assert.Equal(t, db.ErrInvalidRepoEmptyRepo, errors.Cause(err))
-//	assert.NotNil(t, res)
-//
-//	stmt, err := emptyCon.PrepareContext(suite.ctx, "select * from users;")
-//	assert.Equal(t, db.ErrInvalidRepoEmptyRepo, errors.Cause(err))
-//	assert.NotNil(t, stmt)
-//
-//	tx, err := emptyCon.BeginTxx(suite.ctx, nil)
-//	assert.Equal(t, db.ErrInvalidRepoEmptyRepo, errors.Cause(err))
-//	assert.NotNil(t, tx)
-//
-//	// CHECK REPO CRUD
-//
-//	var role Role
-//	assert.Equal(t, sql.ErrNoRows, errors.Cause(r.Get(suite.ctx, 1, &role)))
-//
-//	id, err := r.Create(suite.ctx, &role)
-//	assert.Equal(t, db.ErrInvalidRepoEmptyRepo, errors.Cause(err))
-//	assert.Equal(t, int64(0), id)
-//
-//	cnt, err := r.Update(suite.ctx, 1, &role)
-//	assert.NotNil(t, err)
-//	assert.Equal(t, int64(0), cnt)
-//
-//	var roles []Role
-//	err = r.Select(suite.ctx, squirrel.Select("*").From(r.Name()).OrderBy("id DESC"), &roles)
-//	assert.NotNil(t, err)
-//	assert.Equal(t, 0, len(roles))
-//
-//	err = r.SelectWithCursorOnPKPagination(suite.ctx, squirrel.Select("*").From(r.Name()), CursorPaginationParams{
-//		Limit:     10,
-//		Cursor:    0,
-//		DescOrder: false,
-//	}, &roles)
-//	assert.NotNil(t, err)
-//	assert.Equal(t, 0, len(roles))
-//
-//	ppr, err := r.SelectWithPagePagination(suite.ctx, squirrel.Select("*").From(r.Name()), PagePaginationParams{PageNumber: 1, PageSize: 10}, &roles)
-//	assert.NotNil(t, err)
-//	assert.NotNil(t, ppr)
-//	assert.Equal(t, 0, len(roles))
-//
-//	cnt, err = r.Delete(suite.ctx, 1)
-//	assert.NotNil(t, err)
-//	assert.Equal(t, int64(0), cnt)
-//
-//	var temp any
-//	err = r.FindBy(suite.ctx, []Column{"*"}, squirrel.Eq{"id": 1}, &temp)
-//	assert.NotNil(t, err)
-//
-//	err = r.FindOneBy(suite.ctx, []Column{"*"}, squirrel.Eq{"id": 1}, &temp)
-//	assert.NotNil(t, err)
-//
-//	ucnt, err := r.CountByQuery(suite.ctx, squirrel.Select("*").From("unknown"))
-//	assert.NotNil(t, err)
-//	assert.Equal(t, uint64(0), ucnt)
-//
-//	err = r.FindByWithInnerJoin(suite.ctx, []Column{"*"}, "al as al", "ON al.id = p.id", squirrel.Eq{"id": 1}, &temp)
-//	assert.NotNil(t, err)
-//
-//	err = r.FindOneByWithInnerJoin(suite.ctx, []Column{"*"}, "al as al", "ON al.id = p.id", squirrel.Eq{"id": 1}, &temp)
-//	assert.NotNil(t, err)
-//
-//	rows1, err := r.GetRowsByQuery(suite.ctx, squirrel.Select("*").From("unknown"))
-//	assert.NotNil(t, err)
-//	assert.NotNil(t, rows1)
-//
-//	id, err = r.Insert(suite.ctx, []Column{"name"}, []any{"test"})
-//	assert.NotNil(t, err)
-//	assert.Equal(t, int64(0), id)
-//
-//	cnt, err = r.UpdateCustom(suite.ctx, map[string]any{}, squirrel.Eq{"id": 1})
-//	assert.NotNil(t, err)
-//	assert.Equal(t, int64(0), cnt)
-//}
-//
-//func (suite *RepositoryTestSuit) Test_CRUD() {
-//	t := suite.T()
-//
-//	assert.Equal(t, "Roles", suite.repos.AutoRepo(&Role{}).Name())
-//
-//	const (
-//		rights       = 10
-//		role1        = "role1"
-//		updatedRole1 = "role1_updated"
-//	)
-//
-//	var role = Role{
-//		Name:   role1,
-//		Rights: rights,
-//	}
-//
-//	id, err := suite.repos.AutoRepo(&role).Create(suite.ctx, &role)
-//	assert.Nil(t, err)
-//	assert.NotNil(t, id)
-//
-//	// Alternative way
-//	id2, err := suite.repos.AutoCreate(suite.ctx, &role)
-//	assert.Nil(t, err)
-//	assert.NotNil(t, id2)
-//	// also you can directly get Repo Role  and exec method Create
-//	assert.NotNil(t, suite.repos.Repo("Roles"))
-//	//suite.repos.Repo("Roles").Create(.....)
-//
-//	var temp Role
-//	err = suite.repos.AutoRepo(&temp).Get(suite.ctx, id, &temp)
-//	assert.Nil(t, err)
-//	assert.Equal(t, role.Name, temp.Name)
-//	assert.Equal(t, role.Rights, temp.Rights)
-//	assert.NotNil(t, temp.UpdatedAt)
-//	assert.NotNil(t, temp.CreatedAt)
-//	assert.NotNil(t, temp.ID)
-//	assert.Equal(t, id, temp.ID)
-//
-//	// Alternative way to get obj from db
-//	var temp2 = Role{
-//		BaseDTO: BaseDTO{ID: id.(Integer)},
-//	}
-//	err = suite.repos.AutoGet(suite.ctx, &temp2)
-//	assert.Nil(t, err)
-//	assert.Equal(t, temp, temp2)
-//
-//	var temp3 = Role{
-//		BaseDTO: BaseDTO{ID: id.(Integer)},
-//	}
-//	err = suite.repos.AutoReflectRepo(temp3).Get(suite.ctx, id, &temp3)
-//	assert.Nil(t, err)
-//	assert.Equal(t, temp, temp3)
-//
-//	var temp4 Role
-//	err = suite.repos.Repo(orm.GetTableName(&temp3)).Get(suite.ctx, id, &temp4)
-//	assert.Nil(t, err)
-//	assert.Equal(t, temp, temp4)
-//
-//	role.Name = updatedRole1
-//	cnt, err := suite.repos.AutoRepo(&role).Update(suite.ctx, id, &role)
-//	assert.Nil(t, err)
-//	assert.Equal(t, int64(1), cnt)
-//	err = suite.repos.AutoRepo(&temp).Get(suite.ctx, id, &temp)
-//	assert.Nil(t, err)
-//	assert.Equal(t, role.Name, temp.Name)
-//
-//	cnt, err = suite.repos.AutoRepo(&role).Delete(suite.ctx, id)
-//	assert.Nil(t, err)
-//	assert.Equal(t, int64(1), cnt)
-//
-//	err = suite.repos.Repo("Roles").Get(suite.ctx, id2, &temp)
-//	assert.Nil(t, err)
-//	assert.NotNil(t, temp.ID)
-//
-//	temp.Name = ""
-//	cnt, err = suite.repos.AutoUpdate(suite.ctx, &temp)
-//	assert.Nil(t, err)
-//	assert.Equal(t, int64(1), cnt)
-//
-//	temp2.ID = temp.ID
-//	assert.Nil(t, suite.repos.AutoGet(suite.ctx, &temp2))
-//	assert.Equal(t, temp, temp2)
-//
-//	cnt, err = suite.repos.AutoDelete(suite.ctx, &temp)
-//	assert.Nil(t, err)
-//	assert.Equal(t, int64(1), cnt)
-//}
-//
-//func (suite *RepositoryTestSuit) Test_Advance_RepoFunc() {
-//	t := suite.T()
-//	ctx := suite.ctx
-//
-//	// Create one role, than create one user, than check Join, Cnt
-//	var role = Role{
-//		Name:   "new_test_role",
-//		Rights: 100,
-//	}
-//	roleID, err := suite.repos.AutoCreate(ctx, &role)
-//	defer func() { _, _ = suite.repos.AutoRepo(&role).Delete(ctx, roleID) }()
-//	assert.Nil(t, err)
-//	assert.NotNil(t, roleID)
-//
-//	const newName = "newTestRole"
-//	// Check Update Custom
-//	cnt, err := suite.repos.AutoRepo(&role).UpdateCustom(ctx, map[string]interface{}{"name": newName}, squirrel.Eq{"id": roleID})
-//	assert.Nil(t, err)
-//	assert.Equal(t, int64(1), cnt)
-//
-//	var roles []Role
-//	assert.Nil(t, suite.repos.AutoRepo(&role).FindBy(ctx, []Column{"rights"}, squirrel.Eq{"id": roleID}, &roles))
-//	assert.Equal(t, 1, len(roles))
-//	assert.NotEqual(t, newName, roles[0].Name, "role name must not change, because we have not updated name yet ")
-//
-//	var roleOne Role
-//	assert.Nil(t, suite.repos.AutoRepo(&role).FindOneBy(ctx, []Column{"rights"}, squirrel.Eq{"id": roleID}, &roleOne))
-//	assert.NotEqual(t, newName, roleOne, "role name must not change, because we have not updated name yet ")
-//
-//	roles = roles[1:]
-//	assert.Nil(t, suite.repos.AutoRepo(&role).FindBy(ctx, []Column{"name"}, squirrel.Eq{"id": roleID}, &roles))
-//	assert.Equal(t, 1, len(roles))
-//	assert.Equal(t, newName, roles[0].Name, "role name must change, because we have  updated name already ")
-//
-//	var user = User{
-//		Name:     "testUser",
-//		Email:    "test@test.ru",
-//		Password: "123456",
-//		RoleID:   roleID.(int64),
-//	}
-//
-//	userID, err := suite.repos.AutoCreate(ctx, &user)
-//	defer func() { _, _ = suite.repos.AutoRepo(&user).Delete(ctx, userID) }()
-//	assert.Nil(t, err)
-//	assert.NotNil(t, userID)
-//
-//	cols, joinCond := orm.GetDataForSelect(&UsersRole{})
-//	nameWithAlias := orm.GetTableNameWithAlias(&user)
-//	joinCond = orm.GetTableNameWithAlias(&Role{}) + " " + joinCond
-//	var ur UsersRole
-//	err = suite.repos.AutoRepo(&user).FindOneByWithInnerJoin(ctx, cols, nameWithAlias, joinCond, squirrel.Eq{"u.id": userID}, &ur)
-//	assert.Nil(t, err)
-//	assert.NotNil(t, ur)
-//	assert.Equal(t, userID, ur.User.ID)
-//	assert.Equal(t, user.Name, ur.User.Name)
-//	assert.Equal(t, user.Email, ur.User.Email)
-//	assert.Equal(t, user.Password, ur.User.Password)
-//	assert.Equal(t, user.RoleID, ur.Role.ID)
-//	assert.Equal(t, role.Rights, ur.Role.Rights)
-//
-//	// Insert one more user with same role
-//
-//	var role2 = Role{
-//		Name:   "role2",
-//		Rights: 50,
-//	}
-//	cols, args := orm.GetDataForCreate(role2)
-//	role2ID, err := suite.repos.AutoRepo(&role2).Insert(ctx, cols, args)
-//	assert.Nil(t, err)
-//	assert.NotNil(t, role2ID)
-//	defer func() { _, _ = suite.repos.AutoRepo(&role).Delete(ctx, role2ID) }()
-//
-//	{
-//		cnt, err := suite.repos.AutoRepo(&role2).CountByQuery(ctx, squirrel.Select("count(1)").From(orm.GetTableName(&role2)))
-//		assert.Nil(t, err)
-//		assert.Equal(t, uint64(2), cnt)
-//
-//		_, err = suite.repos.AutoRepo(&role2).CountByQuery(ctx, squirrel.Select("*").From(orm.GetTableName(&role2)))
-//		assert.NotNil(t, err)
-//
-//		_, err = suite.repos.AutoRepo(&role2).CountByQuery(ctx, squirrel.Select("*"))
-//		assert.NotNil(t, err)
-//	}
-//
-//	rows, err := suite.repos.AutoRepo(&role2).GetRowsByQuery(ctx, squirrel.Select("*").From(orm.GetTableName(&role2)))
-//	assert.Nil(t, err)
-//	assert.NotNil(t, rows)
-//
-//	roles = []Role{}
-//	repo := suite.repos.AutoRepo(&role2)
-//
-//	err = repo.Select(suite.ctx, squirrel.Select("*").From(repo.Name()).OrderBy("id DESC"), &roles)
-//	assert.Nil(t, err)
-//	assert.Equal(t, 2, len(roles))
-//
-//	roles = []Role{}
-//	err = repo.SelectWithCursorOnPKPagination(suite.ctx, squirrel.Select("*").From(repo.Name()), CursorPaginationParams{
-//		Limit:     10,
-//		Cursor:    0,
-//		DescOrder: false,
-//	}, &roles)
-//	assert.Nil(t, err)
-//	assert.Equal(t, 2, len(roles))
-//
-//	roles = []Role{}
-//	ppr, err := repo.SelectWithPagePagination(suite.ctx, squirrel.Select("*").From(repo.Name()), PagePaginationParams{PageNumber: 1, PageSize: 10}, &roles)
-//	assert.Nil(t, err)
-//	assert.NotNil(t, ppr)
-//	assert.Equal(t, 2, len(roles))
-//}
-//
-//func (suite *RepositoryTestSuit) Test_GetAllPossibleErrors() {
-//	t := suite.T()
-//	ctx := suite.ctx
-//
-//	_, err := suite.repos.AutoRepo(&Role{}).CountByQuery(ctx, squirrel.Select())
-//	assert.NotNil(t, err)
-//
-//	_, err = suite.repos.AutoRepo(&Role{}).GetRowsByQuery(ctx, squirrel.Select())
-//	assert.NotNil(t, err)
-//
-//	{
-//		err = suite.repos.AutoRepo(&User{}).FindByWithInnerJoin(ctx, []string{}, "", "", squirrel.Eq{}, nil)
-//		assert.NotNil(t, err)
-//	}
-//
-//	assert.NotNil(t, suite.repos.AutoRepo(&User{}).FindBy(ctx, []string{}, squirrel.Eq{}, nil))
-//
-//	assert.NotNil(t, suite.repos.AutoRepo(&User{}).FindOneBy(ctx, []string{}, squirrel.Eq{}, nil))
-//
-//	{
-//		id, err := suite.repos.AutoRepo(&User{}).Insert(ctx, []string{}, []interface{}{})
-//		assert.NotNil(t, err)
-//		assert.Equal(t, int64(0), id)
-//	}
-//
-//	{
-//		id, err := suite.repos.AutoRepo(&User{}).Create(ctx, new(interface{}))
-//		assert.NotNil(t, err)
-//		assert.Equal(t, int64(0), id)
-//
-//		id, err = suite.repos.AutoRepo(&User{}).Create(ctx, nil)
-//		assert.NotNil(t, err)
-//		assert.Equal(t, int64(0), id)
-//
-//		id, err = suite.repos.AutoRepo(&User{}).Create(ctx, &NotDTO{})
-//		assert.NotNil(t, err)
-//		assert.Equal(t, int64(0), id)
-//	}
-//
-//}
+func (suite *RepositoryTestSuit) Test_GetRowsByQuery() {
+	t := suite.T()
 
-//func (suite *RepositoryTestSuit) Test_SelectWithPagePagination() {
-//	t := suite.T()
-//
-//	type Test struct {
-//		Params  db.PagePaginationParams
-//		Results db.PagePaginationResults
-//		LenData int
-//	}
-//
-//	testTable := []Test{{
-//		Params: db.PagePaginationParams{
-//			PageNumber: 0,
-//			PageSize:   50,
-//		},
-//		Results: db.PagePaginationResults{
-//			CurrentPageNumber: 0,
-//			NextPageNumber:    0,
-//			CntPages:          4,
-//		},
-//		LenData: 50,
-//	},
-//		{
-//			Params: db.PagePaginationParams{
-//				PageNumber: 1,
-//				PageSize:   49,
-//			},
-//			Results: db.PagePaginationResults{
-//				CurrentPageNumber: 1,
-//				NextPageNumber:    0,
-//				CntPages:          5,
-//			},
-//			LenData: 49,
-//		},
-//
-//		{
-//			Params: db.PagePaginationParams{
-//				PageNumber: 2,
-//				PageSize:   50,
-//			},
-//			Results: db.PagePaginationResults{
-//				CurrentPageNumber: 2,
-//				NextPageNumber:    0,
-//				CntPages:          4,
-//			},
-//			LenData: 50,
-//		},
-//
-//		{
-//			Params: db.PagePaginationParams{
-//				PageNumber: 5,
-//				PageSize:   50,
-//			},
-//			Results: db.PagePaginationResults{
-//				CurrentPageNumber: 5,
-//				NextPageNumber:    0,
-//				CntPages:          4,
-//			},
-//			LenData: 0,
-//		},
-//	}
-//
-//	cols, _ := orm.GetDataForSelect(&Paginator{})
-//	table := orm.GetTableName(&Paginator{})
-//
-//	for _, test := range testTable {
-//		res := make([]Paginator, 0, test.Params.PageSize)
-//
-//		paginationRes, err := suite.realConnector.Repo(Paginator{}).SelectWithPagePagination(
-//			suite.ctx,
-//			squirrel.Select(cols...).From(table).OrderBy("id DESC"),
-//			test.Params,
-//			&res)
-//
-//		assert.Nil(t, err)
-//		assert.NotNil(t, res)
-//		assert.NotNil(t, paginationRes)
-//		assert.Equal(t, test.LenData, len(res))
-//		assert.Equal(t, test.Results, paginationRes)
-//	}
-//}
+	for _, c := range []db.Connector[config.SimpleTestConfig]{
+		suite.connector,
+		suite.connectorWithValidation,
+		suite.connectorWithValidationAndCache,
+	} {
+		r, err := c.Repo(dto.User[dto.ID]{}).GetRowsByQuery(suite.ctx, squirrel.SelectBuilder{}.Columns("*").Where("1=1"))
+		assert.Nil(t, err)
+		assert.NotNil(t, r)
+
+		r, err = repo.NewGen[dto.ID, dto.User[dto.ID]](c).GetRowsByQuery(suite.ctx, squirrel.SelectBuilder{}.Columns("*").Where("1=1"))
+		assert.Nil(t, err)
+		assert.NotNil(t, r)
+	}
+
+}
+
+func (suite *RepositoryTestSuit) Test_CountByQuery() {
+	t := suite.T()
+
+	for _, c := range []db.Connector[config.SimpleTestConfig]{
+		suite.connector,
+		suite.connectorWithValidation,
+		suite.connectorWithValidationAndCache,
+	} {
+		n, err := c.Repo(dto.User[dto.ID]{}).CountByQuery(suite.ctx, squirrel.Select("count(1)"))
+		assert.Nil(t, err)
+		assert.Equal(t, uint64(0), n)
+
+		n, err = c.Repo(dto.Paginator[dto.ID]{}).CountByQuery(suite.ctx, squirrel.Select("count(1)"))
+		assert.Nil(t, err)
+		assert.Equal(t, uint64(200), n)
+
+		n, err = repo.NewGen[dto.ID, dto.User[dto.ID]](c).CountByQuery(suite.ctx, squirrel.Select("count(1)"))
+		assert.Nil(t, err)
+		assert.Equal(t, uint64(0), n)
+
+		n, err = repo.NewGen[dto.ID, dto.Paginator[dto.ID]](c).CountByQuery(suite.ctx, squirrel.Select("count(1)"))
+		assert.Nil(t, err)
+		assert.Equal(t, uint64(200), n)
+	}
+}
+
+func (suite *RepositoryTestSuit) Test_FindBy() {
+	t := suite.T()
+
+	for _, c := range []db.Connector[config.SimpleTestConfig]{
+		suite.connector,
+		suite.connectorWithValidation,
+		suite.connectorWithValidationAndCache,
+	} {
+		cols := orm.GetDataForSelectOnlyCols(dto.Paginator[dto.ID]{})
+
+		var res = make([]dto.Paginator[dto.ID], 0)
+		err := c.Repo(dto.Paginator[dto.ID]{}).FindBy(suite.ctx, cols, squirrel.Eq{"1": "1"}, &res)
+
+		assert.Nil(t, err)
+		assert.NotNil(t, res)
+		assert.Equal(t, 200, len(res))
+
+		res, err = repo.NewGen[dto.ID, dto.Paginator[dto.ID]](c).FindBy(suite.ctx, cols, squirrel.Eq{"1": "1"})
+
+		assert.Nil(t, err)
+		assert.NotNil(t, res)
+		assert.Equal(t, 200, len(res))
+
+	}
+}
+
+func (suite *RepositoryTestSuit) Test_FindOne() {
+	t := suite.T()
+
+	for _, c := range []db.Connector[config.SimpleTestConfig]{
+		suite.connector,
+		suite.connectorWithValidation,
+		suite.connectorWithValidationAndCache,
+	} {
+		cols := orm.GetDataForSelectOnlyCols(dto.Paginator[dto.ID]{})
+
+		var res dto.Paginator[dto.ID]
+		err := c.Repo(dto.Paginator[dto.ID]{}).FindOneBy(suite.ctx, cols, squirrel.Eq{"id": "77"}, &res)
+
+		assert.Nil(t, err)
+		assert.NotNil(t, res)
+		assert.Equal(t, 77, res.ID())
+
+		res, err = repo.NewGen[dto.ID, dto.Paginator[dto.ID]](c).FindOneBy(suite.ctx, cols, squirrel.Eq{"id": "77"})
+
+		assert.Nil(t, err)
+		assert.NotNil(t, res)
+		assert.Equal(t, 77, res.ID())
+
+	}
+}
+
+func (suite *RepositoryTestSuit) Test_Select() {
+	t := suite.T()
+
+	for _, c := range []db.Connector[config.SimpleTestConfig]{
+		suite.connector,
+		suite.connectorWithValidation,
+		suite.connectorWithValidationAndCache,
+	} {
+		var res = make([]dto.Paginator[dto.ID], 0)
+		err := c.Repo(dto.Paginator[dto.ID]{}).Select(suite.ctx, squirrel.Select("*").Where("1=1"), &res)
+
+		assert.Nil(t, err)
+		assert.NotNil(t, res)
+		assert.Equal(t, 200, len(res))
+
+		res, err = repo.NewGen[dto.ID, dto.Paginator[dto.ID]](c).Select(suite.ctx, squirrel.Select("*").Where("1=1"))
+
+		assert.Nil(t, err)
+		assert.NotNil(t, res)
+		assert.Equal(t, 200, len(res))
+	}
+}
+
+func (suite *RepositoryTestSuit) Test_SelectWithPagePagination() {
+	t := suite.T()
+
+	type Test struct {
+		Params     db.PagePaginationParams
+		Results    db.PagePaginationResults
+		GenResults db.PagePaginationResults // for generic way (we could get page numbers!)
+		FirstN     int
+		LastN      int
+		LenData    int
+	}
+
+	testTable := []Test{
+		{
+			Params: db.PagePaginationParams{
+				PageNumber: 0,
+				PageSize:   50,
+			},
+			Results: db.PagePaginationResults{
+				CurrentPageNumber: 0,
+				NextPageNumber:    0,
+				CntPages:          4,
+			},
+			GenResults: db.PagePaginationResults{
+				CurrentPageNumber: 0,
+				NextPageNumber:    1,
+				CntPages:          4,
+			},
+			FirstN:  200,
+			LastN:   151,
+			LenData: 50,
+		},
+		{
+			Params: db.PagePaginationParams{
+				PageNumber: 1,
+				PageSize:   49,
+			},
+			Results: db.PagePaginationResults{
+				CurrentPageNumber: 1,
+				NextPageNumber:    0,
+				CntPages:          5,
+			},
+			GenResults: db.PagePaginationResults{
+				CurrentPageNumber: 1,
+				NextPageNumber:    2,
+				CntPages:          5,
+			},
+			FirstN:  200,
+			LastN:   152,
+			LenData: 49,
+		},
+
+		{
+			Params: db.PagePaginationParams{
+				PageNumber: 2,
+				PageSize:   50,
+			},
+			Results: db.PagePaginationResults{
+				CurrentPageNumber: 2,
+				NextPageNumber:    0,
+				CntPages:          4,
+			},
+			GenResults: db.PagePaginationResults{
+				CurrentPageNumber: 2,
+				NextPageNumber:    3,
+				CntPages:          4,
+			},
+			FirstN:  150,
+			LastN:   101,
+			LenData: 50,
+		},
+		{
+			Params: db.PagePaginationParams{
+				PageNumber: 5,
+				PageSize:   50,
+			},
+			Results: db.PagePaginationResults{
+				CurrentPageNumber: 5,
+				NextPageNumber:    0,
+				CntPages:          4,
+			},
+			GenResults: db.PagePaginationResults{
+				CurrentPageNumber: 5,
+				NextPageNumber:    0,
+				CntPages:          4,
+			},
+			FirstN:  0,
+			LastN:   50,
+			LenData: 0,
+		},
+	}
+
+	cols, _ := orm.GetDataForSelect(&dto.Paginator[dto.ID]{})
+
+	for _, c := range []db.Connector[config.SimpleTestConfig]{
+		suite.connector,
+		suite.connectorWithValidation,
+		suite.connectorWithValidationAndCache,
+	} {
+
+		for i, test := range testTable {
+			res := make([]dto.Paginator[dto.ID], 0, test.Params.PageSize)
+
+			// classic repo way
+			paginationRes, err := c.Repo(dto.Paginator[dto.ID]{}).SelectWithPagePagination(
+				suite.ctx,
+				squirrel.Select(cols...).OrderBy("id DESC"),
+				test.Params,
+				&res,
+			)
+
+			assert.Nil(t, err)
+			assert.NotNil(t, res)
+			assert.NotNil(t, paginationRes)
+			assert.Equal(t, test.LenData, len(res))
+			assert.Equal(t, test.Results, paginationRes)
+			if l := len(res) - 1; l > 0 {
+				assert.Equalf(t, test.FirstN, res[0].N, "repo test:", i)
+				assert.Equalf(t, test.LastN, res[l].N, "repo: test", i)
+			}
+
+			// generic way
+			res = make([]dto.Paginator[dto.ID], 0, test.Params.PageSize)
+			res, paginationRes, err = repo.NewGen[dto.ID, dto.Paginator[dto.ID]](c).SelectWithPagePagination(
+				suite.ctx,
+				squirrel.Select(cols...).OrderBy("id DESC"),
+				test.Params,
+			)
+
+			assert.Nil(t, err)
+			assert.NotNil(t, res)
+			assert.NotNil(t, paginationRes)
+			assert.Equal(t, test.LenData, len(res))
+			assert.Equal(t, test.GenResults, paginationRes, "gen: test:", i)
+			if l := len(res) - 1; l > 0 {
+				assert.Equalf(t, test.FirstN, res[0].N, "gen: test", i)
+				assert.Equalf(t, test.LastN, res[l].N, "gen: test", i)
+			}
+		}
+	}
+}
+
+func (suite *RepositoryTestSuit) Test_SelectWithCursorPagination() {
+	t := suite.T()
+
+	type Test struct {
+		Params  db.CursorPaginationParams
+		FirstN  int
+		LastN   int
+		LenData int
+	}
+
+	testTable := []Test{
+		{
+			Params: db.CursorPaginationParams{
+				Limit:     30,
+				Cursor:    0,
+				DescOrder: false,
+			},
+			FirstN:  1,
+			LastN:   30,
+			LenData: 30,
+		},
+		{
+			Params: db.CursorPaginationParams{
+				Limit:     30,
+				Cursor:    201,
+				DescOrder: true,
+			},
+			FirstN:  200,
+			LastN:   171,
+			LenData: 30,
+		},
+		{
+			Params: db.CursorPaginationParams{
+				Limit:     30,
+				Cursor:    10,
+				DescOrder: false,
+			},
+			FirstN:  11,
+			LastN:   40,
+			LenData: 30,
+		},
+		{
+			Params: db.CursorPaginationParams{
+				Limit:     20,
+				Cursor:    10,
+				DescOrder: true,
+			},
+			FirstN:  9,
+			LastN:   1,
+			LenData: 9,
+		},
+		{
+			Params: db.CursorPaginationParams{
+				Limit:     250,
+				Cursor:    0,
+				DescOrder: true,
+			},
+			FirstN:  200,
+			LastN:   1,
+			LenData: 0,
+		},
+		{
+			Params: db.CursorPaginationParams{
+				Limit:     250,
+				Cursor:    250,
+				DescOrder: true,
+			},
+			FirstN:  200,
+			LastN:   1,
+			LenData: 200,
+		},
+		{
+			Params: db.CursorPaginationParams{
+				Limit:     250,
+				Cursor:    0,
+				DescOrder: false,
+			},
+			FirstN:  1,
+			LastN:   200,
+			LenData: 200,
+		},
+		{
+			Params: db.CursorPaginationParams{
+				Limit:     100,
+				Cursor:    0,
+				DescOrder: false,
+			},
+			FirstN:  1,
+			LastN:   100,
+			LenData: 100,
+		},
+		{
+			Params: db.CursorPaginationParams{
+				Limit:     100,
+				Cursor:    50,
+				DescOrder: false,
+			},
+			FirstN:  51,
+			LastN:   150,
+			LenData: 100,
+		},
+		{
+			Params: db.CursorPaginationParams{
+				Limit:     100,
+				Cursor:    50,
+				DescOrder: true,
+			},
+			FirstN:  49,
+			LastN:   1,
+			LenData: 49,
+		},
+	}
+
+	cols, _ := orm.GetDataForSelect(&dto.Paginator[dto.ID]{})
+
+	for _, c := range []db.Connector[config.SimpleTestConfig]{
+		suite.connector,
+		suite.connectorWithValidation,
+		suite.connectorWithValidationAndCache,
+	} {
+
+		for i, test := range testTable {
+			res := make([]dto.Paginator[dto.ID], 0, test.Params.Limit)
+
+			// classic repo way
+			err := c.Repo(dto.Paginator[dto.ID]{}).SelectWithCursorOnPKPagination(
+				suite.ctx,
+				squirrel.Select(cols...),
+				test.Params,
+				&res,
+			)
+
+			assert.Nil(t, err)
+			assert.NotNil(t, res)
+			assert.Equalf(t, test.LenData, len(res), "case: ", i)
+			if l := len(res) - 1; l > 0 {
+				assert.Equal(t, test.FirstN, res[0].N)
+				assert.Equal(t, test.LastN, res[len(res)-1].N)
+			}
+
+			// generic way
+			res = make([]dto.Paginator[dto.ID], 0, test.Params.Limit)
+			res, err = repo.NewGen[dto.ID, dto.Paginator[dto.ID]](c).SelectWithCursorOnPKPagination(
+				suite.ctx,
+				squirrel.Select(cols...),
+				test.Params,
+			)
+
+			assert.Nil(t, err)
+			assert.NotNil(t, res)
+			assert.Equal(t, test.LenData, len(res))
+			if l := len(res) - 1; l > 0 {
+				assert.Equal(t, test.FirstN, res[0].N)
+				assert.Equal(t, test.LastN, res[len(res)-1].N)
+			}
+		}
+	}
+}

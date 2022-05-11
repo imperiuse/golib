@@ -3,7 +3,6 @@ package db
 import (
 	"context"
 	"database/sql"
-
 	"go.uber.org/zap"
 
 	"github.com/jmoiron/sqlx"
@@ -100,7 +99,7 @@ type (
 
 		Connection() PureSqlxConnection
 
-		Repo(DTO) Repository
+		Repo(DTO) Repository // TODO think about -> optional.Optional[Repository]
 		// TODO when Go in next versions will support generics in methods
 		// Repo[I ID, D DTO]() gRepository[I, D] // refactor to this NOW try use this ->
 		// repository.NewGen[I, DTO]](connector) -> return GRepository
@@ -120,6 +119,8 @@ type (
 
 		Insert(context.Context, []Column, []Argument) (int64, error)
 		UpdateCustom(context.Context, map[string]any, Condition) (int64, error)
+
+		// TODO Upsert(context.Context, ID, any, []Column, []Argument, strategy[on_duplicate/nothing])(error)
 	}
 
 	// Repository - methods for classic Repo's (non generics)
@@ -153,9 +154,6 @@ type (
 
 		FindBy(context.Context, []Column, Condition) ([]D, error)
 		FindOneBy(context.Context, []Column, Condition) (D, error)
-
-		FindByWithInnerJoin(context.Context, []Column, Alias, Join, Condition) ([]D, error)
-		FindOneByWithInnerJoin(context.Context, []Column, Alias, Join, Condition) (D, error)
 
 		Select(context.Context, SelectBuilder) ([]D, error)
 		SelectWithPagePagination(context.Context, SelectBuilder, PagePaginationParams) ([]D, PagePaginationResults, error)
