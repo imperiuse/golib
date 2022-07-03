@@ -104,6 +104,8 @@ type (
 		// Repo[I ID, D DTO]() gRepository[I, D] // refactor to this NOW try use this ->
 		// repository.NewGen[I, DTO]](connector) -> return GRepository
 
+		RepoByName(Table) Repository
+
 		AutoCreate(context.Context, DTO) (int64, error)
 		AutoGet(context.Context, DTO) error
 		AutoUpdate(context.Context, DTO) (int64, error)

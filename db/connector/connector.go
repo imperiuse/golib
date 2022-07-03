@@ -93,6 +93,13 @@ func (c *connector[C]) Connection() db.PureSqlxConnection {
 func (c *connector[C]) Repo(dto db.DTO) db.Repository {
 	var repoName = dto.Repo()
 
+	return c.RepoByName(repoName)
+}
+
+// RepoByName - return db.Repository based repoName
+// if cfg.IsEnableValidationRepoNames() == true =>  do validation action too)
+// if cfg.IsEnableReposCache() == true => use cache.
+func (c *connector[C]) RepoByName(repoName db.Table) db.Repository {
 	if c.cfg.IsEnableValidationRepoNames() {
 		c.mV.RLock()
 		defer c.mV.RUnlock()
