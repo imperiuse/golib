@@ -15,9 +15,11 @@ type (
 		Filter(p Predicate[T]) Optional[T]
 		// OrElse returns this Optional if it's not empty, otherwise it returns other
 		OrElse(other T) T
+		// Unwrap - unwrap from Optional to usual T
+		Unwrap() T
 	}
 
-	// Value represents non empty case of Optional
+	// Value represents non-empty case of Optional
 	Value[T any] struct {
 		v T
 	}
@@ -103,6 +105,14 @@ func (j Value[T]) Get() (T, error) {
 
 func (n None[T]) Get() (T, error) {
 	return *new(T), ErrNoneValue
+}
+
+func (j Value[T]) Unwrap() T {
+	return j.v
+}
+
+func (n None[T]) Unwrap() T {
+	return *new(T)
 }
 
 // Map - Returns Value containing the result of applying f to m if it's non empty. Otherwise returns None
