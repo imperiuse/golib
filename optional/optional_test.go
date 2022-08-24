@@ -18,7 +18,6 @@ func Test_New(t *testing.T) {
 type S struct{ v int }
 
 func Test_New_Methods(t *testing.T) {
-
 	var (
 		a = S{v: 10}
 		b = S{v: 10}
@@ -104,4 +103,13 @@ func Test_Predicates(t *testing.T) {
 	opt = Empty[S]()
 
 	assert.False(t, opt.Filter(gtzero).IsPresent())
+}
+
+func Test_Unwrap_Methods(t *testing.T) {
+	obj := S{v: 10}
+
+	assert.Equal(t, obj, New(obj).Unwrap())
+	assert.Equal(t, obj, NewP(&obj).Unwrap())
+
+	assert.Equal(t, S{}, None[S]{}.Unwrap())
 }
