@@ -22,7 +22,7 @@ type postgresContainer struct {
 // NewPostgresContainer - create nginx container, but do not start it yet.
 func NewPostgresContainer(
 	ctx context.Context,
-	cfg NginxConfig,
+	cfg PostgresConfig,
 	dockerNetwork *testcontainers.DockerNetwork,
 	runContainer bool,
 ) (*postgresContainer, error) {
