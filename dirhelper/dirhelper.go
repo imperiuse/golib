@@ -3,7 +3,6 @@ package dirhelper
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -60,7 +59,7 @@ func CopyDir(src string, dst string) error {
 		return err
 	}
 
-	fds, err := ioutil.ReadDir(src)
+	fds, err := os.ReadDir(src)
 	if err != nil {
 		return err
 	}
@@ -123,7 +122,7 @@ func CleanDir(dir string) (err error) {
 
 // ListSubeditors - получает список поддиректорий в текущей директории
 func ListSubeditors(src string) ([]string, error) {
-	fds, err := ioutil.ReadDir(src)
+	fds, err := os.ReadDir(src)
 	if err != nil {
 		return nil, errors.WithMessage(err, fmt.Sprintf("can't ioutil.ReadDir for dir:%s", src))
 	}

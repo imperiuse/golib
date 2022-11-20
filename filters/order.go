@@ -23,12 +23,12 @@ type OrderFilters struct {
 }
 
 var emptyFilterHandler = func(w http.ResponseWriter, r *http.Request) {
-	return
 }
 
 // GetOrderFilters -  Get order of filters
-//@return
-//                 []string    -   slice of string (name filters)
+// @return
+//
+//	[]string    -   slice of string (name filters)
 func (filterOrder *OrderFilters) GetOrderFilters() []string {
 	return filterOrder.Order
 }
@@ -36,7 +36,8 @@ func (filterOrder *OrderFilters) GetOrderFilters() []string {
 // AppendFilter - Append some new filter to chains.
 // !ATTENTION! MODIFY FILTER ! SetNextFilterPointer() to each input Filter!!!
 // @param
-// 				filters     ...Filterer    -  some Filters interfaces that will chain of filters
+//
+//	filters     ...Filterer    -  some Filters interfaces that will chain of filters
 func (filterOrder *OrderFilters) AppendFilter(filters ...Filterer) {
 	if cntFilters := len(filters); cntFilters > 0 {
 		if filterOrder.filters == nil {
@@ -58,8 +59,9 @@ func (filterOrder *OrderFilters) AppendFilter(filters ...Filterer) {
 }
 
 // GetFilterN - Get N-й filter. 0 - First, ... n - Last
-//@param
-//				n   int    -  number of filter in chain
+// @param
+//
+//	n   int    -  number of filter in chain
 func (filterOrder *OrderFilters) GetFilterN(n int) Filterer {
 	if len(filterOrder.filters) > n {
 		return filterOrder.filters[n]
@@ -68,10 +70,11 @@ func (filterOrder *OrderFilters) GetFilterN(n int) Filterer {
 }
 
 // GenerateFilteredHandleFunc - Generate func - handle fun - filtered handle func of action
+//
 //	@param
 //				handleFunc 	func(http.ResponseWriter, *http.Request)      -  handle of action
 //	@return
-// 							func(w http.ResponseWriter, r *http.Request)  -  total handle func
+//							func(w http.ResponseWriter, r *http.Request)  -  total handle func
 func (filterOrder *OrderFilters) GenerateFilteredHandleFunc(handleFunc func(http.ResponseWriter, *http.Request)) func(w http.ResponseWriter, r *http.Request) {
 	if StartFilter := filterOrder.GetFilterN(0); StartFilter != nil {
 		return func(w http.ResponseWriter, r *http.Request) {

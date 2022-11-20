@@ -42,9 +42,6 @@ func Test_New_Methods(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, opt2.IsPresent())
 
-	v2 = opt2.OrElse(&b)
-	assert.Equal(t, a, v)
-
 	var opt3 = Empty[S]()
 
 	assert.NotNil(t, opt3)

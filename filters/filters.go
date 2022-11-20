@@ -48,25 +48,25 @@ func (f *BaseFilter) Info() string {
 }
 
 // SetNextFilter - метод для установки указателя на интерфейс след. фильтра
-//nolint
+// nolint
 func (f *BaseFilter) SetNextFilter(nf *Filterer) {
 	f.nextFilter = nf
 }
 
 // SetSelfPointer - метод для установки указателя на себя (указатель на интерфейс себя)
-//nolint
+// nolint
 func (f *BaseFilter) SetSelfPointer(self *Filterer) {
 	f.selfPointer = self
 }
 
 // GetNextFilter - метод получения текущего указателя на интерфейс след. фильтра
-//nolint
+// nolint
 func (f *BaseFilter) GetNextFilter() *Filterer {
 	return f.nextFilter
 }
 
 // GetSelfPointer - метод получения текущего указателя себя (указатель на интерфейс себя)
-//nolint
+// nolint
 func (f *BaseFilter) GetSelfPointer() *Filterer {
 	return f.selfPointer
 }
@@ -95,7 +95,6 @@ func (f *BaseFilter) ErrorHandler(w http.ResponseWriter, r *http.Request, err an
 // GeneratorDeferRunFunc - метод создания базового дефера с обработкой паники с помощью вызова функции ErrorHandler
 func (f *BaseFilter) GeneratorDeferRunFunc(w http.ResponseWriter, r *http.Request) func() {
 	return func() {
-		return
 		//if rec := recover(); rec != nil {
 		//	fmt.Println(fmt.Sprintf("[BaseFilter] Generator Defer.\t"+
 		//		"Problem in func filter: %v."+
