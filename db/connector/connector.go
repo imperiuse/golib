@@ -45,8 +45,6 @@ func (c *connector[C]) AddAllowsRepos(repos ...db.Table) {
 	for _, v := range repos {
 		c.validationRepoMap[v] = new(any)
 	}
-
-	return
 }
 
 // GetAllowsRepos - get list of allow repos

@@ -76,7 +76,7 @@ func ExampleBaseFilter_Run() {
 	// Start filter
 	var response http.ResponseWriter
 	var request *http.Request
-	bf := func(http.ResponseWriter, *http.Request) { return } // empty func
+	bf := func(http.ResponseWriter, *http.Request) {} // empty func
 
 	InterfaceCustomFilter.Run(response, request, bf) // Run all Filter in rigth order
 	// MyCustomFilter.Before()->MyCustomFilter.Filter()->MyCustomFilter.GetNextFilter() == return MyCustomFilter2
@@ -118,7 +118,7 @@ func TestBaseFilter_Run_Positive(t *testing.T) {
 	// Start filter
 	var response http.ResponseWriter
 	var request *http.Request
-	bf := func(http.ResponseWriter, *http.Request) { return } // empty func
+	bf := func(http.ResponseWriter, *http.Request) {} // empty func
 
 	InterfaceCustomFilter.Run(response, request, bf)
 

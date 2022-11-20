@@ -17,7 +17,7 @@ func ExampleOrderFilters_AppendFilter() {
 		fOrder.AppendFilter(mapOfFilterer[nameFilter])
 	}
 	// Next, we have some business func, which we want "decorate" by own filters with special order define upper
-	businesFunc := func(http.ResponseWriter, *http.Request) { return }
+	businesFunc := func(http.ResponseWriter, *http.Request) {}
 	// Do this!
 	summaryFilteredBusinesFuncf := fOrder.GenerateFilteredHandleFunc(businesFunc)
 	_ = summaryFilteredBusinesFuncf
@@ -107,7 +107,7 @@ func TestOrderFilters_GenerateFilteredHandleFunc(t *testing.T) {
 	fOrder := OrderFilterer(&OrderFilters{[]string{"f1", "f2", "f3"}, nil})
 	fOrder.AppendFilter(mapOfFilterer["f1"], mapOfFilterer["f2"])
 
-	f := func(http.ResponseWriter, *http.Request) { return }
+	f := func(http.ResponseWriter, *http.Request) {}
 	ff := fOrder.GenerateFilteredHandleFunc(f)
 
 	if ff == nil {

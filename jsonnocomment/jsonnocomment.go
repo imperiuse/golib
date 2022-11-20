@@ -1,23 +1,23 @@
 package jsonnocomment
 
 import (
-	"io/ioutil"
+	"os"
 )
 
 // ReadFileAndCleanComment - Функция чтения JSON файла и удаления из него закомментированных строк и блок
 // (comments style like С/С++)
 func ReadFileAndCleanComment(pathFile string) (cleanFile []byte, err error) {
-	file, err := ioutil.ReadFile(pathFile)
+	file, err := os.ReadFile(pathFile)
 	if err != nil {
 		return nil, err
 	}
 
 	l := len(file)
-	cleanFile = make([]byte, l) // Создаем байтовый массив размера прочитанного чтобы избежать перевыделения памяти
+	cleanFile = make([]byte, l) // Создаем байтовый массив размера прочитанного, чтобы избежать перевыделения памяти
 	var (
-		commentLine  bool // признак комментариев (закомментирована вся линия // ТУТ КОМЕНТ ДО КОНЦА СТРОЧКИ\n)
-		commentBlock bool // признак комментариев (закомментирован только блок /* КОММЕНТ ТОЛЬКО ТУТ*/)
-		j            int  // текущий индекс для заполнения среза cleanFile
+		commentLine  bool // Признак комментариев (закомментирована вся линия // ТУТ КОМЕНТ ДО КОНЦА СТРОЧКИ\n)
+		commentBlock bool // Признак комментариев (закомментирован только блок /* КОММЕНТ ТОЛЬКО ТУТ*/)
+		j            int  // Текущий индекс для заполнения среза cleanFile
 	)
 
 	for i := 0; i < l; i++ {
