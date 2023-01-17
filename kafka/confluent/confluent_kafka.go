@@ -1,4 +1,4 @@
-package kafka
+package confluent
 
 import (
 	"context"
@@ -15,14 +15,15 @@ const PartitionAny = kafka.PartitionAny
 
 type (
 	Consumer interface {
-		Start(context.Context, []TopicSpecification, []string, ConsumeEventFuncGoroutine) error
-		Stop() error
+		Start(ctx context.Context, createTopics []TopicSpecification, consumeTopics []string, maxWaitReadTimeout time.Duration, f ProcessEventFunc) (error, ErrChan)
+		Stop()
 	}
 
 	Producer interface {
-		Start(context.Context, func(Event)) error
-		Stop(int)
-		Publish(topic *string, partition int32, key []byte, value []byte, deliveryChan chan Event) error
+		Start(ctx context.Context, finishTimeoutFlushInMs int) (chan Event, error)
+		Stop()
+		Publish(msg *Message) error
+		Flush(timeoutFlushInMs int)
 	}
 
 	Adminer interface {
@@ -30,8 +31,8 @@ type (
 		Stop()
 	}
 
-	ConsumeEventFuncGoroutine = func(context.Context, *kafka.Consumer)
-	ProcessEventFunc          = func(context.Context, *kafka.Consumer, *Message)
+	ProcessEventFunc = func(*kafka.Consumer, *Message)
+	ErrChan          = chan error // read only channel. non block. store error of kafka if not full.
 
 	TopicPartition          = kafka.TopicPartition
 	TopicSpecification      = kafka.TopicSpecification
@@ -40,41 +41,11 @@ type (
 	Message                 = kafka.Message
 )
 
-var GenDefaultConsumeEventFunc = func(
-	maxWaitReadTimeout time.Duration,
-	processEventFunc ProcessEventFunc,
-) ConsumeEventFuncGoroutine {
-	return func(ctx context.Context, kafkaConsumer *kafka.Consumer) {
-		defer func() {
-			err := kafkaConsumer.Close()
-			if err != nil {
-				fmt.Printf("Err while close consumer: %v\n", err)
-			}
-		}()
-
-		for {
-			select {
-			case <-ctx.Done():
-				return
-
-			default:
-				msg, err := kafkaConsumer.ReadMessage(maxWaitReadTimeout)
-				if err != nil {
-					// Errors are informational and automatically handled by the consumer
-					continue
-				}
-
-				processEventFunc(ctx, kafkaConsumer, msg)
-			}
-		}
-	}
-}
-
 func GenDefaultProcessMsgWithZapLogger[T any](
 	log *zap.Logger,
 	businessLogicFunc func(string, any) bool,
 ) ProcessEventFunc {
-	return func(ctx context.Context, kafkaConsumer *kafka.Consumer, msg *Message) {
+	return func(kafkaConsumer *kafka.Consumer, msg *Message) {
 		key, data, err := UnmarshalKafkaValueToStruct[T](msg)
 		if err != nil {
 			log.Error("UnmarshalKafkaValueToStruct problem", zap.Error(err))

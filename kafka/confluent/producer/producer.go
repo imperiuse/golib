@@ -13,7 +13,10 @@ import (
 type (
 	confluentKafkaProducer struct {
 		*kafka.Producer
-		configMap *kafka.ConfigMap
+		configMap    *kafka.ConfigMap
+		ctx          context.Context
+		cancel       context.CancelFunc
+		deliveryChan chan kafka.Event
 	}
 )
 
@@ -41,62 +44,61 @@ var GenDefaultDeliveryHandlerFuncWithZapLogger = func(log *zap.Logger) func(even
 
 // New - "constructor" for kafka confluentKafkaProducer.
 func New(configMap *kafka.ConfigMap) confluent_kafka.Producer {
+	ctx, cancel := context.WithCancel(context.Background())
 	return &confluentKafkaProducer{
+		ctx:       ctx,
+		cancel:    cancel,
 		configMap: configMap,
 	}
 }
 
 // Start - start async kafka publishing.
-func (p *confluentKafkaProducer) Start(ctx context.Context, processProducerEvents func(kafka.Event)) error {
-	var err error
+func (p *confluentKafkaProducer) Start(ctx context.Context, finishTimeoutFlushInMs int) (chan kafka.Event, error) {
+	p.ctx, p.cancel = context.WithCancel(ctx)
+	p.deliveryChan = make(chan kafka.Event)
 
+	var err error
 	p.Producer, err = kafka.NewProducer(p.configMap)
 	if err != nil {
-		return fmt.Errorf("confluentKafkaProducer.Start: could not create new kafka confluentKafkaProducer. err: %w", err)
+		return p.deliveryChan, fmt.Errorf("confluentKafkaProducer.Start: could not create new kafka confluentKafkaProducer. err: %w", err)
 	}
 
-	// Delivery report handler for produced messages
 	go func() {
+		defer func() {
+			p.Flush(finishTimeoutFlushInMs)
+			p.Producer.Close()
+			close(p.deliveryChan)
+		}()
+
 		for {
 			select {
-			case <-ctx.Done():
+			case <-p.ctx.Done():
 				return
-
-			case e := <-p.Producer.Events():
-				processProducerEvents(e)
 			}
 		}
 	}()
 
-	return nil
+	return p.deliveryChan, nil
 }
 
 // Stop - stop async publishing.
-func (p *confluentKafkaProducer) Stop(timeoutFlushInMs int) {
-	// Wait for message deliveries before shutting down
-	p.Flush(timeoutFlushInMs)
-
-	p.Producer.Close()
+func (p *confluentKafkaProducer) Stop() {
+	p.cancel()
 }
 
-// Publish - publish.
+// Flush - flush all msg from buffer.
+func (p *confluentKafkaProducer) Flush(timeoutFlushInMs int) {
+	// Flush and wait for outstanding messages and requests to complete delivery.
+	p.Producer.Flush(timeoutFlushInMs)
+}
+
+// Publish - publish report log to reports-service.
 func (p *confluentKafkaProducer) Publish(
-	topic *string,
-	partition int32,
-	key []byte,
-	value []byte,
-	deliveryChan chan confluent_kafka.Event,
+	msg *confluent_kafka.Message,
 ) error {
-	// Produce messages to topic (asynchronously)
-	err := p.Produce(
-		&kafka.Message{
-			TopicPartition: kafka.TopicPartition{Topic: topic, Partition: partition},
-			Value:          value,
-			Key:            key,
-		}, deliveryChan)
-	if err != nil {
+	if err := p.Produce(msg, p.deliveryChan); err != nil {
 		return fmt.Errorf("confluentKafkaProducer.Publish: could not Produce data. "+
-			"err: %w. topic: %v, partition: %v, key: %v", err, topic, partition, key)
+			"err: %w. topic: %v, partition: %v, key: %s", err, msg.TopicPartition.Topic, msg.TopicPartition.Partition, string(msg.Key))
 	}
 
 	return nil
