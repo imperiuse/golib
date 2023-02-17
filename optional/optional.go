@@ -17,15 +17,20 @@ type (
 		OrElse(other T) T
 		// Unwrap - unwrap from Optional to usual T
 		Unwrap() T
+		// Error - unwrap from Optional error context if it exists.
+		Error() error
 	}
 
 	// Value represents non-empty case of Optional
 	Value[T any] struct {
 		v T
+		e error
 	}
 
 	// None - represents empty case of Optional
-	None[T any] struct{}
+	None[T any] struct {
+		e error
+	}
 
 	Func[T, V any]   func(T) V
 	Func0[V any]     func() V
@@ -35,7 +40,7 @@ type (
 
 // New creates new Optional[T] from T
 func New[T any](x T) Optional[T] {
-	return Value[T]{x}
+	return Value[T]{v: x}
 }
 
 // NewP creates new Optional[T] from *T
@@ -44,22 +49,22 @@ func NewP[T any](x *T) Optional[T] {
 		return None[T]{}
 	}
 
-	return Value[T]{*x}
+	return Value[T]{v: *x}
 }
 
-// NewE creates new Optional[T] from T if err == nil, else create None
+// NewE creates new Optional[T] from T if err == nil, else create None with error context.
 func NewE[T any](x T, err error) Optional[T] {
 	if err != nil {
-		return None[T]{}
+		return None[T]{err}
 	}
 
 	return New(x)
 }
 
-// NewPE creates new Optional[T] from *T if err == nil, else create None
+// NewPE creates new Optional[T] from *T if err == nil, else create None with err context.
 func NewPE[T any](x *T, err error) Optional[T] {
 	if err != nil {
-		return None[T]{}
+		return None[T]{e: err}
 	}
 
 	return NewP(x)
@@ -70,7 +75,12 @@ func Empty[T any]() Optional[T] {
 	return None[T]{}
 }
 
-func (_ Value[T]) IsPresent() bool {
+// EmptyE creates None[T] with set up error context
+func EmptyE[T any](err error) Optional[T] {
+	return None[T]{e: err}
+}
+
+func (j Value[T]) IsPresent() bool {
 	return true
 }
 
@@ -86,7 +96,7 @@ func (j Value[T]) Filter(p Predicate[T]) Optional[T] {
 	return None[T]{}
 }
 
-//Filter on None returns None
+// Filter on None returns None
 func (n None[T]) Filter(_ Predicate[T]) Optional[T] {
 	return n
 }
@@ -113,6 +123,14 @@ func (j Value[T]) Unwrap() T {
 
 func (n None[T]) Unwrap() T {
 	return *new(T)
+}
+
+func (j Value[T]) Error() error {
+	return j.e
+}
+
+func (n None[T]) Error() error {
+	return n.e
 }
 
 // Map - Returns Value containing the result of applying f to m if it's non empty. Otherwise returns None

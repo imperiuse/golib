@@ -1,8 +1,11 @@
 package optional
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/pkg/errors"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_New(t *testing.T) {
@@ -109,4 +112,15 @@ func Test_Unwrap_Methods(t *testing.T) {
 	assert.Equal(t, obj, NewP(&obj).Unwrap())
 
 	assert.Equal(t, S{}, None[S]{}.Unwrap())
+}
+
+func Test_Error_Methods(t *testing.T) {
+	obj := S{v: 10}
+
+	assert.NoError(t, New(obj).Error())
+	err := errors.New("123")
+	assert.Equal(t, err, NewE(obj, err).Error())
+
+	assert.NoError(t, Empty[S]().Error())
+	assert.Equal(t, err, EmptyE[S](err).Error())
 }
